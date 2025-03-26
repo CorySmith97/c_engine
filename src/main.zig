@@ -149,7 +149,7 @@ pub fn api_event(ev: [*c]const app.Event) !void {
         const view_proj = math.Mat4.mul(proj, view);
         const inv = math.Mat4.inverse(view_proj);
         const world_space = math.Mat4.mulByVec4(inv, .{ .x = ndc_x, .y = ndc_y, .z = 0, .w = 1 });
-        std.log.info("Mouse Pos: {d:2} {d:2}", .{ world_space.x, world_space.y });
+        _ = world_space;
     }
     if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
         view = math.Mat4.mul(view, math.Mat4.translate(.{ .x = zoom_factor * ev.*.mouse_dx, .y = zoom_factor * -ev.*.mouse_dy, .z = 0 }));
