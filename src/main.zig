@@ -10,152 +10,35 @@ const shd = @import("shaders/basic.glsl.zig");
 const math = @import("math.zig");
 const Camera = @import("camera.zig").Camera;
 const mat4 = math.Mat4;
-const c = @cImport({
-    @cInclude("stb_image.h");
-});
+const RenderPass = @import("renderer.zig").RenderPass;
+const Entity = @import("entity.zig");
 
-pub const SpritesheetId = enum {
-    basic,
-};
-
-fn xorshift32() u32 {
-    const static = struct {
-        var x: u32 = 0x12345678;
-    };
-    var x = static.x;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    static.x = x;
-    return x;
-}
-
-fn rand(min_val: f32, max_val: f32) f32 {
-    return (@as(f32, @floatFromInt(xorshift32() & 0xFFFF)) / 0x10000) * (max_val - min_val) + min_val;
-}
-
-const RenderPass = struct {
-    spritesheet_id: SpritesheetId,
-    spritesheet_height: f32,
-    spritesheet_width: f32,
-    pass_action: sg.PassAction,
-    bindings: sg.Bindings,
-    image: sg.Image,
-    pipeline: sg.Pipeline,
-    batch: [10]math.Vec4,
-    max_sprites_per_batch: u32 = 10,
-    cur_num_of_sprite: u32 = 0,
-
-    pub fn init(self: *RenderPass) void {
-        self.max_sprites_per_batch = 4;
-        const verts = [_]f32{
-            -0.5, 0.5,  0.0, 0.0, 1.0,
-            0.5,  0.5,  0.0, 1.0, 1.0,
-            0.5,  -0.5, 0.0, 1.0, 0.0,
-            -0.5, -0.5, 0.0, 0.0, 0.0,
-        };
-
-        const indices = [_]u16{
-            0, 1, 2,
-            0, 2, 3,
-        };
-        self.bindings.images[shd.IMG_tex2d] = sg.allocImage();
-        self.bindings.samplers[shd.SMP_smp] = sg.makeSampler(.{
-            .min_filter = .NEAREST,
-            .mag_filter = .NEAREST,
-        });
-        self.bindings.vertex_buffers[0] = sg.makeBuffer(.{
-            .type = .VERTEXBUFFER,
-            .data = sg.asRange(&verts),
-        });
-        self.bindings.vertex_buffers[1] = sg.makeBuffer(.{
-            .usage = .STREAM,
-            .size = self.max_sprites_per_batch * @bitSizeOf(math.Vec4),
-        });
-        self.bindings.index_buffer = sg.makeBuffer(.{
-            .type = .INDEXBUFFER,
-            .data = sg.asRange(&indices),
-        });
-
-        self.pipeline = sg.makePipeline(.{
-            .shader = sg.makeShader(shd.basicShaderDesc(sg.queryBackend())),
-            .layout = init: {
-                var l = sg.VertexLayoutState{};
-                l.buffers[1].step_func = .PER_INSTANCE;
-                l.attrs[shd.ATTR_basic_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
-                l.attrs[shd.ATTR_basic_uv_coords] = .{ .format = .FLOAT2, .buffer_index = 0 };
-                l.attrs[shd.ATTR_basic_pos] = .{ .format = .FLOAT4, .buffer_index = 1 };
-                break :init l;
-            },
-            .index_type = .UINT16,
-            .depth = .{
-                .compare = .LESS_EQUAL,
-                .write_enabled = true,
-            },
-            .primitive_type = .TRIANGLE_STRIP,
-        });
-        var x: c_int = 0;
-        var y: c_int = 0;
-        var chan: c_int = 0;
-
-        c.stbi_set_flip_vertically_on_load(1);
-        const data = c.stbi_load("assets/spritesheet-1.png", &x, &y, &chan, 4);
-        sg.initImage(self.bindings.images[shd.IMG_tex2d], .{
-            .width = x,
-            .height = y,
-            .pixel_format = .RGBA8,
-            .data = init: {
-                var idata = sg.ImageData{};
-                idata.subimage[0][0] = .{
-                    .ptr = data,
-                    .size = @as(usize, @intCast(x * y * chan)),
-                };
-                break :init idata;
-            },
-        });
-
-        self.pass_action.colors[0] = .{
-            .load_action = .CLEAR,
-            .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 1 },
-        };
-    }
-
-    pub fn updateBuffers(self: *RenderPass) void {
-        for (0..3) |_| {
-            if (self.cur_num_of_sprite < self.max_sprites_per_batch) {
-                self.batch[self.cur_num_of_sprite] = .{
-                    .x = rand(-2, 2),
-                    .y = rand(-2, 2),
-                    .z = 0,
-                    .a = 0,
-                };
-                self.cur_num_of_sprite += 1;
-            } else {
-                break;
-            }
-        }
-        sg.updateBuffer(
-            self.bindings.vertex_buffers[1],
-            sg.asRange(self.batch[0..self.cur_num_of_sprite]),
-        );
-    }
-
-    pub fn render(self: *RenderPass, vs_params: shd.VsParams, fs_params: shd.FsParams) void {
-        sg.applyPipeline(self.pipeline);
-        sg.applyBindings(self.bindings);
-        sg.applyUniforms(shd.UB_vs_params, sg.asRange(&vs_params));
-        sg.applyUniforms(shd.UB_fs_params, sg.asRange(&fs_params));
-        sg.draw(0, 6, self.cur_num_of_sprite);
-    }
+pub const Input = struct {
+    up: bool = false,
+    down: bool = false,
+    left: bool = false,
+    right: bool = false,
+    forward: bool = false,
+    backwards: bool = false,
 };
 
 var camera: Camera = undefined;
 var view: math.Mat4 = undefined;
 var pass: RenderPass = undefined;
+var tile_pass: RenderPass = undefined;
 var passaction: sg.PassAction = .{};
 var image: sg.Image = .{};
+var input: Input = .{};
 var r: f32 = 0;
-export fn init() void {
+var proj: math.Mat4 = undefined;
+var zoom_factor: f32 = 1;
+
+pub fn api_init() !void {
+    proj = mat4.ortho(-app.widthf() / 2, app.widthf() / 2, -app.heightf() / 2, app.heightf() / 2, -1, 1);
+    view = math.Mat4.identity();
+    const entity: Entity = .{};
+    std.log.info("{any}", .{entity});
+
     sg.setup(.{
         .environment = glue.environment(),
         .logger = .{ .func = slog.func },
@@ -165,22 +48,39 @@ export fn init() void {
         .logger = .{ .func = slog.func },
     });
 
-    pass.init();
+    try pass.init(
+        "assets/spritesheet-1.png",
+        .{ 16, 16 },
+        .{ 256, 256 },
+        std.heap.page_allocator,
+    );
+    try tile_pass.init(
+        "assets/tiles.png",
+        .{ 16, 16 },
+        .{ 256, 256 },
+        std.heap.page_allocator,
+    );
     passaction.colors[0] = .{
         .load_action = .CLEAR,
         .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
     };
     camera = .{
         .up = .{ .x = 0, .y = 1, .z = 0 },
-        .front = .{ .x = 0, .y = 0, .z = 0 },
+        .front = .{ .x = 0, .y = 0, .z = -1 },
         .target = .{ .x = 0, .y = 0, .z = 0 },
-        .pos = .{ .x = 0, .y = 0, .z = -10 },
+        .pos = .{ .x = 0, .y = 0, .z = 1 },
         .vel = .{ .x = 0, .y = 0, .z = 0 },
     };
-    view = math.Mat4.lookat(camera.pos, math.Vec3.zero(), camera.up);
 }
 
-export fn frame() void {
+pub fn api_frame() !void {
+    if (input.forward) {
+        camera.pos.z += 0.1;
+    }
+    if (input.backwards) {
+        camera.pos.z -= 0.1;
+    }
+    //view = math.Mat4.lookat(camera.pos, camera.pos.add(camera.front), camera.up);
     const alloc = std.heap.page_allocator;
     const text = std.fmt.allocPrint(alloc,
         \\R: {}
@@ -199,34 +99,96 @@ export fn frame() void {
     ig.igSetNextWindowSize(.{ .x = 400, .y = 100 }, ig.ImGuiCond_Once);
     _ = ig.igBegin("Hello Dear ImGui!", 0, ig.ImGuiWindowFlags_None);
     ig.igText(text.ptr);
-    if (ig.igButton("Increment R")) {
-        r += 1;
+    if (ig.igButton("reset view")) {
+        view = math.Mat4.identity();
+        proj = mat4.ortho(-app.widthf() / 2, app.widthf() / 2, -app.heightf() / 2, app.heightf() / 2, -1, 1);
     }
     ig.igEnd();
     //=== UI CODE ENDS HERE
-    //
-
+    r += 1;
     pass.updateBuffers();
+    tile_pass.updateBuffers();
     const vs_params = computeVsParams(1.0, r);
-    const fs_params = shd.FsParams{
-        .atlas_size = .{ 256, 256 },
-        .sprite_size = .{ 16, 16 },
-    };
 
     // call simgui.render() inside a sokol-sg pass
     sg.beginPass(.{ .action = passaction, .swapchain = glue.swapchain() });
-    pass.render(vs_params, fs_params);
+    pass.render(vs_params);
+    tile_pass.render(vs_params);
     imgui.render();
     sg.endPass();
     sg.commit();
 }
 
-export fn cleanup() void {
+pub fn api_cleanup() !void {
     imgui.shutdown();
 }
-export fn event(ev: [*c]const app.Event) void {
+
+pub fn api_event(ev: [*c]const app.Event) !void {
+    const eve = ev.*;
     // forward input events to sokol-imgui
     _ = imgui.handleEvent(ev.*);
+    if (eve.type == .MOUSE_SCROLL) {
+        if (eve.scroll_y > 0 and zoom_factor < 5) {
+            zoom_factor += 0.15;
+        }
+        if (eve.scroll_y < 0 and zoom_factor > 0) {
+            zoom_factor -= 0.15;
+        }
+        proj = mat4.ortho(
+            -app.widthf() / 2 * zoom_factor,
+            app.widthf() / 2 * zoom_factor,
+            -app.heightf() / 2 * zoom_factor,
+            app.heightf() / 2 * zoom_factor,
+            -1,
+            1,
+        );
+    }
+    if (ev.*.type == .MOUSE_MOVE) {
+        const ndc_x = (eve.mouse_x / app.widthf()) * 2.0 - 1.0;
+        const ndc_y = 1.0 - (eve.mouse_y / app.heightf()) * 2.0;
+        const view_proj = math.Mat4.mul(proj, view);
+        const inv = math.Mat4.inverse(view_proj);
+        const world_space = math.Mat4.mulByVec4(inv, .{ .x = ndc_x, .y = ndc_y, .z = 0, .w = 1 });
+        std.log.info("Mouse Pos: {d:2} {d:2}", .{ world_space.x, world_space.y });
+    }
+    if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
+        view = math.Mat4.mul(view, math.Mat4.translate(.{ .x = zoom_factor * ev.*.mouse_dx, .y = zoom_factor * -ev.*.mouse_dy, .z = 0 }));
+    }
+    if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
+        const mouse_pressed = ev.*.type == .MOUSE_DOWN;
+        switch (ev.*.mouse_button) {
+            .MIDDLE => mouse_middle_down = mouse_pressed,
+
+            else => {},
+        }
+    }
+
+    if (ev.*.type == .KEY_UP or ev.*.type == .KEY_DOWN) {
+        const key_pressed = ev.*.type == .KEY_DOWN;
+        switch (ev.*.key_code) {
+            .W => input.forward = key_pressed,
+            .S => input.backwards = key_pressed,
+            .A => input.left = key_pressed,
+            .D => input.right = key_pressed,
+            .ESCAPE => app.quit(),
+            else => {},
+        }
+    }
+}
+export fn init() void {
+    api_init() catch unreachable;
+}
+
+export fn frame() void {
+    api_frame() catch unreachable;
+}
+
+export fn cleanup() void {
+    api_cleanup() catch unreachable;
+}
+var mouse_middle_down: bool = false;
+export fn event(ev: [*c]const app.Event) void {
+    api_event(ev) catch unreachable;
 }
 
 pub fn main() !void {
@@ -242,10 +204,13 @@ pub fn main() !void {
 }
 
 fn computeVsParams(rx: f32, ry: f32) shd.VsParams {
-    const rxm = mat4.rotate(rx, .{ .x = 1.0, .y = 0.0, .z = 0.0 });
-    const rym = mat4.rotate(ry, .{ .x = 0.0, .y = 1.0, .z = 0.0 });
-    const model = mat4.mul(rxm, rym);
-    const aspect = app.widthf() / app.heightf();
-    const proj = mat4.persp(60.0, aspect, 0.01, 50.0);
+    _ = rx;
+    _ = ry;
+    const model = mat4.identity();
+    //const rxm = mat4.rotate(rx, .{ .x = 1.0, .y = 0.0, .z = 0.0 });
+    //const rym = mat4.rotate(ry, .{ .x = 0.0, .y = 1.0, .z = 0.0 });
+    //const model = mat4.mul(rxm, rym);
+    //const aspect = app.widthf() / app.heightf();
+    //const proj = mat4.persp(60, aspect, 0.01, 100);
     return shd.VsParams{ .mvp = mat4.mul(mat4.mul(proj, view), model) };
 }

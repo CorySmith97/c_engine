@@ -14,7 +14,7 @@ out vec2 uv;
 out float id;
 
 void main() {
-    gl_Position = mvp * vec4(position + pos.xyz, 1.0);
+    gl_Position = mvp * vec4((position * 16) + pos.xyz, 1.0);
     id = pos.a;
     uv = uv_coords;
 }

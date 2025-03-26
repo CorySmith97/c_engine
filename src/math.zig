@@ -17,14 +17,14 @@ pub const Vec4 = extern struct {
     x: f32,
     y: f32,
     z: f32,
-    a: f32,
+    w: f32,
 
     pub fn zero() Vec4 {
-        return Vec4{ .x = 0.0, .y = 0.0, .z = 0.0, .a = 0.0 };
+        return Vec4{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 0.0 };
     }
 
-    pub fn new(x: f32, y: f32, z: f32, a: f32) Vec4 {
-        return Vec4{ .x = x, .y = y, .z = z, .a = a };
+    pub fn new(x: f32, y: f32, z: f32, w: f32) Vec4 {
+        return Vec4{ .x = x, .y = y, .z = z, .w = w };
     }
 };
 pub const Vec2 = extern struct {
@@ -121,6 +121,14 @@ pub const Mat4 = extern struct {
         return res;
     }
 
+    pub fn scale(scalar: Vec3) Mat4 {
+        var res = Mat4.identity();
+        res.m[0][0] = scalar.x;
+        res.m[1][1] = scalar.y;
+        res.m[2][2] = scalar.z;
+        return res;
+    }
+
     pub fn persp(fov: f32, aspect: f32, near: f32, far: f32) Mat4 {
         var res = Mat4.identity();
         const t = math.tan(fov * (math.pi / 360.0));
@@ -187,6 +195,75 @@ pub const Mat4 = extern struct {
         res.m[3][1] = translation.y;
         res.m[3][2] = translation.z;
         return res;
+    }
+
+    pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) Mat4 {
+        var res = Mat4.identity();
+        res.m[0][0] = 2.0 / (right - left);
+        res.m[1][1] = 2.0 / (top - bottom);
+        res.m[2][2] = -2.0 / (far - near);
+        res.m[3][0] = -(right + left) / (right - left);
+        res.m[3][1] = -(top + bottom) / (top - bottom);
+        res.m[3][2] = (far + near) / (far - near);
+        res.m[3][3] = 1;
+        return res;
+    }
+
+    pub fn mulByVec4(mat: Mat4, vec: Vec4) Vec4 {
+        return Vec4{
+            .x = mat.m[0][0] * vec.x + mat.m[1][0] * vec.y + mat.m[2][0] * vec.z + mat.m[3][0] * vec.w,
+            .y = mat.m[0][1] * vec.x + mat.m[1][1] * vec.y + mat.m[2][1] * vec.z + mat.m[3][1] * vec.w,
+            .z = mat.m[0][2] * vec.x + mat.m[1][2] * vec.y + mat.m[2][2] * vec.z + mat.m[3][2] * vec.w,
+            .w = mat.m[0][3] * vec.x + mat.m[1][3] * vec.y + mat.m[2][3] * vec.z + mat.m[3][3] * vec.w,
+        };
+    }
+
+    pub fn inverse(mat: Mat4) Mat4 {
+        var inv: [16]f32 = undefined;
+        const m = &mat.m;
+
+        inv[0] = m[1][1] * m[2][2] * m[3][3] - m[1][1] * m[2][3] * m[3][2] - m[2][1] * m[1][2] * m[3][3] +
+            m[2][1] * m[1][3] * m[3][2] + m[3][1] * m[1][2] * m[2][3] - m[3][1] * m[1][3] * m[2][2];
+
+        inv[4] = -m[1][0] * m[2][2] * m[3][3] + m[1][0] * m[2][3] * m[3][2] + m[2][0] * m[1][2] * m[3][3] -
+            m[2][0] * m[1][3] * m[3][2] - m[3][0] * m[1][2] * m[2][3] + m[3][0] * m[1][3] * m[2][2];
+
+        inv[8] = m[1][0] * m[2][1] * m[3][3] - m[1][0] * m[2][3] * m[3][1] - m[2][0] * m[1][1] * m[3][3] +
+            m[2][0] * m[1][3] * m[3][1] + m[3][0] * m[1][1] * m[2][3] - m[3][0] * m[1][3] * m[2][1];
+
+        inv[12] = -m[1][0] * m[2][1] * m[3][2] + m[1][0] * m[2][2] * m[3][1] + m[2][0] * m[1][1] * m[3][2] -
+            m[2][0] * m[1][2] * m[3][1] - m[3][0] * m[1][1] * m[2][2] + m[3][0] * m[1][2] * m[2][1];
+
+        const det = m[0][0] * inv[0] + m[0][1] * inv[4] + m[0][2] * inv[8] + m[0][3] * inv[12];
+
+        if (det == 0.0) {
+            return Mat4.identity(); // Non-invertible matrix
+        }
+
+        const inv_det = 1.0 / det;
+
+        for (0..4) |i| {
+            for (0..4) |j| {
+                const idx = i * 4 + j;
+                if (idx != 0 and idx != 4 and idx != 8 and idx != 12) {
+                    inv[idx] = (m[(j + 1) % 4][(i + 1) % 4] * (m[(j + 2) % 4][(i + 2) % 4] * m[(j + 3) % 4][(i + 3) % 4] -
+                        m[(j + 2) % 4][(i + 3) % 4] * m[(j + 3) % 4][(i + 2) % 4]) -
+                        m[(j + 1) % 4][(i + 2) % 4] * (m[(j + 2) % 4][(i + 1) % 4] * m[(j + 3) % 4][(i + 3) % 4] -
+                            m[(j + 2) % 4][(i + 3) % 4] * m[(j + 3) % 4][(i + 1) % 4]) +
+                        m[(j + 1) % 4][(i + 3) % 4] * (m[(j + 2) % 4][(i + 1) % 4] * m[(j + 3) % 4][(i + 2) % 4] -
+                            m[(j + 2) % 4][(i + 2) % 4] * m[(j + 3) % 4][(i + 1) % 4]));
+                }
+            }
+        }
+
+        var inv_mat = Mat4.zero();
+        for (0..4) |col| {
+            for (0..4) |row| {
+                inv_mat.m[col][row] = inv[col * 4 + row] * inv_det;
+            }
+        }
+
+        return inv_mat;
     }
 };
 

@@ -1,0 +1,170 @@
+const std = @import("std");
+const sokol = @import("sokol");
+const math = @import("math.zig");
+const shd = @import("shaders/basic.glsl.zig");
+const c = @cImport({
+    @cInclude("stb_image.h");
+});
+const sg = sokol.gfx;
+
+pub const SpriteRenderable = extern struct {
+    pos: math.Vec3,
+    sprite_id: f32,
+};
+
+fn xorshift32() u32 {
+    const static = struct {
+        var x: u32 = 0x12345678;
+    };
+    var x = static.x;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    static.x = x;
+    return x;
+}
+
+fn rand(min_val: f32, max_val: f32) f32 {
+    return (@as(f32, @floatFromInt(xorshift32() & 0xFFFF)) / 0x10000) * (max_val - min_val) + min_val;
+}
+
+pub const RenderPass = struct {
+    pass_action: sg.PassAction,
+    bindings: sg.Bindings,
+    image: sg.Image,
+    pipeline: sg.Pipeline,
+    batch: std.ArrayList(SpriteRenderable),
+    cur_num_of_sprite: u32 = 0,
+    max_sprites_per_batch: u32,
+    sprite_size: [2]f32,
+    atlas_size: [2]f32,
+
+    pub fn init(
+        self: *RenderPass,
+        spritesheet_path: []const u8,
+        sprite_size: [2]f32,
+        atlas_size: [2]f32,
+        allocator: std.mem.Allocator,
+    ) !void {
+        self.max_sprites_per_batch = 100;
+        self.batch = try std.ArrayList(SpriteRenderable).initCapacity(allocator, 100);
+        self.sprite_size = sprite_size;
+        self.atlas_size = atlas_size;
+
+        const verts = [_]f32{
+            0, 1, 0.0, 0.0, 1.0,
+            1, 1, 0.0, 1.0, 1.0,
+            1, 0, 0.0, 1.0, 0.0,
+            0, 0, 0.0, 0.0, 0.0,
+        };
+
+        const indices = [_]u16{
+            0, 1, 2,
+            0, 2, 3,
+        };
+        self.bindings.images[shd.IMG_tex2d] = sg.allocImage();
+        self.bindings.samplers[shd.SMP_smp] = sg.makeSampler(.{
+            .min_filter = .NEAREST,
+            .mag_filter = .NEAREST,
+        });
+        self.bindings.vertex_buffers[0] = sg.makeBuffer(.{
+            .type = .VERTEXBUFFER,
+            .data = sg.asRange(&verts),
+        });
+        self.bindings.vertex_buffers[1] = sg.makeBuffer(.{
+            .usage = .STREAM,
+            .size = self.max_sprites_per_batch * @bitSizeOf(SpriteRenderable),
+        });
+        self.bindings.index_buffer = sg.makeBuffer(.{
+            .type = .INDEXBUFFER,
+            .data = sg.asRange(&indices),
+        });
+
+        self.pipeline = sg.makePipeline(.{
+            .shader = sg.makeShader(shd.basicShaderDesc(sg.queryBackend())),
+            .layout = init: {
+                var l = sg.VertexLayoutState{};
+                l.buffers[1].step_func = .PER_INSTANCE;
+                l.attrs[shd.ATTR_basic_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
+                l.attrs[shd.ATTR_basic_uv_coords] = .{ .format = .FLOAT2, .buffer_index = 0 };
+                l.attrs[shd.ATTR_basic_pos] = .{ .format = .FLOAT4, .buffer_index = 1 };
+                break :init l;
+            },
+            .index_type = .UINT16,
+        });
+        var x: c_int = 0;
+        var y: c_int = 0;
+        var chan: c_int = 0;
+
+        c.stbi_set_flip_vertically_on_load(1);
+        const data = c.stbi_load(spritesheet_path.ptr, &x, &y, &chan, 4);
+
+        sg.initImage(self.bindings.images[shd.IMG_tex2d], .{
+            .width = x,
+            .height = y,
+            .pixel_format = .RGBA8,
+            .data = init: {
+                var idata = sg.ImageData{};
+                idata.subimage[0][0] = .{
+                    .ptr = data,
+                    .size = @as(usize, @intCast(x * y * chan)),
+                };
+                break :init idata;
+            },
+        });
+
+        self.pass_action.colors[0] = .{
+            .load_action = .CLEAR,
+            .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 1 },
+        };
+    }
+
+    pub fn appendSpriteSliceToBatch(
+        self: *RenderPass,
+        sprite: []SpriteRenderable,
+    ) !void {
+        try self.batch.appendSliceAssumeCapacity(sprite);
+        self.cur_num_of_sprite = sprite.len;
+    }
+    pub fn appendSpriteToBatch(
+        self: *RenderPass,
+        sprite: SpriteRenderable,
+    ) !void {
+        try self.batch.append(sprite);
+        self.cur_num_of_sprite += 1;
+    }
+
+    pub fn updateBuffers(self: *RenderPass) void {
+        for (0..100) |_| {
+            if (self.cur_num_of_sprite < self.max_sprites_per_batch) {
+                self.batch.insert(self.cur_num_of_sprite, .{
+                    .pos = .{
+                        .x = rand(0, 400),
+                        .y = rand(100, 400),
+                        .z = 0,
+                    },
+                    .sprite_id = 0,
+                }) catch unreachable;
+                self.cur_num_of_sprite += 1;
+            } else {
+                break;
+            }
+        }
+        sg.updateBuffer(
+            self.bindings.vertex_buffers[1],
+            sg.asRange(self.batch.items[0..self.cur_num_of_sprite]),
+        );
+    }
+
+    pub fn render(self: *RenderPass, vs_params: shd.VsParams) void {
+        const fs_params = shd.FsParams{
+            .atlas_size = self.atlas_size,
+            .sprite_size = self.sprite_size,
+        };
+        sg.applyPipeline(self.pipeline);
+        sg.applyBindings(self.bindings);
+        sg.applyUniforms(shd.UB_vs_params, sg.asRange(&vs_params));
+        sg.applyUniforms(shd.UB_fs_params, sg.asRange(&fs_params));
+        sg.draw(0, 6, self.cur_num_of_sprite);
+    }
+};
