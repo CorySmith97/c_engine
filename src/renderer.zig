@@ -2,10 +2,14 @@ const std = @import("std");
 const sokol = @import("sokol");
 const math = @import("math.zig");
 const shd = @import("shaders/basic.glsl.zig");
-const c = @cImport({
+const cim = @cImport({
     @cInclude("stb_image.h");
 });
 const sg = sokol.gfx;
+
+const Self = @This();
+allocator: std.mem.Allocator,
+render_passes: std.ArrayList(RenderPass),
 
 pub const SpriteRenderable = extern struct {
     pos: math.Vec3,
@@ -38,6 +42,7 @@ pub const RenderPass = struct {
     max_sprites_per_batch: u32,
     sprite_size: [2]f32,
     atlas_size: [2]f32,
+    path: []const u8,
 
     pub fn init(
         self: *RenderPass,
@@ -46,10 +51,12 @@ pub const RenderPass = struct {
         atlas_size: [2]f32,
         allocator: std.mem.Allocator,
     ) !void {
+        self.cur_num_of_sprite = 0;
         self.max_sprites_per_batch = 100;
         self.batch = try std.ArrayList(SpriteRenderable).initCapacity(allocator, 100);
         self.sprite_size = sprite_size;
         self.atlas_size = atlas_size;
+        self.path = spritesheet_path;
 
         const verts = [_]f32{
             0, 1, 0.0, 0.0, 1.0,
@@ -62,6 +69,7 @@ pub const RenderPass = struct {
             0, 1, 2,
             0, 2, 3,
         };
+        self.bindings = .{};
         self.bindings.images[shd.IMG_tex2d] = sg.allocImage();
         self.bindings.samplers[shd.SMP_smp] = sg.makeSampler(.{
             .min_filter = .NEAREST,
@@ -91,13 +99,25 @@ pub const RenderPass = struct {
                 break :init l;
             },
             .index_type = .UINT16,
+            .cull_mode = .BACK,
+            .sample_count = 1,
+            .depth = .{
+                .pixel_format = .DEPTH,
+                .compare = .LESS_EQUAL,
+                .write_enabled = true,
+            },
+            .colors = init: {
+                var c: [4]sg.ColorTargetState = @splat(.{});
+                c[0].pixel_format = .RGBA8;
+                break :init c;
+            },
         });
         var x: c_int = 0;
         var y: c_int = 0;
         var chan: c_int = 0;
 
-        c.stbi_set_flip_vertically_on_load(1);
-        const data = c.stbi_load(spritesheet_path.ptr, &x, &y, &chan, 4);
+        cim.stbi_set_flip_vertically_on_load(1);
+        const data = cim.stbi_load(spritesheet_path.ptr, &x, &y, &chan, 4);
 
         sg.initImage(self.bindings.images[shd.IMG_tex2d], .{
             .width = x,
@@ -134,16 +154,19 @@ pub const RenderPass = struct {
         self.cur_num_of_sprite += 1;
     }
 
-    pub fn updateBuffers(self: *RenderPass) void {
-        for (0..100) |_| {
+    pub fn updateBuffers(self: *RenderPass, s: f32) void {
+        self.batch.clearRetainingCapacity();
+        self.cur_num_of_sprite = 0;
+        for (0..100) |i| {
+            const f: f32 = @floatFromInt(i);
             if (self.cur_num_of_sprite < self.max_sprites_per_batch) {
                 self.batch.insert(self.cur_num_of_sprite, .{
                     .pos = .{
-                        .x = rand(0, 400),
-                        .y = rand(100, 400),
+                        .x = @mod(f, 10) * 16,
+                        .y = @floor((f / 10.0)) * 16,
                         .z = 0,
                     },
-                    .sprite_id = 0,
+                    .sprite_id = s,
                 }) catch unreachable;
                 self.cur_num_of_sprite += 1;
             } else {

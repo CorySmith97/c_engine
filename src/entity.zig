@@ -34,7 +34,7 @@ pub fn init(
     _ = e_type;
 }
 
-pub fn toSpriteRenderable(self: *Self) SpriteRenderable {
+pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
     return .{
         .pos = .{
             .x = self.pos.x,

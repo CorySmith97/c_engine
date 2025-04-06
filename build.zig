@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) void {
     });
 
     // inject the cimgui header search path into the sokol C library compile step
-    dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src"));
+    dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src-docking"));
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
         // `root_source_file` is the Zig "entry point" of the module. If a module

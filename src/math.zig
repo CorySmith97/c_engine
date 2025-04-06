@@ -14,10 +14,10 @@ fn radians(deg: f32) f32 {
 }
 
 pub const Vec4 = extern struct {
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
+    x: f32 = 0,
+    y: f32 = 0,
+    z: f32 = 0,
+    w: f32 = 0,
 
     pub fn zero() Vec4 {
         return Vec4{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 0.0 };

@@ -19,9 +19,9 @@
             .url = "git+https://github.com/floooh/sokol-zig.git#20129edbfbd1fc4347f293e67fb5bb9b905f51cf",
             .hash = "sokol-0.1.0-pb1HK8eOOQDLJmFo5VGGCVo2GxDm27dSsTHX8rsVb2bJ",
         },
-                .cimgui = .{
-            .url = "git+https://github.com/floooh/dcimgui.git#387dd2b3dcbb3380ad35b8efa54624564ecfd759",
-            .hash = "cimgui-0.1.0-44ClkVShhQApVaApfb_mhXPpp08yqiB3zIBR0WYjbwwI",
+        .cimgui = .{
+            .url = "git+https://github.com/CorySmith97/dcimgui.git#f0ccc21e96c10743afe6da24325c1f366c6c6615",
+            .hash = "cimgui-0.1.0-44ClkWWAhgBRU_t_bQRuBd2fcxTA9STCdUcW13lIrTWT",
         },
     },
     .paths = .{
