@@ -3,6 +3,6 @@ zig-out/
 .zig-cache/
 sokol-shdc
 .DS_Store
-libs/lua/docs/
+libs/lua/doc/
 libs/lua/src/
 libs/lua/README.md
