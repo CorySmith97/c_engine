@@ -2,6 +2,7 @@ const std = @import("std");
 const Entity = @import("entity.zig");
 const Tile = @import("tile.zig");
 const Renderer = @import("renderer.zig");
+const assert = std.debug.assert;
 
 /// There is a lot for this class. The main idea is that we construct
 /// scenes similar to the way Godot handles scenes, but some more simple.
@@ -89,6 +90,7 @@ pub fn renderScene(self: *Self) void {
 }
 
 pub fn loadSceneToBinary(self: *Self, file_name: []const u8) !void {
+    assert(file_name.len > 0);
     _ = self;
     var level_dir = try std.fs.cwd().openDir("levels", .{});
 
@@ -107,6 +109,7 @@ pub fn loadSceneToBinary(self: *Self, file_name: []const u8) !void {
 }
 
 pub fn writeSceneToBinary(self: *Self, file_name: []const u8) !void {
+    assert(file_name.len > 0);
     var level_dir = try std.fs.cwd().openDir("levels", .{});
 
     var file = try level_dir.createFile(file_name, .{});

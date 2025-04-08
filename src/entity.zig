@@ -14,7 +14,7 @@ const AABB = struct {
 };
 
 const Self = @This();
-id: u32 = 0,
+id: u32 = 10,
 z_index: f32 = 0,
 entity_type: EntityType = .default,
 pos: math.Vec2 = math.Vec2.zero(),
@@ -23,7 +23,7 @@ aabb: AABB = .{
     .min = math.Vec2.zero(),
     .max = math.Vec2.zero(),
 },
-lua_script: []const u8,
+lua_script: []const u8 = "",
 // FLAGS
 selected: bool = false,
 

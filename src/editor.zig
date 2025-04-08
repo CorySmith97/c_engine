@@ -1,3 +1,7 @@
+/// === EDITOR ===
+/// This is the entire editor in a single file basically.
+/// It may be split apart later, but for now its completely
+/// fine.
 const std = @import("std");
 const ig = @import("cimgui");
 const sokol = @import("sokol");
@@ -204,7 +208,11 @@ pub fn frame() !void {
                 }
             }
             tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
+
+            _ = ig.igCheckbox("Spawner", &tile.spawner);
+            _ = ig.igCheckbox("Traversable", &tile.traversable);
             scene.tiles.set(s, tile);
+
             try state.passes[0].updateSpriteRenderables(s, tile.sprite_renderable);
         }
     }

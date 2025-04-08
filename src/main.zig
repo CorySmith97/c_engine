@@ -16,7 +16,7 @@ const State = @import("state.zig");
 const Scene = @import("scene.zig");
 const Editor = @import("editor.zig");
 
-pub fn api_init() !void {
+pub fn gameinit() !void {
     sg.setup(.{
         .environment = glue.environment(),
         .logger = .{ .func = slog.func },
@@ -28,13 +28,28 @@ pub fn api_init() !void {
     });
 }
 
-pub fn api_frame() !void {
+pub fn gameframe() !void {
     sg.commit();
 }
-pub fn api_cleanup() !void {}
-pub fn api_event(ev: [*c]const app.Event) !void {
+pub fn gamecleanup() !void {}
+pub fn gameevent(ev: [*c]const app.Event) !void {
     _ = imgui.handleEvent(ev.*);
 }
+export fn init() void {
+    gameinit() catch unreachable;
+}
+
+export fn frame() void {
+    gameframe() catch unreachable;
+}
+
+export fn cleanup() void {
+    gamecleanup() catch unreachable;
+}
+export fn event(ev: [*c]const app.Event) void {
+    gameevent(ev) catch unreachable;
+}
+
 export fn einit() void {
     Editor.init() catch unreachable;
 }
@@ -48,20 +63,6 @@ export fn ecleanup() void {
 }
 export fn eevent(ev: [*c]const app.Event) void {
     Editor.event(ev) catch unreachable;
-}
-export fn init() void {
-    api_init() catch unreachable;
-}
-
-export fn frame() void {
-    api_frame() catch unreachable;
-}
-
-export fn cleanup() void {
-    api_cleanup() catch unreachable;
-}
-export fn event(ev: [*c]const app.Event) void {
-    api_event(ev) catch unreachable;
 }
 
 pub fn main() !void {

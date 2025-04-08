@@ -5,6 +5,7 @@ const shd = @import("shaders/basic.glsl.zig");
 const math = @import("math.zig");
 const Entity = @import("entity.zig");
 
+/// === GLOBAL STATE ===
 const Self = @This();
 allocator: std.mem.Allocator,
 passes: []RenderPass,

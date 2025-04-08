@@ -5,8 +5,33 @@ pub const c = @cImport({
     @cInclude("lualib.h");
 });
 
+const Entity = @import("entity.zig");
+
+var e: Entity = .{};
+
 const Self = @This();
 state: ?*c.lua_State,
+
+export fn getId(state: ?*c.lua_State) c_int {
+    // Get the entity from the upvalue
+    const entity_ptr = c.lua_touserdata(state, c.lua_upvalueindex(1));
+    const entity: *Entity = @ptrCast(@alignCast(entity_ptr));
+    c.lua_pushinteger(state, @intCast(entity.id));
+    return 1;
+}
+
+export fn testIndex(state: ?*c.lua_State) void {
+    // Create a table that will be our API
+    c.lua_newtable(state);
+
+    // Setup the getId function with entity as upvalue
+    c.lua_pushlightuserdata(state, &e);
+    c.lua_pushcclosure(state, getId, 1);
+    c.lua_setfield(state, -2, "getId");
+
+    // Set the table as a global named "entity"
+    c.lua_setglobal(state, "entity");
+}
 
 pub fn luaTest() !void {
     const lua_state = c.luaL_newstate();
@@ -16,6 +41,7 @@ pub fn luaTest() !void {
 
     // Open standard Lua libraries (math, string, etc.)
     c.luaL_openlibs(lua_state);
+    testIndex(lua_state);
 
     var buf: [4096]u8 = undefined;
     var file = try std.fs.cwd().openFile("src/scripts/test.lua", .{});

@@ -15,4 +15,6 @@ local function even_fibo()
 end
 
 local fib = even_fibo()
-print(fib)
+print("This is the fibinacci number called from lua", fib)
+
+print("Entity id", entity.getId())
