@@ -9,14 +9,17 @@ layout(binding=0) uniform vs_params {
 in vec3 position;
 in vec2 uv_coords;
 in vec4 pos;
+in vec4 color;
 
 out vec2 uv;
 out float id;
+out vec4 ocolor;
 
 void main() {
     gl_Position = mvp * vec4((position * 16) + pos.xyz, 1.0);
     id = pos.a;
     uv = uv_coords;
+    ocolor = color;
 }
 @end
 
@@ -30,6 +33,7 @@ layout(binding=1) uniform fs_params {
 
 in vec2 uv;
 in float id;
+in vec4 ocolor;
 
 out vec4 frag_color;
 
@@ -46,10 +50,11 @@ void main() {
 
     vec4 original = texture(sampler2D(tex2d, smp), sprite_uv);
 
-    if (original.a < 0.1) {
-        discard;
-    }
-    frag_color = original;
+    vec4 finalColor = (original.a > 0.1)
+        ? original : ocolor;
+
+
+    frag_color = finalColor;
 }
 @end
 

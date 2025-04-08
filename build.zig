@@ -46,9 +46,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    // inject the cimgui header search path into the sokol C library compile step
     dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src-docking"));
-    // We will also create a module for our other entry point, 'main.zig'.
+
     const exe_mod = b.createModule(.{
         // `root_source_file` is the Zig "entry point" of the module. If a module
         // only contains e.g. external object files, you can make this `null`.
@@ -80,8 +79,15 @@ pub fn build(b: *std.Build) void {
             "-std=c23",
         },
     });
+    exe.addLibraryPath(b.path("libs/lua/install/lib"));
+    exe.linkSystemLibrary("lua");
     exe.addIncludePath(b.path("libs/"));
+    exe.addIncludePath(b.path("libs/lua/install/include"));
     exe.installHeader(b.path("libs/stb_image.h"), "stb_image.h");
+    exe.installHeader(b.path("libs/lua/install/include/lua.h"), "lua.h");
+    exe.installHeader(b.path("libs/lua/install/include/lualib.h"), "lualib.h");
+    exe.installHeader(b.path("libs/lua/install/include/lauxlib.h"), "lauxlib.h");
+    exe.installHeader(b.path("libs/lua/install/include/luaconf.h"), "luaconf.h");
 
     exe.root_module.addImport("sokol", dep_sokol.module("sokol"));
 

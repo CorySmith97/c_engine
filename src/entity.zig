@@ -23,6 +23,7 @@ aabb: AABB = .{
     .min = math.Vec2.zero(),
     .max = math.Vec2.zero(),
 },
+lua_script: []const u8,
 // FLAGS
 selected: bool = false,
 

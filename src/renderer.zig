@@ -14,6 +14,7 @@ render_passes: std.ArrayList(RenderPass),
 pub const SpriteRenderable = extern struct {
     pos: math.Vec3,
     sprite_id: f32,
+    color: math.Vec4,
 };
 
 fn xorshift32() u32 {
@@ -96,6 +97,7 @@ pub const RenderPass = struct {
                 l.attrs[shd.ATTR_basic_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
                 l.attrs[shd.ATTR_basic_uv_coords] = .{ .format = .FLOAT2, .buffer_index = 0 };
                 l.attrs[shd.ATTR_basic_pos] = .{ .format = .FLOAT4, .buffer_index = 1 };
+                l.attrs[shd.ATTR_basic_color] = .{ .format = .FLOAT4, .buffer_index = 1 };
                 break :init l;
             },
             .index_type = .UINT16,
@@ -154,25 +156,11 @@ pub const RenderPass = struct {
         self.cur_num_of_sprite += 1;
     }
 
-    pub fn updateBuffers(self: *RenderPass, s: f32) void {
-        self.batch.clearRetainingCapacity();
-        self.cur_num_of_sprite = 0;
-        for (0..100) |i| {
-            const f: f32 = @floatFromInt(i);
-            if (self.cur_num_of_sprite < self.max_sprites_per_batch) {
-                self.batch.insert(self.cur_num_of_sprite, .{
-                    .pos = .{
-                        .x = @mod(f, 10) * 16,
-                        .y = @floor((f / 10.0)) * 16,
-                        .z = 0,
-                    },
-                    .sprite_id = s,
-                }) catch unreachable;
-                self.cur_num_of_sprite += 1;
-            } else {
-                break;
-            }
-        }
+    pub fn updateSpriteRenderables(self: *RenderPass, index: usize, sprite: SpriteRenderable) !void {
+        self.batch.items[index] = sprite;
+    }
+
+    pub fn updateBuffers(self: *RenderPass) void {
         sg.updateBuffer(
             self.bindings.vertex_buffers[1],
             sg.asRange(self.batch.items[0..self.cur_num_of_sprite]),

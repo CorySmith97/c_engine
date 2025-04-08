@@ -19,6 +19,13 @@ pub const Vec4 = extern struct {
     z: f32 = 0,
     w: f32 = 0,
 
+    pub fn toArray(self: *const Vec4) [4]f32 {
+        return .{ self.x, self.y, self.z, self.w };
+    }
+
+    pub fn fromArray(arr: [4]f32) Vec4 {
+        return .{ .x = arr[0], .y = arr[1], .z = arr[2], .w = arr[3] };
+    }
     pub fn zero() Vec4 {
         return Vec4{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 0.0 };
     }
