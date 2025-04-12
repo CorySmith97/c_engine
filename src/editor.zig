@@ -16,7 +16,7 @@ const mat4 = math.Mat4;
 const State = @import("state.zig");
 const Scene = @import("scene.zig");
 const util = @import("util.zig");
-const Lua = @import("lua.zig");
+const Lua = @import("scripting/lua.zig");
 
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
@@ -60,6 +60,7 @@ var is_mouse_in_scene: bool = false;
 var scene: Scene = undefined;
 var state: State = undefined;
 const allocator = std.heap.page_allocator;
+var buf: [8192]u8 = undefined;
 
 pub fn init() !void {
     try Lua.luaTest();
@@ -174,6 +175,9 @@ pub fn frame() !void {
 
     // Editor for Entity
     _ = ig.igBegin("Entity Editor", 0, ig.ImGuiWindowFlags_None);
+    if (ig.igInputText("New level", &buf, buf.len, ig.ImGuiWindowFlags_None)) {
+        std.log.info("{s}, len: {}", .{ buf[0.. :0], buf.len });
+    }
     if (state.selected_entity) |s| {
         if (state.selected_entity_click) {
             var tile = scene.tiles.get(s);

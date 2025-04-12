@@ -3,6 +3,7 @@ const Entity = @import("entity.zig");
 const Tile = @import("tile.zig");
 const Renderer = @import("renderer.zig");
 const assert = std.debug.assert;
+const testing = std.testing;
 
 /// There is a lot for this class. The main idea is that we construct
 /// scenes similar to the way Godot handles scenes, but some more simple.
@@ -140,4 +141,8 @@ pub fn writeSceneToBinary(self: *Self, file_name: []const u8) !void {
 pub fn deloadScene(self: *Self, allocator: std.mem.Allocator) void {
     self.entities.deinit(allocator);
     self.tiles.deinit(allocator);
+}
+
+test "Scene serde" {
+    try testing.expect(1 == 1);
 }

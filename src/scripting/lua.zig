@@ -5,7 +5,7 @@ pub const c = @cImport({
     @cInclude("lualib.h");
 });
 
-const Entity = @import("entity.zig");
+const Entity = @import("../entity.zig");
 
 var e: Entity = .{};
 
