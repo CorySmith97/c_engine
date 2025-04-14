@@ -1,9 +1,10 @@
 const std = @import("std");
-const Entity = @import("entity.zig");
-const Tile = @import("tile.zig");
-const Renderer = @import("renderer.zig");
 const assert = std.debug.assert;
 const testing = std.testing;
+
+const Entity = @import("entity.zig");
+const Renderer = @import("renderer.zig");
+const Tile = @import("tile.zig");
 
 /// There is a lot for this class. The main idea is that we construct
 /// scenes similar to the way Godot handles scenes, but some more simple.

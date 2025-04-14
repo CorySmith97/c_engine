@@ -1,13 +1,14 @@
 const std = @import("std");
-pub const c = @cImport({
-    @cInclude("lua.h");
-    @cInclude("lauxlib.h");
-    @cInclude("lualib.h");
-});
+const c = @import("c.zig");
 
 const Entity = @import("../entity.zig");
 
 var e: Entity = .{};
+
+/// Interfaces for LUA types.
+///
+/// Entity API
+/// Algorithms API
 
 const Self = @This();
 state: ?*c.lua_State,
