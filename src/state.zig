@@ -5,6 +5,14 @@ const shd = @import("shaders/basic.glsl.zig");
 const math = @import("math.zig");
 const Entity = @import("entity.zig");
 
+pub const RenderPassIds = struct {
+    var pass_count: u32 = 4;
+    var TILES_1: usize = 0;
+    var TILES_2: usize = 1;
+    var ENTITES_1: usize = 2;
+    var UI_1: usize = 3;
+};
+
 /// === GLOBAL STATE ===
 const Self = @This();
 allocator: std.mem.Allocator,
@@ -17,34 +25,49 @@ pub fn init(self: *Self) !void {
     const allocator = std.heap.page_allocator;
     self.* = .{
         .allocator = allocator,
-        .passes = try allocator.alloc(RenderPass, 1),
+        .passes = try allocator.alloc(RenderPass, RenderPassIds.pass_count),
         .loaded_scene = null,
         .selected_entity = null,
     };
 
-    //try self.passes[0].init(
-    //    "assets/spritesheet-1.png",
-    //    .{ 32, 32 },
-    //    .{ 256, 256 },
-    //    allocator,
-    //);
-    try self.passes[0].init(
-        "assets/fg-tiles.png",
+    try self.passes[RenderPassIds.ENTITES_1].init(
+        "assets/entity_1.png",
+        .{ 32, 32 },
+        .{ 256, 256 },
+        allocator,
+    );
+    try self.passes[RenderPassIds.TILES_1].init(
+        "assets/tiles_1.png",
         .{ 16, 16 },
         .{ 256, 256 },
         allocator,
     );
-    //try self.passes[2].init(
-    //    "assets/fg-tiles.png",
-    //    .{ 16, 16 },
-    //    .{ 256, 256 },
-    //    allocator,
-    //);
+    try self.passes[RenderPassIds.TILES_2].init(
+        "assets/tiles_2.png",
+        .{ 16, 16 },
+        .{ 256, 256 },
+        allocator,
+    );
+    try self.passes[RenderPassIds.UI_1].init(
+        "assets/ui_1.png",
+        .{ 16, 16 },
+        .{ 256, 256 },
+        allocator,
+    );
+}
+
+pub fn resetRenderPasses(self: *Self) !void {
+    for (self.passes) |pass| {
+        pass.batch.clearAndFree();
+        pass.cur_num_of_sprite = 0;
+    }
 }
 
 pub fn updateBuffers(self: *Self) void {
     for (self.passes) |*p| {
-        p.updateBuffers();
+        if (p.batch.items.len > 0) {
+            p.updateBuffers();
+        }
     }
 }
 

@@ -102,6 +102,13 @@ pub fn init(
         .colors = init: {
             var c: [4]sg.ColorTargetState = @splat(.{});
             c[0].pixel_format = .RGBA8;
+            c[0].blend = .{
+                .enabled = true,
+                .src_factor_rgb = .SRC_ALPHA,
+                .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
+                .src_factor_alpha = .ONE,
+                .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
+            };
             break :init c;
         },
     });
@@ -147,7 +154,11 @@ pub fn appendSpriteToBatch(
     self.cur_num_of_sprite += 1;
 }
 
-pub fn updateSpriteRenderables(self: *Self, index: usize, sprite: SpriteRenderable,) !void {
+pub fn updateSpriteRenderables(
+    self: *Self,
+    index: usize,
+    sprite: SpriteRenderable,
+) !void {
     self.batch.items[index] = sprite;
 }
 
@@ -158,7 +169,10 @@ pub fn updateBuffers(self: *Self) void {
     );
 }
 
-pub fn render(self: *Self, vs_params: shd.VsParams,) void {
+pub fn render(
+    self: *Self,
+    vs_params: shd.VsParams,
+) void {
     const fs_params = shd.FsParams{
         .atlas_size = self.atlas_size,
         .sprite_size = self.sprite_size,

@@ -36,6 +36,10 @@ pub const Input = struct {
     backwards: bool = false,
 };
 
+pub const MouseState = struct {
+    hover_over_scene: bool = false,
+};
+
 pub const EditorState = struct {};
 
 var mouse_middle_down: bool = false;
@@ -61,6 +65,7 @@ var scene: Scene = undefined;
 var state: State = undefined;
 const allocator = std.heap.page_allocator;
 var buf: [8192]u8 = undefined;
+var mouse_state: MouseState = .{};
 
 pub fn init() !void {
     try Lua.luaTest();
@@ -95,8 +100,8 @@ pub fn init() !void {
     // texture is then rendered within an Imgui window.
     var img_desc: sg.ImageDesc = .{
         .render_target = true,
-        .width = 600,
-        .height = 400,
+        .width = 700,
+        .height = 440,
         .pixel_format = .RGBA8,
         .sample_count = 1,
     };
@@ -116,6 +121,7 @@ pub fn init() !void {
     // Ready State data
     try state.init();
     try scene.loadTestScene(std.heap.page_allocator, &state.passes[0]);
+    state.loaded_scene = scene;
 
     // Default pass actions
     passaction.colors[0] = .{
@@ -138,6 +144,7 @@ pub fn frame() !void {
         .delta_time = app.frameDuration(),
         .dpi_scale = app.dpiScale(),
     });
+
     const viewport = ig.igGetMainViewport();
     viewport.*.Flags |= ig.ImGuiViewportFlags_NoRendererClear;
     const style = ig.igGetStyle();
@@ -158,6 +165,8 @@ pub fn frame() !void {
     ig.igSetNextWindowSize(viewport.*.WorkSize, ig.ImGuiCond_Always);
     ig.igSetNextWindowViewport(viewport.*.ID);
 
+    try main_menu();
+
     // Create a dockspace to enable window docking
     _ = ig.igBegin("DockSpace", null, window_flags);
     const dockspace_id = ig.igGetIDStr("MyDockSpace".ptr, null);
@@ -170,17 +179,14 @@ pub fn frame() !void {
     _ = ig.igBegin("Scene", 0, ig.ImGuiWindowFlags_None);
     scene_window_pos = ig.igGetWindowPos();
     scene_window_size = ig.igGetContentRegionAvail();
-    ig.igImage(imgui.imtextureid(editor_scene_image), ig.ImVec2{ .x = 600, .y = 400 });
+    ig.igImage(imgui.imtextureid(editor_scene_image), ig.ImVec2{ .x = 700, .y = 440 });
     ig.igEnd();
 
     // Editor for Entity
     _ = ig.igBegin("Entity Editor", 0, ig.ImGuiWindowFlags_None);
-    if (ig.igInputText("New level", &buf, buf.len, ig.ImGuiWindowFlags_None)) {
-        std.log.info("{s}, len: {}", .{ buf[0.. :0], buf.len });
-    }
     if (state.selected_entity) |s| {
         if (state.selected_entity_click) {
-            var tile = scene.tiles.get(s);
+            var tile = state.loaded_scene.?.tiles.get(s);
             const selected = try std.fmt.allocPrint(
                 state.allocator,
                 "ENTID: {d}\nSprite id: {d}\nPos: {}, {}, {}",
@@ -215,7 +221,7 @@ pub fn frame() !void {
 
             _ = ig.igCheckbox("Spawner", &tile.spawner);
             _ = ig.igCheckbox("Traversable", &tile.traversable);
-            scene.tiles.set(s, tile);
+            state.loaded_scene.?.tiles.set(s, tile);
 
             try state.passes[0].updateSpriteRenderables(s, tile.sprite_renderable);
         }
@@ -227,48 +233,21 @@ pub fn frame() !void {
     _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
     ig.igEnd();
 
-    // General Scene Settings
-    _ = ig.igBegin("Settings", 0, ig.ImGuiWindowFlags_None);
-    const mtext = try std.fmt.allocPrint(state.allocator, "Mouse World Pos: {d:.3}, {d:.3}", .{ mouse_world_space.x, mouse_world_space.y });
-    defer state.allocator.free(mtext);
-    ig.igText(mtext.ptr);
-    const text = try std.fmt.allocPrint(state.allocator, "frame furation: {d:.3}", .{app.frameDuration()});
-    defer state.allocator.free(text);
-    ig.igText(text.ptr);
+    var clamped_mouse_pos: math.Vec3 = undefined;
+    if (mouse_state.hover_over_scene) {
+        const grid_size = 16.0;
+        const grid_offset_x = 0.0; // Adjust as needed
+        const grid_offset_y = 10.0; // Adjust as needed
+        clamped_mouse_pos = math.Vec3{
+            .x = @floor((mouse_world_space.x - grid_offset_x) / grid_size) * grid_size + grid_offset_x,
+            .y = @floor((mouse_world_space.y - grid_offset_y) / grid_size) * grid_size + grid_offset_y,
+            .z = 0,
+        };
 
-    const view_text = try std.fmt.allocPrint(
-        state.allocator,
-        "VIEW:\n{} {} {} {}\n{} {} {} {}\n{} {} {} {}\n{} {} {} {}",
-        .{
-            view.m[0][0],
-            view.m[0][1],
-            view.m[0][2],
-            view.m[0][3],
-            view.m[1][0],
-            view.m[1][1],
-            view.m[1][2],
-            view.m[1][3],
-            view.m[2][0],
-            view.m[2][1],
-            view.m[2][2],
-            view.m[2][3],
-            view.m[3][0],
-            view.m[3][1],
-            view.m[3][2],
-            view.m[3][3],
-        },
-    );
-    defer state.allocator.free(view_text);
-    ig.igText(view_text.ptr);
-    if (ig.igButton("reload scene")) {
-        try scene.reloadScene(std.heap.page_allocator);
-        try scene.loadTestScene(std.heap.page_allocator, &state.passes[0]);
+        try state.passes[3].appendSpriteToBatch(.{ .pos = clamped_mouse_pos, .sprite_id = 1, .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 } });
     }
-    if (ig.igButton("reset view")) {
-        view = math.Mat4.identity();
-        proj = mat4.ortho(-app.widthf() / 2, app.widthf() / 2, -app.heightf() / 2, app.heightf() / 2, -1, 1);
-    }
-    ig.igEnd();
+
+    try left_window();
 
     // Prepare render data for instanced rendering
     const vs_params = util.computeVsParams(proj, view);
@@ -276,7 +255,9 @@ pub fn frame() !void {
 
     // === Render scene to image
     sg.beginPass(.{ .action = offscreen, .attachments = attachment });
-    state.render(vs_params);
+    if (state.loaded_scene) |_| {
+        state.render(vs_params);
+    }
     if (!state.selected_entity_click) {
         state.collision(mouse_world_space);
     }
@@ -287,6 +268,8 @@ pub fn frame() !void {
     imgui.render();
     sg.endPass();
     sg.commit();
+    state.passes[3].batch.clearRetainingCapacity();
+    state.passes[3].cur_num_of_sprite = 0;
 }
 
 pub fn cleanup() !void {
@@ -299,6 +282,13 @@ pub fn event(ev: [*c]const app.Event) !void {
 
     // forward input events to sokol-imgui
     _ = imgui.handleEvent(ev.*);
+    const ig_mouse = ig.igGetMousePos();
+
+    if (util.aabb(ig_mouse, scene_window_pos, scene_window_size)) {
+        mouse_state.hover_over_scene = true;
+    } else {
+        mouse_state.hover_over_scene = false;
+    }
 
     if (eve.type == .MOUSE_SCROLL) {
         if (zoom_factor - 0.05 < 0) {
@@ -320,13 +310,11 @@ pub fn event(ev: [*c]const app.Event) !void {
         );
     }
     if (ev.*.type == .MOUSE_MOVE) {
-        const ig_mouse = ig.igGetMousePos();
-
         const mouse_rel_x = ig_mouse.x - scene_window_pos.x;
         const mouse_rel_y = ig_mouse.y - scene_window_pos.y;
 
-        const texture_x = mouse_rel_x / 600.0;
-        const texture_y = mouse_rel_y / 400.0;
+        const texture_x = mouse_rel_x / 700.0;
+        const texture_y = mouse_rel_y / 440.0;
 
         const ndc_x = texture_x * 2.0 - 1.0;
         const ndc_y = 1.0 - texture_y * 2.0; // Flip Y for OpenGL-style coordinates
@@ -347,8 +335,10 @@ pub fn event(ev: [*c]const app.Event) !void {
         switch (ev.*.mouse_button) {
             .MIDDLE => mouse_middle_down = mouse_pressed,
             .LEFT => {
-                if (state.selected_entity) |_| {
-                    state.selected_entity_click = true;
+                if (mouse_state.hover_over_scene) {
+                    if (state.selected_entity) |_| {
+                        state.selected_entity_click = true;
+                    }
                 }
             },
             .RIGHT => {
@@ -385,4 +375,64 @@ pub fn event(ev: [*c]const app.Event) !void {
             else => {},
         }
     }
+}
+
+fn main_menu() !void {
+    if (ig.igBeginMainMenuBar()) {}
+    if (ig.igButton("Open Dropdown")) {
+        ig.igOpenPopup("dropdown", 0);
+    }
+
+    if (ig.igBeginPopup("dropdown", 0)) {
+        if (ig.igButton("Scenes")) {
+            new_scene_open = true;
+            ig.igCloseCurrentPopup();
+        }
+        ig.igEndPopup();
+    }
+
+    if (new_scene_open) {
+        ig.igSetNextWindowBgAlpha(1.0);
+        ig.igSetNextWindowSize(.{ .x = 300, .y = 200 }, ig.ImGuiCond_None);
+        if (ig.igBegin("New Scene", &new_scene_open, ig.ImGuiWindowFlags_NoSavedSettings | ig.ImGuiWindowFlags_NoDocking)) {
+            if (ig.igButton("New Scene")) {
+                state.loaded_scene.?.deloadScene(allocator, &state.passes[0]);
+                var new_scene: Scene = .{};
+                try new_scene.default(allocator, &state);
+                state.loaded_scene = new_scene;
+                state.selected_entity = null;
+            }
+            if (ig.igInputText("New level", &buf, buf.len, ig.ImGuiWindowFlags_None)) {
+                std.log.info("{s}, len: {}", .{ buf[0.. :0], buf.len });
+            }
+
+            if (ig.igButton("reload scene")) {
+                try scene.reloadScene(std.heap.page_allocator);
+                try scene.loadTestScene(std.heap.page_allocator, &state.passes[0]);
+            }
+            if (ig.igButton("reset view")) {
+                view = math.Mat4.identity();
+                proj = mat4.ortho(-app.widthf() / 2, app.widthf() / 2, -app.heightf() / 2, app.heightf() / 2, -1, 1);
+            }
+        }
+        ig.igEnd();
+    }
+
+    ig.igEndMainMenuBar();
+}
+
+var new_scene_open: bool = false;
+fn left_window() !void {
+    // General Scene Settings
+    _ = ig.igBegin("Settings", 0, ig.ImGuiWindowFlags_None);
+    ig.igBeginGroup();
+    ig.igTextColored(predefined_colors[1], "Stats");
+    const text = try std.fmt.allocPrint(state.allocator, "frame duration: {d:.3}", .{app.frameDuration()});
+    defer state.allocator.free(text);
+    ig.igText(text.ptr);
+    const render_pass_count = try std.fmt.allocPrint(state.allocator, "RenderPass Count: {d}", .{state.passes.len});
+    defer state.allocator.free(render_pass_count);
+    ig.igText(render_pass_count.ptr);
+    ig.igEndGroup();
+    ig.igEnd();
 }

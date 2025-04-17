@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const testing = std.testing;
 
+const State = @import("state.zig");
 const Entity = @import("entity.zig");
 const Renderer = @import("renderer.zig");
 const Tile = @import("tile.zig");
@@ -9,13 +10,41 @@ const Tile = @import("tile.zig");
 /// There is a lot for this class. The main idea is that we construct
 /// scenes similar to the way Godot handles scenes, but some more simple.
 const Self = @This();
-id: u32,
-height: f32,
-width: f32,
-scene_name: []const u8,
-map: []const u8,
-entities: std.MultiArrayList(Entity),
-tiles: std.MultiArrayList(Tile),
+id: u32 = 0,
+height: f32 = 0,
+width: f32 = 0,
+scene_name: []const u8 = "",
+map: []const u8 = "",
+entities: std.MultiArrayList(Entity) = .{},
+tiles: std.MultiArrayList(Tile) = .{},
+
+pub fn default(self: *Self, allocator: std.mem.Allocator, state: *State) !void {
+    self.id = 0;
+    self.height = 16.0;
+    self.width = 16.0;
+    self.scene_name = "Default Scene";
+    self.map = "################"; // Minimal placeholder map
+
+    try self.tiles.append(allocator, .{
+        .sprite_renderable = .{
+            .pos = .{
+                .x = 0,
+                .y = 0,
+                .z = 0,
+            },
+            .sprite_id = 0,
+            .color = .{
+                .x = 1.0,
+                .y = 1.0,
+                .z = 1.0,
+                .w = 1.0,
+            },
+        },
+    });
+    for (self.tiles.items(.sprite_renderable)) |i| {
+        try state.passes[0].appendSpriteToBatch(i);
+    }
+}
 
 pub fn loadTestScene(
     self: *Self,
@@ -52,9 +81,9 @@ pub fn loadTestScene(
                     },
                     .sprite_id = @floatFromInt(char),
                     .color = .{
-                        .x = 1.0,
-                        .y = 0,
-                        .z = 0,
+                        .x = 1,
+                        .y = 1,
+                        .z = 1,
                         .w = 1,
                     },
                 },
@@ -139,9 +168,11 @@ pub fn writeSceneToBinary(self: *Self, file_name: []const u8) !void {
     }
 }
 
-pub fn deloadScene(self: *Self, allocator: std.mem.Allocator) void {
+pub fn deloadScene(self: *Self, allocator: std.mem.Allocator, pass: *Renderer.RenderPass) void {
     self.entities.deinit(allocator);
     self.tiles.deinit(allocator);
+    pass.batch.clearAndFree();
+    pass.cur_num_of_sprite = 0;
 }
 
 test "Scene serde" {
