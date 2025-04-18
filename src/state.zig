@@ -1,16 +1,17 @@
 const std = @import("std");
 const RenderPass = @import("renderer.zig").RenderPass;
-const Scene = @import("scene.zig");
+const types = @import("types.zig");
+const Scene = types.Scene;
+const Entity = types.Entity;
 const shd = @import("shaders/basic.glsl.zig");
-const math = @import("math.zig");
-const Entity = @import("entity.zig");
+const math = @import("util/math.zig");
 
-pub const RenderPassIds = struct {
-    var pass_count: u32 = 4;
-    var TILES_1: usize = 0;
-    var TILES_2: usize = 1;
-    var ENTITES_1: usize = 2;
-    var UI_1: usize = 3;
+pub const pass_count: u32 = 4;
+pub const RenderPassIds = enum {
+    TILES_1,
+    TILES_2,
+    ENTITES_1,
+    UI_1,
 };
 
 /// === GLOBAL STATE ===
@@ -25,30 +26,30 @@ pub fn init(self: *Self) !void {
     const allocator = std.heap.page_allocator;
     self.* = .{
         .allocator = allocator,
-        .passes = try allocator.alloc(RenderPass, RenderPassIds.pass_count),
+        .passes = try allocator.alloc(RenderPass, pass_count),
         .loaded_scene = null,
         .selected_entity = null,
     };
 
-    try self.passes[RenderPassIds.ENTITES_1].init(
+    try self.passes[@intFromEnum(RenderPassIds.ENTITES_1)].init(
         "assets/entity_1.png",
         .{ 32, 32 },
         .{ 256, 256 },
         allocator,
     );
-    try self.passes[RenderPassIds.TILES_1].init(
+    try self.passes[@intFromEnum(RenderPassIds.TILES_1)].init(
         "assets/tiles_1.png",
         .{ 16, 16 },
         .{ 256, 256 },
         allocator,
     );
-    try self.passes[RenderPassIds.TILES_2].init(
+    try self.passes[@intFromEnum(RenderPassIds.TILES_2)].init(
         "assets/tiles_2.png",
         .{ 16, 16 },
         .{ 256, 256 },
         allocator,
     );
-    try self.passes[RenderPassIds.UI_1].init(
+    try self.passes[@intFromEnum(RenderPassIds.UI_1)].init(
         "assets/ui_1.png",
         .{ 16, 16 },
         .{ 256, 256 },

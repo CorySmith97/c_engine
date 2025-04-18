@@ -1,12 +1,14 @@
 const std = @import("std");
 const sokol = @import("sokol");
-const math = @import("math.zig");
+const util = @import("util.zig");
+const math = util.math;
 const shd = @import("shaders/basic.glsl.zig");
 const cim = @cImport({
     @cInclude("stb_image.h");
 });
 const sg = sokol.gfx;
-pub const SpriteRenderable = @import("renderer/SpriteRenderable.zig").SpriteRenderable;
+const types = @import("types.zig");
+const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 pub const RenderPass = @import("renderer/RenderPass.zig");
 
 const Self = @This();

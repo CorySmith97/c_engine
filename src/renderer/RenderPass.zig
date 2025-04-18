@@ -1,12 +1,17 @@
 const std = @import("std");
 const sokol = @import("sokol");
-const math = @import("../math.zig");
+const util = @import("../util.zig");
+const math = util.math;
 const shd = @import("../shaders/basic.glsl.zig");
 const cim = @cImport({
     @cInclude("stb_image.h");
 });
 const sg = sokol.gfx;
-const SpriteRenderable = @import("SpriteRenderable.zig").SpriteRenderable;
+const types = @import("../types.zig");
+const Scene = types.Scene;
+const Entity = types.Entity;
+const RendererTypes = types.RendererTypes;
+const SpriteRenderable = RendererTypes.SpriteRenderable;
 
 fn xorshift32() u32 {
     const static = struct {

@@ -10,13 +10,14 @@ const sg = sokol.gfx;
 const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
-const Camera = @import("camera.zig");
-const math = @import("math.zig");
-const mat4 = math.Mat4;
 const State = @import("state.zig");
-const Scene = @import("scene.zig");
 const util = @import("util.zig");
+const math = util.math;
+const mat4 = math.Mat4;
 const Lua = @import("scripting/lua.zig");
+const types = @import("types.zig");
+const Scene = types.Scene;
+const Entity = types.Entity;
 
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
@@ -43,7 +44,6 @@ pub const MouseState = struct {
 pub const EditorState = struct {};
 
 var mouse_middle_down: bool = false;
-var camera: Camera = undefined;
 var view: math.Mat4 = undefined;
 var passaction: sg.PassAction = .{};
 var offscreen: sg.PassAction = .{};
@@ -66,6 +66,9 @@ var state: State = undefined;
 const allocator = std.heap.page_allocator;
 var buf: [8192]u8 = undefined;
 var mouse_state: MouseState = .{};
+var selected_layer: State.RenderPassIds = .TILES_1;
+
+const test_string = "HELLO FROM HERE";
 
 pub fn init() !void {
     try Lua.luaTest();
@@ -120,7 +123,7 @@ pub fn init() !void {
 
     // Ready State data
     try state.init();
-    try scene.loadTestScene(std.heap.page_allocator, &state.passes[0]);
+    try scene.loadTestScene(std.heap.page_allocator, &state);
     state.loaded_scene = scene;
 
     // Default pass actions
@@ -134,6 +137,7 @@ pub fn init() !void {
     };
 }
 pub fn frame() !void {
+
     //view = math.Mat4.lookat(camera.pos, camera.pos.add(camera.front), camera.up);
     //
     //
@@ -223,7 +227,9 @@ pub fn frame() !void {
             _ = ig.igCheckbox("Traversable", &tile.traversable);
             state.loaded_scene.?.tiles.set(s, tile);
 
-            try state.passes[0].updateSpriteRenderables(s, tile.sprite_renderable);
+            if (state.passes[@intFromEnum(selected_layer)].batch.items.len > s) {
+                try state.passes[@intFromEnum(selected_layer)].updateSpriteRenderables(s, tile.sprite_renderable);
+            }
         }
     }
     ig.igEnd();
@@ -232,6 +238,15 @@ pub fn frame() !void {
     // Idea tab for animations, or Possible script viewer.
     _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
     ig.igEnd();
+
+    for (0..test_string.len) |i| {
+        const f: f32 = @floatFromInt(i);
+        try state.passes[3].appendSpriteToBatch(.{
+            .pos = .{ .x = f * 16 - 32, .y = 26, .z = 0 },
+            .sprite_id = @floatFromInt(test_string[i]),
+            .color = .{ .x = 0.1, .y = 1, .z = 0.5, .w = 1 },
+        });
+    }
 
     var clamped_mouse_pos: math.Vec3 = undefined;
     if (mouse_state.hover_over_scene) {
@@ -301,10 +316,10 @@ pub fn event(ev: [*c]const app.Event) !void {
             zoom_factor -= 0.05;
         }
         proj = mat4.ortho(
-            -app.widthf() / 2 * zoom_factor,
-            app.widthf() / 2 * zoom_factor,
-            -app.heightf() / 2 * zoom_factor,
-            app.heightf() / 2 * zoom_factor,
+            -app.widthf() / 2 * zoom_factor + 50,
+            app.widthf() / 2 * zoom_factor + 50,
+            -app.heightf() / 2 * zoom_factor - 50,
+            app.heightf() / 2 * zoom_factor - 50,
             -1,
             1,
         );
@@ -396,7 +411,7 @@ fn main_menu() !void {
         ig.igSetNextWindowSize(.{ .x = 300, .y = 200 }, ig.ImGuiCond_None);
         if (ig.igBegin("New Scene", &new_scene_open, ig.ImGuiWindowFlags_NoSavedSettings | ig.ImGuiWindowFlags_NoDocking)) {
             if (ig.igButton("New Scene")) {
-                state.loaded_scene.?.deloadScene(allocator, &state.passes[0]);
+                state.loaded_scene.?.deloadScene(allocator, &state);
                 var new_scene: Scene = .{};
                 try new_scene.default(allocator, &state);
                 state.loaded_scene = new_scene;
@@ -408,7 +423,7 @@ fn main_menu() !void {
 
             if (ig.igButton("reload scene")) {
                 try scene.reloadScene(std.heap.page_allocator);
-                try scene.loadTestScene(std.heap.page_allocator, &state.passes[0]);
+                try scene.loadTestScene(std.heap.page_allocator, &state);
             }
             if (ig.igButton("reset view")) {
                 view = math.Mat4.identity();
@@ -433,6 +448,16 @@ fn left_window() !void {
     const render_pass_count = try std.fmt.allocPrint(state.allocator, "RenderPass Count: {d}", .{state.passes.len});
     defer state.allocator.free(render_pass_count);
     ig.igText(render_pass_count.ptr);
+
+    ig.igNewLine();
+    ig.igSameLine();
+    ig.igText("Selected Layer");
+    ig.igText(@tagName(selected_layer));
+    for (std.meta.tags(State.RenderPassIds)) |id| {
+        if (ig.igButton(@tagName(id).ptr)) {
+            selected_layer = id;
+        }
+    }
     ig.igEndGroup();
     ig.igEnd();
 }

@@ -1,7 +1,9 @@
 const std = @import("std");
 
-const mat4 = @import("math.zig").Mat4;
-const vec3 = @import("math.zig").Vec3;
+const util = @import("../util.zig");
+const math = util.math;
+const mat4 = math.Mat4;
+const vec3 = math.Vec3;
 
 pub const Camera = struct {
     pos: vec3,

@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig");
-
-const Entity = @import("../entity.zig");
+const types = @import("../types.zig");
+const Entity = types.Entity;
 
 var e: Entity = .{};
 
@@ -9,7 +9,6 @@ var e: Entity = .{};
 ///
 /// Entity API
 /// Algorithms API
-
 const Self = @This();
 state: ?*c.lua_State,
 

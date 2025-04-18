@@ -6,6 +6,11 @@
 //
 //  Ported from HandmadeMath.h
 //------------------------------------------------------------------------------
+//
+//  This has been extended to fit the needs of c-engine. Types have been
+//  added and is no longer the same as the original contents
+//
+//------------------------------------------------------------------------------
 const assert = @import("std").debug.assert;
 const math = @import("std").math;
 
@@ -32,6 +37,18 @@ pub const Vec4 = extern struct {
 
     pub fn new(x: f32, y: f32, z: f32, w: f32) Vec4 {
         return Vec4{ .x = x, .y = y, .z = z, .w = w };
+    }
+};
+pub const Vec2i = extern struct {
+    x: i32 = 0,
+    y: i32 = 0,
+
+    pub fn zero() Vec2 {
+        return Vec2{ .x = 0.0, .y = 0.0 };
+    }
+
+    pub fn new(x: i32, y: i32) Vec2 {
+        return Vec2{ .x = x, .y = y };
     }
 };
 pub const Vec2 = extern struct {

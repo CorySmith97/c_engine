@@ -1,4 +1,7 @@
-const Scene = @import("scene.zig");
+const types = @import("types.zig");
+const Scene = types.Scene;
+const Entity = types.Entity;
+const Tile = types.Tile;
 const std = @import("std");
 const assert = std.debug.assert;
 const Renderer = @import("renderer.zig");
@@ -32,7 +35,7 @@ pub fn writeSceneToBinary(scene: *Scene, file_name: []const u8) !void {
     }
 }
 
-// 
+//
 //id: u32 = 10,
 //z_index: f32 = 0,
 //entity_type: EntityType = .default,
@@ -93,5 +96,4 @@ pub fn loadScene(scene: *Scene, file_name: []const u8, allocator: std.mem.Alloca
         const tile = std.mem.bytesToValue(Tile, tile_buf);
         try scene.tiles.append(tile);
     }
-
 }

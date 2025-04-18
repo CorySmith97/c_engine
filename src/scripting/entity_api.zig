@@ -1,6 +1,7 @@
 const std = @import("std");
 const Lua = @import("lua.zig");
-const Entity = @import("../entity.zig");
+const types = @import("../types.zig");
+const Entity = types.Entity;
 const c = @import("c.zig");
 
 export fn setMetaTable(state: *Lua, e: *Entity) void {

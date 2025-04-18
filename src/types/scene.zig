@@ -2,9 +2,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const testing = std.testing;
 
-const State = @import("state.zig");
+const State = @import("../state.zig");
 const Entity = @import("entity.zig");
-const Renderer = @import("renderer.zig");
+const Renderer = @import("../renderer.zig");
 const Tile = @import("tile.zig");
 
 /// There is a lot for this class. The main idea is that we construct
@@ -49,7 +49,7 @@ pub fn default(self: *Self, allocator: std.mem.Allocator, state: *State) !void {
 pub fn loadTestScene(
     self: *Self,
     allocator: std.mem.Allocator,
-    pass: *Renderer.RenderPass,
+    state: *State,
 ) !void {
     self.id = 0;
     var file = try std.fs.cwd().openFile("levels/t1.txt", .{});
@@ -93,7 +93,7 @@ pub fn loadTestScene(
     }
 
     for (self.tiles.items(.sprite_renderable)) |i| {
-        try pass.appendSpriteToBatch(i);
+        try state.passes[@intFromEnum(State.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
     }
 
     try self.writeSceneToBinary("t2.txt");
@@ -168,11 +168,13 @@ pub fn writeSceneToBinary(self: *Self, file_name: []const u8) !void {
     }
 }
 
-pub fn deloadScene(self: *Self, allocator: std.mem.Allocator, pass: *Renderer.RenderPass) void {
+pub fn deloadScene(self: *Self, allocator: std.mem.Allocator, state: *State) void {
     self.entities.deinit(allocator);
     self.tiles.deinit(allocator);
-    pass.batch.clearAndFree();
-    pass.cur_num_of_sprite = 0;
+    for (state.passes) |*pass| {
+        pass.batch.clearAndFree();
+        pass.cur_num_of_sprite = 0;
+    }
 }
 
 test "Scene serde" {

@@ -2,7 +2,8 @@
 /// class at the end of the day. Entities will be store via MultiArrayList
 const std = @import("std");
 const SpriteRenderable = @import("renderer.zig").SpriteRenderable;
-const math = @import("math.zig");
+const util = @import("../util.zig");
+const math = util.math;
 
 pub const EntityType = enum {
     default,
@@ -17,11 +18,12 @@ const Self = @This();
 id: u32 = 10,
 z_index: f32 = 0,
 entity_type: EntityType = .default,
-pos: math.Vec2 = math.Vec2.zero(),
+pos: math.Vec2i = .{},
+size: math.Vec2i = .{},
 sprite_id: f32 = 0,
 aabb: AABB = .{
     .min = math.Vec2.zero(),
-    .max = math.Vec2.zero(),
+    .max = math.Vec2{ .x = 16, .y = 16 },
 },
 lua_script: []const u8 = "",
 // FLAGS
@@ -38,8 +40,8 @@ pub fn init(
 pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
     return .{
         .pos = .{
-            .x = self.pos.x,
-            .y = self.pos.y,
+            .x = self.pos.x * self.size.x,
+            .y = self.pos.y * self.size.y,
             .z = self.z_index,
         },
         .sprite_id = self.sprite_id,

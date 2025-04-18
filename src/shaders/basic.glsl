@@ -1,4 +1,4 @@
-@header const m = @import("../math.zig")
+@header const m = @import("../util/math.zig")
 @ctype mat4 m.Mat4
 
 @vs vs
@@ -44,7 +44,7 @@ void main() {
     float col = mod(id, sprites_per_row);
 
     vec2 sprite_offset = vec2(col * sprite_size.x, row * sprite_size.y);
-    vec2 fixedTexCoord = vec2(1.0 - uv.x, uv.y);
+    vec2 fixedTexCoord = vec2(uv.x, uv.y);
 
     vec2 sprite_uv = (sprite_offset + fixedTexCoord * sprite_size) / atlas_size;
 

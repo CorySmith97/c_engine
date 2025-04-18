@@ -7,13 +7,13 @@ const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
 const shd = @import("shaders/basic.glsl.zig");
-const math = @import("math.zig");
-const Camera = @import("camera.zig").Camera;
+const util = @import("util.zig");
+const math = util.math;
 const mat4 = math.Mat4;
 const RenderPass = @import("renderer.zig").RenderPass;
-const Entity = @import("entity.zig");
-const State = @import("state.zig");
-const Scene = @import("scene.zig");
+const types = @import("types.zig");
+const Scene = types.Scene;
+const Entity = types.Entity;
 const Editor = @import("editor.zig");
 
 pub fn gameinit() !void {

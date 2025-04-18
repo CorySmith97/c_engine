@@ -1,4 +1,4 @@
-const math = @import("math.zig");
+pub const math = @import("util/math.zig");
 const mat4 = math.Mat4;
 const shd = @import("shaders/basic.glsl.zig");
 const ig = @import("cimgui");
@@ -17,5 +17,4 @@ pub fn aabb(point: ig.ImVec2_t, pos: ig.ImVec2_t, size: ig.ImVec2_t) bool {
     const is_point_inside = point.x >= pos.x and point.x <= pos.x + size.x and
         point.y >= pos.y and point.y <= pos.y + size.y;
     return is_point_inside;
-
 }
