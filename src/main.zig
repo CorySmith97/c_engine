@@ -85,7 +85,8 @@ pub fn main() !void {
                 .height = 800,
                 .window_title = "HELLO",
             };
-        } else {
+            break;
+        } else if (std.mem.eql(u8, arg, "game")) {
             desc = .{
                 .init_cb = init,
                 .frame_cb = frame,
@@ -95,6 +96,7 @@ pub fn main() !void {
                 .height = 800,
                 .window_title = "HELLO",
             };
+            break;
         }
     }
 

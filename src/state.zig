@@ -5,6 +5,7 @@ const Scene = types.Scene;
 const Entity = types.Entity;
 const shd = @import("shaders/basic.glsl.zig");
 const math = @import("util/math.zig");
+const Renderer = @import("renderer.zig");
 
 pub const pass_count: u32 = 4;
 pub const RenderPassIds = enum {
@@ -17,6 +18,7 @@ pub const RenderPassIds = enum {
 /// === GLOBAL STATE ===
 const Self = @This();
 allocator: std.mem.Allocator,
+renderer: Renderer,
 passes: []RenderPass,
 loaded_scene: ?Scene,
 selected_entity: ?usize,
@@ -26,30 +28,37 @@ pub fn init(self: *Self) !void {
     const allocator = std.heap.page_allocator;
     self.* = .{
         .allocator = allocator,
+        .renderer = undefined,
         .passes = try allocator.alloc(RenderPass, pass_count),
         .loaded_scene = null,
         .selected_entity = null,
     };
 
+    try self.renderer.init();
+
     try self.passes[@intFromEnum(RenderPassIds.ENTITES_1)].init(
+        .ENTITY_1,
         "assets/entity_1.png",
         .{ 32, 32 },
         .{ 256, 256 },
         allocator,
     );
     try self.passes[@intFromEnum(RenderPassIds.TILES_1)].init(
+        .TILES_1,
         "assets/tiles_1.png",
         .{ 16, 16 },
         .{ 256, 256 },
         allocator,
     );
     try self.passes[@intFromEnum(RenderPassIds.TILES_2)].init(
+        .TILES_2,
         "assets/tiles_2.png",
         .{ 16, 16 },
         .{ 256, 256 },
         allocator,
     );
     try self.passes[@intFromEnum(RenderPassIds.UI_1)].init(
+        .UI_1,
         "assets/ui_1.png",
         .{ 16, 16 },
         .{ 256, 256 },
@@ -65,21 +74,21 @@ pub fn resetRenderPasses(self: *Self) !void {
 }
 
 pub fn updateBuffers(self: *Self) void {
-    for (self.passes) |*p| {
-        if (p.batch.items.len > 0) {
-            p.updateBuffers();
+    for (self.renderer.render_passes.items) |*pass| {
+        if (pass.batch.items.len > 0) {
+            pass.updateBuffers();
         }
     }
 }
 
 pub fn render(self: *Self, vs_params: shd.VsParams) void {
-    for (self.passes) |*p| {
-        p.render(vs_params);
+    for (self.renderer.render_passes.items) |*pass| {
+        pass.render(vs_params);
     }
 }
 
 pub fn collision(self: *Self, world_space: math.Vec4) void {
-    for (0.., self.passes[0].batch.items) |i, b| {
+    for (0.., self.renderer.render_passes.items[0].batch.items) |i, b| {
         if (b.pos.x < world_space.x and b.pos.x + 16 > world_space.x) {
             if (b.pos.y < world_space.y and b.pos.y + 16 > world_space.y) {
                 self.selected_entity = i;

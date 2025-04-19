@@ -14,7 +14,6 @@ id: u32 = 0,
 height: f32 = 0,
 width: f32 = 0,
 scene_name: []const u8 = "",
-map: []const u8 = "",
 entities: std.MultiArrayList(Entity) = .{},
 tiles: std.MultiArrayList(Tile) = .{},
 
@@ -23,7 +22,6 @@ pub fn default(self: *Self, allocator: std.mem.Allocator, state: *State) !void {
     self.height = 16.0;
     self.width = 16.0;
     self.scene_name = "Default Scene";
-    self.map = "################"; // Minimal placeholder map
 
     try self.tiles.append(allocator, .{
         .sprite_renderable = .{
@@ -58,7 +56,6 @@ pub fn loadTestScene(
     var reader = file.reader();
 
     self.scene_name = "Test Level";
-    self.map = try reader.readAllAlloc(allocator, 1000);
     try reader.context.seekTo(0);
 
     const width = try reader.readUntilDelimiterAlloc(allocator, '\n', 40);
@@ -69,7 +66,7 @@ pub fn loadTestScene(
     self.height = try std.fmt.parseFloat(f32, height);
 
     var y: f32 = try std.fmt.parseFloat(f32, height);
-    while (try reader.readUntilDelimiterOrEofAlloc(allocator, '\n', 10000)) |line| {
+    while (try reader.readUntilDelimiterOrEofAlloc(allocator, '\n', 10_000)) |line| {
         for (0.., line) |i, char| {
             const f: f32 = @floatFromInt(i);
             try self.tiles.append(allocator, .{
@@ -93,7 +90,7 @@ pub fn loadTestScene(
     }
 
     for (self.tiles.items(.sprite_renderable)) |i| {
-        try state.passes[@intFromEnum(State.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
+        try state.renderer.render_passes.items[@intFromEnum(State.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
     }
 
     try self.writeSceneToBinary("t2.txt");
@@ -104,11 +101,9 @@ pub fn reloadScene(self: *Self, allocator: std.mem.Allocator) !void {
     self.tiles = .{};
 }
 
-pub fn loadScene(self: *Self, renderer: Renderer) !void {
-    for (self.entities.len) |i| {
-        const entity = self.entities.get(i);
-        const renderable = entity.toSpriteRenderable();
-        try renderer.render_passes.items[0].appendSpriteToBatch(renderable);
+pub fn loadScene(self: *Self, renderer: *Renderer) !void {
+    for (self.tiles.items(.sprite_renderable)) |i| {
+        try renderer.render_passes.items[@intFromEnum(State.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
     }
 }
 
@@ -168,13 +163,47 @@ pub fn writeSceneToBinary(self: *Self, file_name: []const u8) !void {
     }
 }
 
-pub fn deloadScene(self: *Self, allocator: std.mem.Allocator, state: *State) void {
+pub fn deloadScene(
+    self: *Self,
+    allocator: std.mem.Allocator,
+    state: *State,
+) void {
     self.entities.deinit(allocator);
     self.tiles.deinit(allocator);
-    for (state.passes) |*pass| {
+    for (state.renderer.render_passes.items) |*pass| {
         pass.batch.clearAndFree();
         pass.cur_num_of_sprite = 0;
     }
+}
+
+pub fn jsonStringify(self: *const Self, jws: anytype) !void {
+    try jws.beginObject();
+    try jws.objectField("id");
+    try jws.print("{}", .{self.id});
+    try jws.objectField("height");
+    try jws.print("{}", .{self.height});
+    try jws.objectField("width");
+    try jws.print("{}", .{self.width});
+    try jws.objectField("scene_name");
+    try jws.print("{s}", .{self.scene_name});
+    try jws.objectField("entities");
+    try jws.beginArray();
+    for (0..self.entities.len) |i| {
+        var entity: Entity = self.entities.get(i);
+
+        try entity.jsonStringify(jws);
+    }
+    try jws.endArray();
+
+    try jws.objectField("tiles");
+    try jws.beginArray();
+    for (0..self.tiles.len) |i| {
+        var tile: Tile = self.tiles.get(i);
+
+        try tile.jsonStringify(jws);
+    }
+    try jws.endArray();
+    try jws.endObject();
 }
 
 test "Scene serde" {

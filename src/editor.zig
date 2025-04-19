@@ -18,6 +18,7 @@ const Lua = @import("scripting/lua.zig");
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
+const Serde = @import("serde.zig");
 
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
@@ -41,7 +42,29 @@ pub const MouseState = struct {
     hover_over_scene: bool = false,
 };
 
-pub const EditorState = struct {};
+const SerdeMode = enum {
+    JSON,
+    BINARY,
+};
+
+pub const EditorConfig = struct {
+    mode: SerdeMode = .BINARY,
+
+    pub fn loadConfig(
+        self: *EditorConfig,
+        allo: std.mem.Allocator,
+    ) !void {
+        var cwd = std.fs.cwd();
+
+        var config_file = try cwd.openFile("editor.json", .{});
+        defer config_file.close();
+
+        const config_buf = try config_file.readToEndAlloc(allo, 1000);
+
+        const temp = try std.json.parseFromSliceLeaky(EditorConfig, allo, config_buf, .{});
+        self.mode = temp.mode;
+    }
+};
 
 var mouse_middle_down: bool = false;
 var view: math.Mat4 = undefined;
@@ -67,11 +90,19 @@ const allocator = std.heap.page_allocator;
 var buf: [8192]u8 = undefined;
 var mouse_state: MouseState = .{};
 var selected_layer: State.RenderPassIds = .TILES_1;
+var scene_list_buffer: std.ArrayList([]const u8) = undefined;
+var new_temp_scene: Scene = .{};
+var new_scene_open: bool = false;
+var load_scene_open: bool = false;
+var editor_config: EditorConfig = .{};
 
 const test_string = "HELLO FROM HERE";
 
 pub fn init() !void {
+    try editor_config.loadConfig(allocator);
     try Lua.luaTest();
+
+    scene_list_buffer = std.ArrayList([]const u8).init(allocator);
 
     // Default Projection matrix
     proj = mat4.ortho(
@@ -123,8 +154,15 @@ pub fn init() !void {
 
     // Ready State data
     try state.init();
-    try scene.loadTestScene(std.heap.page_allocator, &state);
-    state.loaded_scene = scene;
+    //try scene.loadTestScene(allocator, &state);
+    if (editor_config.mode == .BINARY) {
+        try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
+        try Serde.writeSceneToJson(&scene, "t2.json", std.heap.page_allocator);
+        state.loaded_scene = scene;
+    } else if (editor_config.mode == .JSON) {
+        try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator);
+    }
+    try state.loaded_scene.?.loadScene(&state.renderer);
 
     // Default pass actions
     passaction.colors[0] = .{
@@ -222,13 +260,14 @@ pub fn frame() !void {
                 }
             }
             tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
+            _ = ig.igInputFloat("Sprite ID: ", &tile.sprite_renderable.sprite_id);
 
             _ = ig.igCheckbox("Spawner", &tile.spawner);
             _ = ig.igCheckbox("Traversable", &tile.traversable);
             state.loaded_scene.?.tiles.set(s, tile);
 
-            if (state.passes[@intFromEnum(selected_layer)].batch.items.len > s) {
-                try state.passes[@intFromEnum(selected_layer)].updateSpriteRenderables(s, tile.sprite_renderable);
+            if (state.renderer.render_passes.items[@intFromEnum(selected_layer)].batch.items.len > s) {
+                try state.renderer.render_passes.items[@intFromEnum(selected_layer)].updateSpriteRenderables(s, tile.sprite_renderable);
             }
         }
     }
@@ -252,7 +291,7 @@ pub fn frame() !void {
     if (mouse_state.hover_over_scene) {
         const grid_size = 16.0;
         const grid_offset_x = 0.0; // Adjust as needed
-        const grid_offset_y = 10.0; // Adjust as needed
+        const grid_offset_y = -12.0; // Adjust as needed
         clamped_mouse_pos = math.Vec3{
             .x = @floor((mouse_world_space.x - grid_offset_x) / grid_size) * grid_size + grid_offset_x,
             .y = @floor((mouse_world_space.y - grid_offset_y) / grid_size) * grid_size + grid_offset_y,
@@ -399,35 +438,90 @@ fn main_menu() !void {
     }
 
     if (ig.igBeginPopup("dropdown", 0)) {
-        if (ig.igButton("Scenes")) {
+        if (ig.igButton("New Scenes")) {
+            new_temp_scene = .{};
             new_scene_open = true;
             ig.igCloseCurrentPopup();
         }
+        if (ig.igButton("Save Scenes")) {
+            if (state.loaded_scene) |*s| {
+                try Serde.writeSceneToBinary(s, s.scene_name);
+            }
+            ig.igCloseCurrentPopup();
+        }
+        if (ig.igButton("Load Scene")) {
+            var level_dir = try std.fs.cwd().openDir("levels", .{});
+            var level_walker = try level_dir.walk(allocator);
+            while (try level_walker.next()) |entry| {
+                try scene_list_buffer.append(try allocator.dupe(u8, entry.basename));
+            }
+            level_walker.deinit();
+            load_scene_open = true;
+        }
         ig.igEndPopup();
+    }
+    if (load_scene_open) {
+        ig.igSetNextWindowBgAlpha(1.0);
+        ig.igSetNextWindowSize(.{ .x = 300, .y = 200 }, ig.ImGuiCond_None);
+        if (ig.igBegin("Load Scene", &load_scene_open, ig.ImGuiWindowFlags_NoSavedSettings | ig.ImGuiWindowFlags_NoDocking)) {
+            if (scene_list_buffer.items.len > 0) {
+                for (scene_list_buffer.items) |s| {
+                    if (ig.igButton(s.ptr)) {
+                        // @todo load a scene, and set the scene to the state loaded scene
+                        if (state.loaded_scene) |*loaded_scene| {
+                            loaded_scene.deloadScene(allocator, &state);
+                        }
+                        var temp_scene: Scene = .{};
+                        try Serde.loadSceneFromBinary(&temp_scene, s, allocator);
+                        state.loaded_scene = temp_scene;
+                        try state.loaded_scene.?.loadScene(&state.renderer);
+
+                        load_scene_open = false;
+                        scene_list_buffer.clearAndFree();
+                        break;
+                    }
+                }
+            }
+        }
+        ig.igEnd();
     }
 
     if (new_scene_open) {
         ig.igSetNextWindowBgAlpha(1.0);
         ig.igSetNextWindowSize(.{ .x = 300, .y = 200 }, ig.ImGuiCond_None);
         if (ig.igBegin("New Scene", &new_scene_open, ig.ImGuiWindowFlags_NoSavedSettings | ig.ImGuiWindowFlags_NoDocking)) {
+            if (ig.igInputText("Name", &buf, buf.len, ig.ImGuiWindowFlags_None)) {
+                const temp_name: []const u8 = std.mem.span(@as([*c]u8, @ptrCast(buf[0..].ptr)));
+                new_temp_scene.scene_name = temp_name;
+            }
+            _ = ig.igInputFloat("Width", &new_temp_scene.width);
+            _ = ig.igInputFloat("Height", &new_temp_scene.height);
             if (ig.igButton("New Scene")) {
                 state.loaded_scene.?.deloadScene(allocator, &state);
-                var new_scene: Scene = .{};
-                try new_scene.default(allocator, &state);
-                state.loaded_scene = new_scene;
+                try new_temp_scene.tiles.setCapacity(allocator, @as(usize, @intFromFloat(new_temp_scene.width * new_temp_scene.height)));
+                for (0..new_temp_scene.tiles.capacity) |i| {
+                    const f: f32 = @floatFromInt(i);
+                    new_temp_scene.tiles.insertAssumeCapacity(i, .{
+                        .sprite_renderable = .{
+                            .pos = .{
+                                .x = @mod(f, new_temp_scene.width) * 16,
+                                .y = @floor(f / new_temp_scene.height) * 16,
+                                .z = 0,
+                            },
+                            .sprite_id = 0,
+                            .color = .{
+                                .x = 1.0,
+                                .y = 1.0,
+                                .z = 1.0,
+                                .w = 1.0,
+                            },
+                        },
+                    });
+                }
+                state.loaded_scene = new_temp_scene;
+                try state.loaded_scene.?.loadScene(&state.renderer);
+                try Serde.writeSceneToBinary(&state.loaded_scene.?, state.loaded_scene.?.scene_name);
                 state.selected_entity = null;
-            }
-            if (ig.igInputText("New level", &buf, buf.len, ig.ImGuiWindowFlags_None)) {
-                std.log.info("{s}, len: {}", .{ buf[0.. :0], buf.len });
-            }
-
-            if (ig.igButton("reload scene")) {
-                try scene.reloadScene(std.heap.page_allocator);
-                try scene.loadTestScene(std.heap.page_allocator, &state);
-            }
-            if (ig.igButton("reset view")) {
-                view = math.Mat4.identity();
-                proj = mat4.ortho(-app.widthf() / 2, app.widthf() / 2, -app.heightf() / 2, app.heightf() / 2, -1, 1);
             }
         }
         ig.igEnd();
@@ -436,7 +530,6 @@ fn main_menu() !void {
     ig.igEndMainMenuBar();
 }
 
-var new_scene_open: bool = false;
 fn left_window() !void {
     // General Scene Settings
     _ = ig.igBegin("Settings", 0, ig.ImGuiWindowFlags_None);

@@ -18,3 +18,10 @@ pub fn aabb(point: ig.ImVec2_t, pos: ig.ImVec2_t, size: ig.ImVec2_t) bool {
         point.y >= pos.y and point.y <= pos.y + size.y;
     return is_point_inside;
 }
+
+pub const Interpolations = struct {
+    pub fn lerpVec2i(vec1: math.Vec2i, vec2: math.Vec2i) f32 {
+        _ = vec1;
+        _ = vec2;
+    }
+};

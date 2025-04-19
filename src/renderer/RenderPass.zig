@@ -30,6 +30,7 @@ fn rand(min_val: f32, max_val: f32) f32 {
 }
 
 const Self = @This();
+id: RendererTypes.RenderPassIds,
 pass_action: sg.PassAction,
 bindings: sg.Bindings,
 image: sg.Image,
@@ -43,13 +44,15 @@ path: []const u8,
 
 pub fn init(
     self: *Self,
+    id: RendererTypes.RenderPassIds,
     spritesheet_path: []const u8,
     sprite_size: [2]f32,
     atlas_size: [2]f32,
     allocator: std.mem.Allocator,
 ) !void {
+    self.id = id;
     self.cur_num_of_sprite = 0;
-    self.max_sprites_per_batch = 100;
+    self.max_sprites_per_batch = 10000;
     self.batch = try std.ArrayList(SpriteRenderable).initCapacity(allocator, 100);
     self.sprite_size = sprite_size;
     self.atlas_size = atlas_size;
