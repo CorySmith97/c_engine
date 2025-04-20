@@ -79,15 +79,15 @@ pub fn build(b: *std.Build) void {
             "-std=c23",
         },
     });
-    exe.addLibraryPath(b.path("libs/lua/install/lib"));
-    exe.linkSystemLibrary("lua");
+    //exe.addLibraryPath(b.path("libs/lua/install/lib"));
+    //exe.linkSystemLibrary("lua");
     exe.addIncludePath(b.path("libs/"));
-    exe.addIncludePath(b.path("libs/lua/install/include"));
+    //exe.addIncludePath(b.path("libs/lua/install/include"));
     exe.installHeader(b.path("libs/stb_image.h"), "stb_image.h");
-    exe.installHeader(b.path("libs/lua/install/include/lua.h"), "lua.h");
-    exe.installHeader(b.path("libs/lua/install/include/lualib.h"), "lualib.h");
-    exe.installHeader(b.path("libs/lua/install/include/lauxlib.h"), "lauxlib.h");
-    exe.installHeader(b.path("libs/lua/install/include/luaconf.h"), "luaconf.h");
+    //exe.installHeader(b.path("libs/lua/install/include/lua.h"), "lua.h");
+    //exe.installHeader(b.path("libs/lua/install/include/lualib.h"), "lualib.h");
+    //exe.installHeader(b.path("libs/lua/install/include/lauxlib.h"), "lauxlib.h");
+    //exe.installHeader(b.path("libs/lua/install/include/luaconf.h"), "luaconf.h");
 
     exe.root_module.addImport("sokol", dep_sokol.module("sokol"));
 

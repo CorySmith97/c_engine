@@ -13,6 +13,8 @@ pub const RenderPassConfig = struct {
     sprite_size: [2]f32,
 };
 
+// @incorrect_rendering Likely due to spritesheet dimensions being
+// incorrect
 pub var Defaults = &[_]RenderPassConfig{
     .{
         .id = .TILES_1,

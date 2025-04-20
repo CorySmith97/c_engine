@@ -16,6 +16,7 @@ const math = util.math;
 const mat4 = math.Mat4;
 const Lua = @import("scripting/lua.zig");
 const types = @import("types.zig");
+const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Scene = types.Scene;
 const Entity = types.Entity;
 const Serde = @import("serde.zig");
@@ -100,7 +101,7 @@ const test_string = "HELLO FROM HERE";
 
 pub fn init() !void {
     try editor_config.loadConfig(allocator);
-    try Lua.luaTest();
+    //try Lua.luaTest();
 
     scene_list_buffer = std.ArrayList([]const u8).init(allocator);
 
@@ -278,14 +279,14 @@ pub fn frame() !void {
     _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
     ig.igEnd();
 
-    for (0..test_string.len) |i| {
-        const f: f32 = @floatFromInt(i);
-        try state.passes[3].appendSpriteToBatch(.{
-            .pos = .{ .x = f * 16 - 32, .y = 26, .z = 0 },
-            .sprite_id = @floatFromInt(test_string[i]),
-            .color = .{ .x = 0.1, .y = 1, .z = 0.5, .w = 1 },
-        });
-    }
+    //for (0..test_string.len) |i| {
+    //    const f: f32 = @floatFromInt(i);
+    //    try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{
+    //        .pos = .{ .x = f * 16 - 32, .y = 26, .z = 0 },
+    //        .sprite_id = @floatFromInt(test_string[i]),
+    //        .color = .{ .x = 0.1, .y = 1, .z = 0.5, .w = 1 },
+    //    });
+    //}
 
     var clamped_mouse_pos: math.Vec3 = undefined;
     if (mouse_state.hover_over_scene) {
@@ -298,7 +299,7 @@ pub fn frame() !void {
             .z = 0,
         };
 
-        try state.passes[3].appendSpriteToBatch(.{ .pos = clamped_mouse_pos, .sprite_id = 1, .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 } });
+        try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{ .pos = clamped_mouse_pos, .sprite_id = 1, .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 } });
     }
 
     try left_window();
@@ -322,8 +323,8 @@ pub fn frame() !void {
     imgui.render();
     sg.endPass();
     sg.commit();
-    state.passes[3].batch.clearRetainingCapacity();
-    state.passes[3].cur_num_of_sprite = 0;
+    state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
+    state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
 }
 
 pub fn cleanup() !void {

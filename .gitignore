@@ -8,3 +8,4 @@ libs/lua/src/
 libs/lua/README.md
 libs/lua
 libs/sdk
+libs/stb_image.h

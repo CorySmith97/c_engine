@@ -16,7 +16,7 @@ const AABB = struct {
     max: math.Vec2,
 };
 
-// @important
+// @important @incorrect_rendering We have to manually change serde formatting as we go.
 const Self = @This();
 id: u32 = 10,
 spritesheet_id: RenderPassIds = .ENTITY_1,
@@ -87,6 +87,13 @@ pub fn jsonStringify(self: *const Self, jws: anytype) !void {
     try jws.print("{}", .{self.selected});
 
     try jws.endObject();
+}
+
+pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Self {
+    _ = allocator;
+    _ = source;
+    _ = options;
+    // @todo finish parsing
 }
 
 pub fn init(

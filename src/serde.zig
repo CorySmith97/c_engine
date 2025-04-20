@@ -115,7 +115,7 @@ pub fn writeSceneToJson(
 
     var writer = file.writer();
 
-    const stringified = try std.json.stringifyAlloc(allocator, @constCast(scene), .{ .whitespace = .indent_1 });
+    const stringified = try std.json.stringifyAlloc(allocator, @constCast(scene), .{});
 
     try writer.writeAll(stringified);
 }

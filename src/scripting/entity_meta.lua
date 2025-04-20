@@ -1,9 +1,0 @@
---- @class Entity
---- Represents an entity in the system.
---- Provides type information and associated attributes for an entity.
----
---- @field id number A unique identifier for the entity.
---- @field name string The name of the entity.
---- @field position table A table representing the entity's position, with `x`, `y`, and `z` coordinates.
---- @field active boolean Indicates if the entity is currently active in the system.
---- @field components table<string, any> A dictionary of components attached to the entity, where the key is the component's name and the value is its data.
