@@ -36,64 +36,64 @@ pub fn jsonStringify(self: *const Self, jws: anytype) !void {
     try jws.endObject();
 }
 
-pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Self {
-    // @todo finish parsing
-    _ = options;
-
-    var self: Self = .{};
-    if (try source.next() != .object_begin) {
-        return error.UnexpectedToken;
-    }
-
-    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
-        .string, .allocated_string => |token| {
-            std.log.info("token: {s}", .{token});
-            if (!std.mem.eql(u8, token, "pos")) {
-                return error.UnexpectedToken;
-            }
-        },
-        else => return error.UnexpectedToken,
-    }
-
-    // POS parsing
-    if (try source.next() != .object_begin) {
-        return error.UnexpectedToken;
-    }
-    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
-        .string, .allocated_string => |token| {
-            if (!std.mem.eql(u8, token, "x")) {
-                return error.UnexpectedToken;
-            }
-        },
-        else => return error.UnexpectedToken,
-    }
-    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
-        .number, .allocated_number => |token| {
-            self.pos.x = token;
-        },
-        else => return error.UnexpectedToken,
-    }
-    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
-        .string, .allocated_string => |token| {
-            if (!std.mem.eql(u8, token, "y")) {
-                return error.UnexpectedToken;
-            }
-        },
-        else => return error.UnexpectedToken,
-    }
-    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
-        .number, .allocated_number => |token| {
-            self.pos.y = token;
-        },
-        else => return error.UnexpectedToken,
-    }
-    if (try source.next() != .object_end) {
-        return error.UnexpectedToken;
-    }
-
-    if (try source.next() != .object_end) {
-        return error.UnexpectedToken;
-    }
-
-    return .{};
-}
+//pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Self {
+//    // @todo finish parsing
+//    _ = options;
+//
+//    var self: Self = .{};
+//    if (try source.next() != .object_begin) {
+//        return error.UnexpectedToken;
+//    }
+//
+//    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
+//        .string, .allocated_string => |token| {
+//            std.log.info("token: {s}", .{token});
+//            if (!std.mem.eql(u8, token, "pos")) {
+//                return error.UnexpectedToken;
+//            }
+//        },
+//        else => return error.UnexpectedToken,
+//    }
+//
+//    // POS parsing
+//    if (try source.next() != .object_begin) {
+//        return error.UnexpectedToken;
+//    }
+//    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
+//        .string, .allocated_string => |token| {
+//            if (!std.mem.eql(u8, token, "x")) {
+//                return error.UnexpectedToken;
+//            }
+//        },
+//        else => return error.UnexpectedToken,
+//    }
+//    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
+//        .number, .allocated_number => |token| {
+//            self.pos.x = token;
+//        },
+//        else => return error.UnexpectedToken,
+//    }
+//    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
+//        .string, .allocated_string => |token| {
+//            if (!std.mem.eql(u8, token, "y")) {
+//                return error.UnexpectedToken;
+//            }
+//        },
+//        else => return error.UnexpectedToken,
+//    }
+//    switch (try source.nextAlloc(allocator, .alloc_if_needed)) {
+//        .number, .allocated_number => |token| {
+//            self.pos.y = token;
+//        },
+//        else => return error.UnexpectedToken,
+//    }
+//    if (try source.next() != .object_end) {
+//        return error.UnexpectedToken;
+//    }
+//
+//    if (try source.next() != .object_end) {
+//        return error.UnexpectedToken;
+//    }
+//
+//    return .{};
+//}

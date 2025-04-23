@@ -89,12 +89,12 @@ pub fn jsonStringify(self: *const Self, jws: anytype) !void {
     try jws.endObject();
 }
 
-pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Self {
-    _ = allocator;
-    _ = source;
-    _ = options;
-    // @todo finish parsing
-}
+//pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Self {
+//    _ = allocator;
+//    _ = source;
+//    _ = options;
+//    // @todo finish parsing
+//}
 
 pub fn init(
     self: *Self,

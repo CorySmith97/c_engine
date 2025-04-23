@@ -2,7 +2,7 @@
  "id": 0,
  "height": 1e2,
  "width": 1e2,
- "scene_name": t2.txt,
+ "scene_name": "t2.txt",
  "entities": [],
  "tiles": [
   {

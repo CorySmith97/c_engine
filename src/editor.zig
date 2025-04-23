@@ -250,6 +250,7 @@ pub fn editorInit() !void {
         state.loaded_scene = scene;
     } else if (editor_config.mode == .JSON) {
         try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator);
+        state.loaded_scene = scene;
     }
     try state.loaded_scene.?.loadScene(&state.renderer);
 

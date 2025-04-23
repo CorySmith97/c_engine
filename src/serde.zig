@@ -7,6 +7,63 @@ const assert = std.debug.assert;
 const Renderer = @import("renderer.zig");
 const log = std.log.scoped(.serde);
 
+fn multiArrayListToArray(comptime T: type, allocator: std.mem.Allocator, list: std.MultiArrayList(T)) ![]T {
+    const slice = list.slice();
+    const len = slice.len;
+
+    var result = try allocator.alloc(T, len);
+
+    for (0..len) |i| {
+        result[i] = slice.get(i);
+    }
+
+    return result;
+}
+
+const SceneJson = struct {
+    const Self = @This();
+    id: u32,
+    height: f32,
+    width: f32,
+    scene_name: []const u8,
+    entities: []Entity,
+    tiles: []Tile,
+
+    pub fn sceneToSceneJson(scene: *Scene, allocator: std.mem.Allocator) !SceneJson {
+        const entities = try multiArrayListToArray(Entity, allocator, scene.entities);
+        const tiles = try multiArrayListToArray(Tile, allocator, scene.tiles);
+        return SceneJson{
+            .id = scene.id,
+            .height = scene.height,
+            .width = scene.width,
+            .scene_name = scene.scene_name,
+            .entities = entities,
+            .tiles = tiles,
+        };
+    }
+
+    pub fn sceneJsonToScene(self: *SceneJson, allocator: std.mem.Allocator) !Scene {
+        var entities = std.MultiArrayList(Entity){};
+        var tiles = std.MultiArrayList(Tile){};
+
+        for (self.entities) |e| {
+            try entities.append(allocator, e);
+        }
+        for (self.tiles) |e| {
+            try tiles.append(allocator, e);
+        }
+
+        return .{
+            .id = self.id,
+            .height = self.height,
+            .width = self.width,
+            .scene_name = self.scene_name,
+            .entities = entities,
+            .tiles = tiles,
+        };
+    }
+};
+
 pub fn writeSceneToBinary(scene: *Scene, file_name: []const u8) !void {
     assert(file_name.len > 0);
     var level_dir = try std.fs.cwd().openDir("levels", .{});
@@ -92,16 +149,16 @@ pub fn loadSceneFromJson(
     assert(file_name.len > 0);
     var level_dir = try std.fs.cwd().openDir("levels", .{});
 
-    var file = try level_dir.createFile(file_name, .{});
+    var file = try level_dir.openFile(file_name, .{});
     defer file.close();
 
     var reader = file.reader();
 
     const file_buf = try reader.readAllAlloc(allocator, 10_000_000);
-    _ = file_buf;
-    _ = scene;
+    var scene_json: SceneJson = undefined;
+    scene_json = try std.json.parseFromSliceLeaky(SceneJson, allocator, file_buf, .{ .allocate = .alloc_always });
 
-    //scene.* = try std.json.parseFromSliceLeaky(Scene, allocator, file_buf, .{ .allocate = .alloc_always });
+    scene.* = try scene_json.sceneJsonToScene(allocator);
 }
 
 pub fn writeSceneToJson(
@@ -117,7 +174,7 @@ pub fn writeSceneToJson(
 
     var writer = file.writer();
 
-    const stringified = try std.json.stringifyAlloc(allocator, @constCast(scene), .{ .whitespace = .indent_1 });
+    const stringified = try std.json.stringifyAlloc(allocator, try SceneJson.sceneToSceneJson(scene, allocator), .{ .whitespace = .indent_1 });
 
     try writer.writeAll(stringified);
 }
