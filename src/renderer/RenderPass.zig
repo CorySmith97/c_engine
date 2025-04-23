@@ -12,6 +12,7 @@ const Scene = types.Scene;
 const Entity = types.Entity;
 const RendererTypes = types.RendererTypes;
 const SpriteRenderable = RendererTypes.SpriteRenderable;
+const log = std.log.scoped(.render_pass);
 
 fn xorshift32() u32 {
     const static = struct {
@@ -50,6 +51,7 @@ pub fn init(
     atlas_size: [2]f32,
     allocator: std.mem.Allocator,
 ) !void {
+    log.info("Render pass initial: {s}", .{spritesheet_path});
     self.id = id;
     self.cur_num_of_sprite = 0;
     self.max_sprites_per_batch = 10000;
@@ -103,7 +105,7 @@ pub fn init(
         .cull_mode = .BACK,
         .sample_count = 1,
         .depth = .{
-            .pixel_format = .DEPTH,
+            .pixel_format = .DEPTH_STENCIL,
             .compare = .LESS_EQUAL,
             .write_enabled = true,
         },

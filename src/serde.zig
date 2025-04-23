@@ -5,6 +5,7 @@ const Tile = types.Tile;
 const std = @import("std");
 const assert = std.debug.assert;
 const Renderer = @import("renderer.zig");
+const log = std.log.scoped(.serde);
 
 pub fn writeSceneToBinary(scene: *Scene, file_name: []const u8) !void {
     assert(file_name.len > 0);
@@ -61,9 +62,9 @@ pub fn loadSceneFromBinary(scene: *Scene, file_name: []const u8, allocator: std.
     scene.scene_name = try allocator.dupe(u8, name_buf);
 
     const entity_count = try reader.readInt(usize, .little);
+    log.info("Entity count: {}", .{entity_count});
     try scene.entities.setCapacity(allocator, entity_count);
     _ = try reader.readUntilDelimiter(&buf, '\n');
-    std.log.info("Entity Size: {}\nTile Size: {}", .{ @sizeOf(Entity), @sizeOf(Tile) });
     for (0..entity_count) |_| {
         var entity_buf: [@sizeOf(Entity)]u8 = undefined;
         const len = try reader.readAtLeast(&entity_buf, @sizeOf(Entity));
@@ -72,6 +73,7 @@ pub fn loadSceneFromBinary(scene: *Scene, file_name: []const u8, allocator: std.
     }
 
     const tile_count = try reader.readInt(usize, .little);
+    log.info("Tile count: {}", .{tile_count});
     try scene.tiles.setCapacity(allocator, tile_count);
     _ = try reader.readUntilDelimiter(&buf, '\n');
     for (0..tile_count) |_| {
@@ -115,7 +117,7 @@ pub fn writeSceneToJson(
 
     var writer = file.writer();
 
-    const stringified = try std.json.stringifyAlloc(allocator, @constCast(scene), .{});
+    const stringified = try std.json.stringifyAlloc(allocator, @constCast(scene), .{ .whitespace = .indent_1 });
 
     try writer.writeAll(stringified);
 }

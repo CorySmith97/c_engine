@@ -35,35 +35,6 @@ pub fn init(self: *Self) !void {
     };
 
     try self.renderer.init();
-
-    try self.passes[@intFromEnum(RenderPassIds.ENTITES_1)].init(
-        .ENTITY_1,
-        "assets/entity_1.png",
-        .{ 32, 32 },
-        .{ 256, 256 },
-        allocator,
-    );
-    try self.passes[@intFromEnum(RenderPassIds.TILES_1)].init(
-        .TILES_1,
-        "assets/tiles_1.png",
-        .{ 16, 16 },
-        .{ 256, 256 },
-        allocator,
-    );
-    try self.passes[@intFromEnum(RenderPassIds.TILES_2)].init(
-        .TILES_2,
-        "assets/tiles_2.png",
-        .{ 16, 16 },
-        .{ 256, 256 },
-        allocator,
-    );
-    try self.passes[@intFromEnum(RenderPassIds.UI_1)].init(
-        .UI_1,
-        "assets/ui_1.png",
-        .{ 16, 16 },
-        .{ 256, 256 },
-        allocator,
-    );
 }
 
 pub fn resetRenderPasses(self: *Self) !void {

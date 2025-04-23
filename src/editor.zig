@@ -19,8 +19,32 @@ const types = @import("types.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Scene = types.Scene;
 const Entity = types.Entity;
+const Tile = types.Tile;
 const Serde = @import("serde.zig");
+const Quad = @import("renderer/RenderQuad.zig");
 
+pub const std_options: std.Options = .{
+    // Set the log level to info
+    .log_level = .info,
+
+    // Define logFn to override the std implementation
+    .logFn = customLogFn,
+};
+
+pub fn customLogFn(
+    comptime level: std.log.Level,
+    comptime scope: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    const prefix = "[" ++ comptime level.asText() ++ "] " ++ "(" ++ @tagName(scope) ++ "):\t";
+
+    // Print the message to stderr, silently ignoring any errors
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
+    const stderr = std.io.getStdErr().writer();
+    nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+}
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
     .{ .x = 0.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // green
@@ -67,6 +91,44 @@ pub const EditorConfig = struct {
     }
 };
 
+pub const EditorState = struct {
+    gpa: std.heap.GeneralPurposeAllocator(.{}),
+    allocator: std.mem.Allocator = undefined,
+    view: math.Mat4 = undefined,
+    proj: math.Mat4 = undefined,
+    mouse_state: MouseState = .{},
+    editor_scene_image: sg.Image = .{},
+    editor_scene_image_depth: sg.Image = .{},
+    attachment: sg.Attachments = .{},
+    editor_config: EditorConfig = .{},
+    zoom_factor: f32 = 0.25,
+    selected_layer: RenderPassIds = .TILES_1,
+    state: State = undefined,
+
+    pub fn init(self: *EditorState) !void {
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        var s: State = undefined;
+        try s.init();
+        self.* = .{
+            .gpa = gpa,
+            .allocator = gpa.allocator(),
+            .view = math.Mat4.identity(),
+            .proj = mat4.ortho(
+                -app.widthf() / 2 * zoom_factor + 50,
+                app.widthf() / 2 * zoom_factor + 50,
+                -app.heightf() / 2 * zoom_factor - 50,
+                app.heightf() / 2 * zoom_factor - 50,
+                -1,
+                1,
+            ),
+            .state = s,
+        };
+    }
+};
+
+// @todo Move Imgui rendering to a seperate function
+pub fn imguiRender() void {}
+
 var mouse_middle_down: bool = false;
 var view: math.Mat4 = undefined;
 var passaction: sg.PassAction = .{};
@@ -99,7 +161,34 @@ var editor_config: EditorConfig = .{};
 
 const test_string = "HELLO FROM HERE";
 
-pub fn init() !void {
+const test_json =
+    \\{
+    \\    "pos": {
+    \\        "x": 0,
+    \\        "y": 0
+    \\    },
+    \\    "sprite_renderable": {
+    \\        "pos": {
+    \\            "x": 0e0,
+    \\            "y": 1e2,
+    \\            "z": 0e0
+    \\        },
+    \\        "sprite_id": 4.6e1,
+    \\        "color": {
+    \\            "x": 1e0,
+    \\            "y": 1e0,
+    \\            "z": 1e0,
+    \\            "w": 1e0
+    \\        }
+    \\    },
+    \\    "spawner": false,
+    \\    "traversable": false
+    \\}
+;
+
+pub fn editorInit() !void {
+    //const testtile = try std.json.parseFromSliceLeaky(Tile, allocator, test_json, .{});
+    //std.log.info("{any}", .{testtile});
     try editor_config.loadConfig(allocator);
     //try Lua.luaTest();
 
@@ -130,6 +219,7 @@ pub fn init() !void {
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_ViewportsEnable;
     ig.igLoadIniSettingsFromDisk(io.*.IniFilename);
+    try state.init();
 
     // While in the editor, we render the game to a texture. that
     // texture is then rendered within an Imgui window.
@@ -146,15 +236,13 @@ pub fn init() !void {
 
     var attachment_desc: sg.AttachmentsDesc = .{};
     attachment_desc.colors[0].image = editor_scene_image;
-    img_desc.pixel_format = .DEPTH;
+    img_desc.pixel_format = .DEPTH_STENCIL;
 
     editor_scene_image_depth = sg.makeImage(img_desc);
     attachment_desc.depth_stencil.image = editor_scene_image_depth;
 
     attachment = sg.makeAttachments(attachment_desc);
 
-    // Ready State data
-    try state.init();
     //try scene.loadTestScene(allocator, &state);
     if (editor_config.mode == .BINARY) {
         try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
@@ -175,7 +263,7 @@ pub fn init() !void {
         .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
     };
 }
-pub fn frame() !void {
+pub fn editorFrame() !void {
 
     //view = math.Mat4.lookat(camera.pos, camera.pos.add(camera.front), camera.up);
     //
@@ -318,6 +406,8 @@ pub fn frame() !void {
     }
     sg.endPass();
 
+    //Quad.drawQuad2dSpace(.{ .x = 10, .y = 10 }, .{ .x = 1, .y = 0, .z = 0 }, .{ .mvp = vs_params.mvp });
+
     // === Render IMGUI windows
     sg.beginPass(.{ .action = passaction, .swapchain = glue.swapchain() });
     imgui.render();
@@ -327,12 +417,12 @@ pub fn frame() !void {
     state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
 }
 
-pub fn cleanup() !void {
-    ig.igSaveIniSettingsToDisk("imgui.ini");
+pub fn editorCleanup() !void {
+    //ig.igSaveIniSettingsToDisk("imgui.ini");
     imgui.shutdown();
 }
 
-pub fn event(ev: [*c]const app.Event) !void {
+pub fn editorEvent(ev: [*c]const app.Event) !void {
     const eve = ev.*;
 
     // forward input events to sokol-imgui
@@ -554,4 +644,31 @@ fn left_window() !void {
     }
     ig.igEndGroup();
     ig.igEnd();
+}
+
+export fn init() void {
+    editorInit() catch unreachable;
+}
+
+export fn frame() void {
+    editorFrame() catch unreachable;
+}
+
+export fn cleanup() void {
+    editorCleanup() catch unreachable;
+}
+export fn event(ev: [*c]const app.Event) void {
+    editorEvent(ev) catch unreachable;
+}
+
+pub fn main() !void {
+    app.run(.{
+        .init_cb = init,
+        .frame_cb = frame,
+        .event_cb = event,
+        .cleanup_cb = cleanup,
+        .width = 1200,
+        .height = 800,
+        .window_title = "HELLO",
+    });
 }

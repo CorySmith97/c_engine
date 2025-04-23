@@ -14,26 +14,92 @@ const RenderPass = @import("renderer.zig").RenderPass;
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
-const Editor = @import("editor.zig");
+const State = @import("state.zig");
+const Serde = @import("serde.zig");
 
+pub const std_options: std.Options = .{
+    // Set the log level to info
+    .log_level = .info,
+
+    // Define logFn to override the std implementation
+    .logFn = customLogFn,
+};
+
+pub fn customLogFn(
+    comptime level: std.log.Level,
+    comptime scope: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    const prefix = "[" ++ comptime level.asText() ++ "] " ++ "(" ++ @tagName(scope) ++ "):\t";
+
+    // Print the message to stderr, silently ignoring any errors
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
+    const stderr = std.io.getStdErr().writer();
+    nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+}
+
+var global_state: State = undefined;
+var passaction: sg.PassAction = .{};
+var proj: math.Mat4 = undefined;
+var view: math.Mat4 = undefined;
+const zoom_factor = 0.25;
+var depth_image: sg.Image = .{};
 pub fn gameinit() !void {
+    var env = glue.environment();
+    env.defaults.color_format = .RGBA8;
+    env.defaults.depth_format = .DEPTH_STENCIL;
     sg.setup(.{
-        .environment = glue.environment(),
+        .environment = env,
         .logger = .{ .func = slog.func },
     });
 
-    imgui.setup(.{
-        .logger = .{ .func = slog.func },
-        .ini_filename = "imgui.ini",
-    });
+    std.log.info("{s}", .{@tagName(sg.queryDesc().environment.defaults.color_format)});
+
+    //imgui.setup(.{
+    //    .logger = .{ .func = slog.func },
+    //    .ini_filename = "imgui.ini",
+    //});
+
+    try global_state.init();
+    var scene: Scene = .{};
+    try Serde.loadSceneFromBinary(&scene, "t2.txt", global_state.allocator);
+    global_state.loaded_scene = scene;
+    try global_state.loaded_scene.?.loadScene(&global_state.renderer);
+    std.log.info("{}", .{global_state.loaded_scene.?.tiles.len});
+    passaction.colors[0] = .{
+        .load_action = .CLEAR,
+        .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
+    };
+    proj = mat4.ortho(
+        -app.widthf() / 2 * zoom_factor + 50,
+        app.widthf() / 2 * zoom_factor + 50,
+        -app.heightf() / 2 * zoom_factor - 50,
+        app.heightf() / 2 * zoom_factor - 50,
+        -1,
+        1,
+    );
+    view = math.Mat4.identity();
 }
 
 pub fn gameframe() !void {
+    var swapchain = glue.swapchain();
+    swapchain.color_format = .RGBA8;
+    global_state.updateBuffers();
+    sg.beginPass(.{ .action = passaction, .swapchain = swapchain });
+    global_state.render(util.computeVsParams(proj, view));
+    sg.endPass();
     sg.commit();
 }
 pub fn gamecleanup() !void {}
 pub fn gameevent(ev: [*c]const app.Event) !void {
-    _ = imgui.handleEvent(ev.*);
+    if (ev.*.type == .KEY_UP or ev.*.type == .KEY_DOWN) {
+        switch (ev.*.key_code) {
+            .ESCAPE => app.quit(),
+            else => {},
+        }
+    }
 }
 export fn init() void {
     gameinit() catch unreachable;
@@ -50,55 +116,18 @@ export fn event(ev: [*c]const app.Event) void {
     gameevent(ev) catch unreachable;
 }
 
-export fn einit() void {
-    Editor.init() catch unreachable;
-}
-
-export fn eframe() void {
-    Editor.frame() catch unreachable;
-}
-
-export fn ecleanup() void {
-    Editor.cleanup() catch unreachable;
-}
-export fn eevent(ev: [*c]const app.Event) void {
-    Editor.event(ev) catch unreachable;
-}
-
 pub fn main() !void {
-    const allocator = std.heap.page_allocator;
-    var args_iter = try std.process.argsWithAllocator(allocator);
     var desc: app.Desc = undefined;
 
-    // We allow for different compilation flags to denote
-    // if we are in editor mode vs game mode. The editor
-    // mode renders the game seperately to give us a nicer
-    // application to edit files and such.
-    while (args_iter.next()) |arg| {
-        if (std.mem.eql(u8, arg, "editor")) {
-            desc = .{
-                .init_cb = einit,
-                .frame_cb = eframe,
-                .event_cb = eevent,
-                .cleanup_cb = ecleanup,
-                .width = 1200,
-                .height = 800,
-                .window_title = "HELLO",
-            };
-            break;
-        } else if (std.mem.eql(u8, arg, "game")) {
-            desc = .{
-                .init_cb = init,
-                .frame_cb = frame,
-                .event_cb = event,
-                .cleanup_cb = cleanup,
-                .width = 1200,
-                .height = 800,
-                .window_title = "HELLO",
-            };
-            break;
-        }
-    }
+    desc = .{
+        .init_cb = init,
+        .frame_cb = frame,
+        .event_cb = event,
+        .cleanup_cb = cleanup,
+        .width = 1200,
+        .height = 800,
+        .window_title = "HELLO",
+    };
 
     app.run(desc);
 }

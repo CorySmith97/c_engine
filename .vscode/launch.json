@@ -7,9 +7,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug",
+            "name": "Editor debug",
             "program": "${workspaceFolder}/zig-out/bin/c_engine",
-            "args": ["editor"],
+            "args": ["-Deditor=true"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Game debug",
+            "program": "${workspaceFolder}/zig-out/bin/c_engine",
+            "args": [],
             "cwd": "${workspaceFolder}"
         }
     ]

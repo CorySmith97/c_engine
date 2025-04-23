@@ -12,6 +12,7 @@ const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 pub const RenderPass = @import("renderer/RenderPass.zig");
 const RenderConfigs = @import("renderer/RenderConfigs.zig");
+const log = std.log.scoped(.renderer);
 
 const Self = @This();
 gpa: std.heap.GeneralPurposeAllocator(.{}),
@@ -20,6 +21,7 @@ render_passes: std.ArrayList(RenderPass),
 basic_shd_vs_params: shd.VsParams,
 
 pub fn init(self: *Self) !void {
+    log.info("Initializing Renderer", .{});
     self.gpa = std.heap.GeneralPurposeAllocator(.{}){};
     self.allocator = self.gpa.allocator();
     self.render_passes = std.ArrayList(RenderPass).init(self.allocator);
@@ -38,6 +40,7 @@ pub fn init(self: *Self) !void {
 }
 
 pub fn deinit(self: *Self) !void {
+    log.info("Deitializing Renderer", .{});
     self.render_passes.deinit();
     const check = self.gpa.deinit();
     if (check == .leak) {
