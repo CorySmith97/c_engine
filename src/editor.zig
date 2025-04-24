@@ -22,6 +22,8 @@ const Entity = types.Entity;
 const Tile = types.Tile;
 const Serde = @import("serde.zig");
 const Quad = @import("renderer/RenderQuad.zig");
+const TypeEditors = @import("editor/entity_editor.zig");
+const Console = @import("editor/console.zig");
 
 pub const std_options: std.Options = .{
     // Set the log level to info
@@ -106,14 +108,18 @@ pub const EditorState = struct {
     zoom_factor: f32 = 0.25,
     selected_layer: RenderPassIds = .TILES_1,
     state: State = undefined,
+    console: Console = undefined,
 
     pub fn init(self: *EditorState) !void {
-        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const allocator = std.heap.page_allocator;
         var s: State = undefined;
-        try s.init();
+        try s.init(allocator);
+        var c: Console = undefined;
+        try c.init(allocator);
         self.* = .{
             .gpa = gpa,
-            .allocator = gpa.allocator(),
+            .allocator = allocator,
             .view = math.Mat4.identity(),
             .proj = mat4.ortho(
                 -app.widthf() / 2 * zoom_factor + 50,
@@ -124,6 +130,8 @@ pub const EditorState = struct {
                 1,
             ),
             .state = s,
+            .selected_layer = .TILES_1,
+            .console = c,
         };
     }
 };
@@ -131,6 +139,7 @@ pub const EditorState = struct {
 // @todo Move Imgui rendering to a seperate function
 pub fn imguiRender() void {}
 
+var es: EditorState = undefined;
 var mouse_middle_down: bool = false;
 var view: math.Mat4 = undefined;
 var passaction: sg.PassAction = .{};
@@ -141,8 +150,6 @@ var r: f32 = 0;
 var proj: math.Mat4 = undefined;
 var zoom_factor: f32 = 0.25;
 var settings_docked: bool = false;
-var editor_scene_image: sg.Image = .{};
-var editor_scene_image_depth: sg.Image = .{};
 var attachment: sg.Attachments = .{};
 var layout_initialized: bool = false;
 var mouse_world_space: math.Vec4 = .{};
@@ -150,11 +157,8 @@ var scene_window_pos = ig.ImVec2_t{};
 var scene_window_size = ig.ImVec2_t{};
 var is_mouse_in_scene: bool = false;
 var scene: Scene = undefined;
-var state: State = undefined;
-const allocator = std.heap.page_allocator;
 var buf: [8192]u8 = undefined;
 var mouse_state: MouseState = .{};
-var selected_layer: State.RenderPassIds = .TILES_1;
 var scene_list_buffer: std.ArrayList([]const u8) = undefined;
 var new_temp_scene: Scene = .{};
 var new_scene_open: bool = false;
@@ -190,13 +194,6 @@ const test_json =
 ;
 
 pub fn editorInit() !void {
-    //const testtile = try std.json.parseFromSliceLeaky(Tile, allocator, test_json, .{});
-    //std.log.info("{any}", .{testtile});
-    try editor_config.loadConfig(allocator);
-    //try Lua.luaTest();
-
-    scene_list_buffer = std.ArrayList([]const u8).init(allocator);
-    history_buf = std.ArrayList([]const u8).init(allocator);
 
     // Default Projection matrix
     proj = mat4.ortho(
@@ -218,12 +215,19 @@ pub fn editorInit() !void {
         .logger = .{ .func = slog.func },
         .ini_filename = "imgui.ini",
     });
+    try es.init();
+    //const testtile = try std.json.parseFromSliceLeaky(Tile, allocator, test_json, .{});
+    //std.log.info("{any}", .{testtile});
+    try editor_config.loadConfig(es.allocator);
+    //try Lua.luaTest();
+
+    scene_list_buffer = std.ArrayList([]const u8).init(es.allocator);
+    history_buf = std.ArrayList([]const u8).init(es.allocator);
 
     const io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_ViewportsEnable;
     ig.igLoadIniSettingsFromDisk(io.*.IniFilename);
-    try state.init();
 
     // While in the editor, we render the game to a texture. that
     // texture is then rendered within an Imgui window.
@@ -236,14 +240,14 @@ pub fn editorInit() !void {
     };
 
     // Image for scene needs both Image, and depth image
-    editor_scene_image = sg.makeImage(img_desc);
+    es.editor_scene_image = sg.makeImage(img_desc);
 
     var attachment_desc: sg.AttachmentsDesc = .{};
-    attachment_desc.colors[0].image = editor_scene_image;
+    attachment_desc.colors[0].image = es.editor_scene_image;
     img_desc.pixel_format = .DEPTH_STENCIL;
 
-    editor_scene_image_depth = sg.makeImage(img_desc);
-    attachment_desc.depth_stencil.image = editor_scene_image_depth;
+    es.editor_scene_image_depth = sg.makeImage(img_desc);
+    attachment_desc.depth_stencil.image = es.editor_scene_image_depth;
 
     attachment = sg.makeAttachments(attachment_desc);
 
@@ -251,12 +255,12 @@ pub fn editorInit() !void {
     if (editor_config.mode == .BINARY) {
         try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
         try Serde.writeSceneToJson(&scene, "t2.json", std.heap.page_allocator);
-        state.loaded_scene = scene;
+        es.state.loaded_scene = scene;
     } else if (editor_config.mode == .JSON) {
         try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator);
-        state.loaded_scene = scene;
+        es.state.loaded_scene = scene;
     }
-    try state.loaded_scene.?.loadScene(&state.renderer);
+    try es.state.loaded_scene.?.loadScene(&es.state.renderer);
 
     // Default pass actions
     passaction.colors[0] = .{
@@ -315,71 +319,20 @@ pub fn editorFrame() !void {
     _ = ig.igBegin("Scene", 0, ig.ImGuiWindowFlags_None);
     scene_window_pos = ig.igGetWindowPos();
     scene_window_size = ig.igGetContentRegionAvail();
-    ig.igImage(imgui.imtextureid(editor_scene_image), ig.ImVec2{ .x = 700, .y = 440 });
+    ig.igImage(imgui.imtextureid(es.editor_scene_image), ig.ImVec2{ .x = 700, .y = 440 });
     ig.igEnd();
 
     // Editor for Entity
     _ = ig.igBegin("Entity Editor", 0, ig.ImGuiWindowFlags_None);
-    if (state.selected_entity) |s| {
-        if (state.selected_entity_click) {
-            var tile = state.loaded_scene.?.tiles.get(s);
-            const selected = try std.fmt.allocPrint(
-                state.allocator,
-                "ENTID: {d}\nSprite id: {d}\nPos: {}, {}, {}",
-                .{
-                    s,
-                    tile.sprite_renderable.sprite_id,
-                    tile.sprite_renderable.pos.x,
-                    tile.sprite_renderable.pos.y,
-                    tile.sprite_renderable.pos.z,
-                },
-            );
-            defer state.allocator.free(selected);
-            ig.igText(selected.ptr);
-
-            var color_array = tile.sprite_renderable.color.toArray();
-            _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
-            _ = ig.igText("Preset Colors:");
-            ig.igNewLine();
-            for (predefined_colors, 0..) |preset, i| {
-                ig.igSameLine();
-                const str = try std.fmt.allocPrintZ(allocator, "##c{}", .{i});
-                defer allocator.free(str);
-                if (ig.igColorButton(
-                    str.ptr,
-                    preset,
-                    ig.ImGuiColorEditFlags_None,
-                )) {
-                    color_array = [4]f32{ preset.x, preset.y, preset.z, preset.w };
-                }
-            }
-            tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
-            _ = ig.igInputFloat("Sprite ID: ", &tile.sprite_renderable.sprite_id);
-
-            _ = ig.igCheckbox("Spawner", &tile.spawner);
-            _ = ig.igCheckbox("Traversable", &tile.traversable);
-            state.loaded_scene.?.tiles.set(s, tile);
-
-            if (state.renderer.render_passes.items[@intFromEnum(selected_layer)].batch.items.len > s) {
-                try state.renderer.render_passes.items[@intFromEnum(selected_layer)].updateSpriteRenderables(s, tile.sprite_renderable);
-            }
-        }
+    if (es.selected_layer == .TILES_1 or es.selected_layer == .TILES_2) {
+        try TypeEditors.drawTileEditor(&es);
     }
     ig.igEnd();
 
     // Drawer for data. This is unused for now, but something will go here.
     // Idea tab for animations, or Possible script viewer.
     // @todo Move this to the console editor file.
-    _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
-    for (history_buf.items) |entry| {
-        ig.igText(entry.ptr);
-    }
-    if (ig.igInputText(" ", &console_buf, console_buf.len, ig.ImGuiInputTextFlags_EnterReturnsTrue)) {
-        const console_input: []const u8 = std.mem.span(@as([*c]u8, @ptrCast(console_buf[0..].ptr)));
-        try history_buf.append(try allocator.dupe(u8, console_input));
-        console_buf = std.mem.zeroes([8192]u8);
-    }
-    ig.igEnd();
+    try es.console.console(es.allocator);
 
     //for (0..test_string.len) |i| {
     //    const f: f32 = @floatFromInt(i);
@@ -401,22 +354,22 @@ pub fn editorFrame() !void {
             .z = 0,
         };
 
-        try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{ .pos = clamped_mouse_pos, .sprite_id = 1, .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 } });
+        try es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{ .pos = clamped_mouse_pos, .sprite_id = 1, .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 } });
     }
 
     try left_window();
 
     // Prepare render data for instanced rendering
     const vs_params = util.computeVsParams(proj, view);
-    state.updateBuffers();
+    es.state.updateBuffers();
 
     // === Render scene to image
     sg.beginPass(.{ .action = offscreen, .attachments = attachment });
-    if (state.loaded_scene) |_| {
-        state.render(vs_params);
+    if (es.state.loaded_scene) |_| {
+        es.state.render(vs_params);
     }
-    if (!state.selected_entity_click) {
-        state.collision(mouse_world_space);
+    if (!es.state.selected_entity_click) {
+        es.state.collision(mouse_world_space);
     }
     sg.endPass();
 
@@ -427,8 +380,8 @@ pub fn editorFrame() !void {
     imgui.render();
     sg.endPass();
     sg.commit();
-    state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
-    state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
+    es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
+    es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
 }
 
 pub fn editorCleanup() !void {
@@ -495,15 +448,15 @@ pub fn editorEvent(ev: [*c]const app.Event) !void {
             .MIDDLE => mouse_middle_down = mouse_pressed,
             .LEFT => {
                 if (mouse_state.hover_over_scene) {
-                    if (state.selected_entity) |_| {
-                        state.selected_entity_click = true;
+                    if (es.state.selected_entity) |_| {
+                        es.state.selected_entity_click = true;
                     }
                 }
             },
             .RIGHT => {
-                if (state.selected_entity_click) {
-                    state.selected_entity_click = false;
-                    state.selected_entity = null;
+                if (es.state.selected_entity_click) {
+                    es.state.selected_entity_click = false;
+                    es.state.selected_entity = null;
                 }
             },
 
@@ -549,16 +502,16 @@ fn main_menu() !void {
             ig.igCloseCurrentPopup();
         }
         if (ig.igButton("Save Scenes")) {
-            if (state.loaded_scene) |*s| {
+            if (es.state.loaded_scene) |*s| {
                 try Serde.writeSceneToBinary(s, s.scene_name);
             }
             ig.igCloseCurrentPopup();
         }
         if (ig.igButton("Load Scene")) {
             var level_dir = try std.fs.cwd().openDir("levels", .{});
-            var level_walker = try level_dir.walk(allocator);
+            var level_walker = try level_dir.walk(es.allocator);
             while (try level_walker.next()) |entry| {
-                try scene_list_buffer.append(try allocator.dupe(u8, entry.basename));
+                try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
             }
             level_walker.deinit();
             load_scene_open = true;
@@ -573,13 +526,13 @@ fn main_menu() !void {
                 for (scene_list_buffer.items) |s| {
                     if (ig.igButton(s.ptr)) {
                         // @todo load a scene, and set the scene to the state loaded scene
-                        if (state.loaded_scene) |*loaded_scene| {
-                            loaded_scene.deloadScene(allocator, &state);
+                        if (es.state.loaded_scene) |*loaded_scene| {
+                            loaded_scene.deloadScene(es.allocator, &es.state);
                         }
                         var temp_scene: Scene = .{};
-                        try Serde.loadSceneFromBinary(&temp_scene, s, allocator);
-                        state.loaded_scene = temp_scene;
-                        try state.loaded_scene.?.loadScene(&state.renderer);
+                        try Serde.loadSceneFromBinary(&temp_scene, s, es.allocator);
+                        es.state.loaded_scene = temp_scene;
+                        try es.state.loaded_scene.?.loadScene(&es.state.renderer);
 
                         load_scene_open = false;
                         scene_list_buffer.clearAndFree();
@@ -602,8 +555,8 @@ fn main_menu() !void {
             _ = ig.igInputFloat("Width", &new_temp_scene.width);
             _ = ig.igInputFloat("Height", &new_temp_scene.height);
             if (ig.igButton("New Scene")) {
-                state.loaded_scene.?.deloadScene(allocator, &state);
-                try new_temp_scene.tiles.setCapacity(allocator, @as(usize, @intFromFloat(new_temp_scene.width * new_temp_scene.height)));
+                es.state.loaded_scene.?.deloadScene(es.allocator, &es.state);
+                try new_temp_scene.tiles.setCapacity(es.allocator, @as(usize, @intFromFloat(new_temp_scene.width * new_temp_scene.height)));
                 for (0..new_temp_scene.tiles.capacity) |i| {
                     const f: f32 = @floatFromInt(i);
                     new_temp_scene.tiles.insertAssumeCapacity(i, .{
@@ -623,10 +576,10 @@ fn main_menu() !void {
                         },
                     });
                 }
-                state.loaded_scene = new_temp_scene;
-                try state.loaded_scene.?.loadScene(&state.renderer);
-                try Serde.writeSceneToBinary(&state.loaded_scene.?, state.loaded_scene.?.scene_name);
-                state.selected_entity = null;
+                es.state.loaded_scene = new_temp_scene;
+                try es.state.loaded_scene.?.loadScene(&es.state.renderer);
+                try Serde.writeSceneToBinary(&es.state.loaded_scene.?, es.state.loaded_scene.?.scene_name);
+                es.state.selected_entity = null;
             }
         }
         ig.igEnd();
@@ -640,20 +593,20 @@ fn left_window() !void {
     _ = ig.igBegin("Settings", 0, ig.ImGuiWindowFlags_None);
     ig.igBeginGroup();
     ig.igTextColored(predefined_colors[1], "Stats");
-    const text = try std.fmt.allocPrint(state.allocator, "frame duration: {d:.3}", .{app.frameDuration()});
-    defer state.allocator.free(text);
+    const text = try std.fmt.allocPrint(es.allocator, "frame duration: {d:.3}", .{app.frameDuration()});
+    defer es.allocator.free(text);
     ig.igText(text.ptr);
-    const render_pass_count = try std.fmt.allocPrint(state.allocator, "RenderPass Count: {d}", .{state.passes.len});
-    defer state.allocator.free(render_pass_count);
+    const render_pass_count = try std.fmt.allocPrint(es.allocator, "RenderPass Count: {d}", .{es.state.passes.len});
+    defer es.allocator.free(render_pass_count);
     ig.igText(render_pass_count.ptr);
 
     ig.igNewLine();
     ig.igSameLine();
     ig.igText("Selected Layer");
-    ig.igText(@tagName(selected_layer));
-    for (std.meta.tags(State.RenderPassIds)) |id| {
+    ig.igText(@tagName(es.selected_layer));
+    for (std.meta.tags(RenderPassIds)) |id| {
         if (ig.igButton(@tagName(id).ptr)) {
-            selected_layer = id;
+            es.selected_layer = id;
         }
     }
     ig.igEndGroup();

@@ -5,6 +5,7 @@ const testing = std.testing;
 const State = @import("../state.zig");
 const Entity = @import("entity.zig");
 const Renderer = @import("../renderer.zig");
+const RendererTypes = @import("renderer.zig");
 const Tile = @import("tile.zig");
 
 /// There is a lot for this class. The main idea is that we construct
@@ -90,7 +91,7 @@ pub fn loadTestScene(
     }
 
     for (self.tiles.items(.sprite_renderable)) |i| {
-        try state.renderer.render_passes.items[@intFromEnum(State.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
+        try state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
     }
 
     try self.writeSceneToBinary("t2.txt");
@@ -103,7 +104,7 @@ pub fn reloadScene(self: *Self, allocator: std.mem.Allocator) !void {
 
 pub fn loadScene(self: *Self, renderer: *Renderer) !void {
     for (self.tiles.items(.sprite_renderable)) |i| {
-        try renderer.render_passes.items[@intFromEnum(State.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
+        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
     }
 }
 

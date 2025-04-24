@@ -9,12 +9,6 @@ const Renderer = @import("renderer.zig");
 const assert = std.debug.assert;
 
 pub const pass_count: u32 = 4;
-pub const RenderPassIds = enum {
-    TILES_1,
-    TILES_2,
-    ENTITES_1,
-    UI_1,
-};
 
 /// === GLOBAL STATE ===
 const Self = @This();
@@ -25,8 +19,7 @@ loaded_scene: ?Scene,
 selected_entity: ?usize,
 selected_entity_click: bool = false,
 
-pub fn init(self: *Self) !void {
-    const allocator = std.heap.page_allocator;
+pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     self.* = .{
         .allocator = allocator,
         .renderer = undefined,
@@ -35,7 +28,7 @@ pub fn init(self: *Self) !void {
         .selected_entity = null,
     };
 
-    try self.renderer.init();
+    try self.renderer.init(allocator);
 }
 
 pub fn resetRenderPasses(self: *Self) !void {

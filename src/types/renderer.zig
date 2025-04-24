@@ -37,6 +37,7 @@ pub const SpriteRenderable = extern struct {
 };
 
 pub const pass_count: u32 = 4;
+
 pub const RenderPassIds = enum {
     TILES_1,
     TILES_2,
