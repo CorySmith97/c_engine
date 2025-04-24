@@ -17,6 +17,7 @@ const Entity = types.Entity;
 const State = @import("state.zig");
 const Serde = @import("serde.zig");
 const AudioDriver = @import("audio.zig");
+const Console = @import("editor/console.zig");
 
 pub const std_options: std.Options = .{
     // Set the log level to info
@@ -48,6 +49,7 @@ var view: math.Mat4 = undefined;
 const zoom_factor = 0.25;
 var depth_image: sg.Image = .{};
 var ad: AudioDriver = undefined;
+var console: Console = undefined;
 
 pub fn gameinit() !void {
     var env = glue.environment();
@@ -60,14 +62,14 @@ pub fn gameinit() !void {
 
     std.log.info("{s}", .{@tagName(sg.queryDesc().environment.defaults.color_format)});
 
-    //imgui.setup(.{
-    //    .logger = .{ .func = slog.func },
-    //    .ini_filename = "imgui.ini",
-    //});
-    //
-    try ad.init();
+    imgui.setup(.{
+        .logger = .{ .func = slog.func },
+    });
+
+    //try ad.init();
 
     try global_state.init();
+    try console.init(global_state.allocator);
     var scene: Scene = .{};
     try Serde.loadSceneFromBinary(&scene, "t2.txt", global_state.allocator);
     global_state.loaded_scene = scene;
@@ -89,11 +91,31 @@ pub fn gameinit() !void {
 }
 
 pub fn gameframe() !void {
+    imgui.newFrame(.{
+        .width = app.width(),
+        .height = app.height(),
+        .delta_time = app.frameDuration(),
+        .dpi_scale = app.dpiScale(),
+    });
+    const viewport = ig.igGetMainViewport();
+    viewport.*.Flags |= ig.ImGuiViewportFlags_NoRendererClear;
+
+    ig.igSetNextWindowPos(viewport.*.WorkPos, ig.ImGuiCond_Always);
+    ig.igSetNextWindowSize(viewport.*.WorkSize, ig.ImGuiCond_Always);
+    ig.igSetNextWindowViewport(viewport.*.ID);
+
+    if (console.open) {
+        ig.igSetNextWindowPos(.{ .x = 10, .y = 10 }, ig.ImGuiCond_Once);
+        ig.igSetNextWindowSize(.{ .x = 400, .y = 100 }, ig.ImGuiCond_Once);
+        try console.console(global_state.allocator);
+    }
+
     var swapchain = glue.swapchain();
     swapchain.color_format = .RGBA8;
     global_state.updateBuffers();
     sg.beginPass(.{ .action = passaction, .swapchain = swapchain });
     global_state.render(util.computeVsParams(proj, view));
+    imgui.render();
     sg.endPass();
     sg.commit();
 }
@@ -101,6 +123,8 @@ pub fn gamecleanup() !void {}
 pub fn gameevent(ev: [*c]const app.Event) !void {
     if (ev.*.type == .KEY_UP or ev.*.type == .KEY_DOWN) {
         switch (ev.*.key_code) {
+            .A => console.open = true,
+            .B => console.open = false,
             .ESCAPE => app.quit(),
             else => {},
         }

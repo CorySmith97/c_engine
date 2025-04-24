@@ -11,3 +11,5 @@ const math = util.math;
 const mat4 = math.Mat4;
 const types = @import("../types.zig");
 const Entity = types.Entity;
+
+pub fn drawEntityEditor() !void {}

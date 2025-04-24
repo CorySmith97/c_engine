@@ -6,6 +6,7 @@ const Entity = types.Entity;
 const shd = @import("shaders/basic.glsl.zig");
 const math = @import("util/math.zig");
 const Renderer = @import("renderer.zig");
+const assert = std.debug.assert;
 
 pub const pass_count: u32 = 4;
 pub const RenderPassIds = enum {
@@ -53,6 +54,7 @@ pub fn updateBuffers(self: *Self) void {
 }
 
 pub fn render(self: *Self, vs_params: shd.VsParams) void {
+    assert(self.loaded_scene != null);
     for (self.renderer.render_passes.items) |*pass| {
         pass.render(vs_params);
     }

@@ -91,6 +91,8 @@ pub const EditorConfig = struct {
     }
 };
 
+var history_buf: std.ArrayList([]const u8) = undefined;
+
 pub const EditorState = struct {
     gpa: std.heap.GeneralPurposeAllocator(.{}),
     allocator: std.mem.Allocator = undefined,
@@ -158,6 +160,7 @@ var new_temp_scene: Scene = .{};
 var new_scene_open: bool = false;
 var load_scene_open: bool = false;
 var editor_config: EditorConfig = .{};
+var console_buf: [8192]u8 = undefined;
 
 const test_string = "HELLO FROM HERE";
 
@@ -193,6 +196,7 @@ pub fn editorInit() !void {
     //try Lua.luaTest();
 
     scene_list_buffer = std.ArrayList([]const u8).init(allocator);
+    history_buf = std.ArrayList([]const u8).init(allocator);
 
     // Default Projection matrix
     proj = mat4.ortho(
@@ -365,7 +369,16 @@ pub fn editorFrame() !void {
 
     // Drawer for data. This is unused for now, but something will go here.
     // Idea tab for animations, or Possible script viewer.
+    // @todo Move this to the console editor file.
     _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
+    for (history_buf.items) |entry| {
+        ig.igText(entry.ptr);
+    }
+    if (ig.igInputText(" ", &console_buf, console_buf.len, ig.ImGuiInputTextFlags_EnterReturnsTrue)) {
+        const console_input: []const u8 = std.mem.span(@as([*c]u8, @ptrCast(console_buf[0..].ptr)));
+        try history_buf.append(try allocator.dupe(u8, console_input));
+        console_buf = std.mem.zeroes([8192]u8);
+    }
     ig.igEnd();
 
     //for (0..test_string.len) |i| {
