@@ -10,9 +10,11 @@ const util = @import("../util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
 const types = @import("../types.zig");
+const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Entity = types.Entity;
 const State = @import("../state.zig");
 const EditorState = @import("../editor.zig").EditorState;
+const log = std.log.scoped(.entity_editor);
 
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
@@ -23,11 +25,38 @@ const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
 };
 
-pub fn drawEntityEditor() !void {}
+pub fn drawEntityEditor(editor_state: *EditorState) !void {
+    if (ig.igButton("Add entity")) {
+        if (editor_state.state.loaded_scene) |*scene| {
+            const new_entity: Entity = .{};
+            try scene.entities.append(editor_state.allocator, new_entity);
+            editor_state.state.selected_entity = scene.entities.len - 1;
+            try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.toSpriteRenderable());
+            log.info("entity count: {}", .{scene.entities.len});
+        }
+    }
+    if (editor_state.state.selected_entity) |s| {
+        if (editor_state.state.selected_tile_click) {
+            const entity = editor_state.state.loaded_scene.?.entities.get(s);
+            const selected = try std.fmt.allocPrint(
+                editor_state.allocator,
+                "ENTID: {d}\nSprite id: {d}\nPos: {}, {}",
+                .{
+                    s,
+                    entity.sprite_id,
+                    entity.pos.x,
+                    entity.pos.y,
+                },
+            );
+            defer editor_state.allocator.free(selected);
+            ig.igText(selected.ptr);
+        }
+    }
+}
 
 pub fn drawTileEditor(editor_state: *EditorState) !void {
-    if (editor_state.state.selected_entity) |s| {
-        if (editor_state.state.selected_entity_click) {
+    if (editor_state.state.selected_tile) |s| {
+        if (editor_state.state.selected_tile_click) {
             var tile = editor_state.state.loaded_scene.?.tiles.get(s);
             const selected = try std.fmt.allocPrint(
                 editor_state.allocator,

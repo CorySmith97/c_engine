@@ -107,10 +107,11 @@ pub fn init(
 pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
     return .{
         .pos = .{
-            .x = self.pos.x * self.size.x,
-            .y = self.pos.y * self.size.y,
+            .x = @as(f32, @floatFromInt(self.pos.x * self.size.x)),
+            .y = @as(f32, @floatFromInt(self.pos.y * self.size.y)),
             .z = self.z_index,
         },
         .sprite_id = self.sprite_id,
+        .color = .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 },
     };
 }

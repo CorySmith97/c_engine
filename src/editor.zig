@@ -253,7 +253,8 @@ pub fn editorInit() !void {
 
     //try scene.loadTestScene(allocator, &state);
     if (editor_config.mode == .BINARY) {
-        try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
+        try scene.loadTestScene(es.allocator, &es.state);
+        //try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
         try Serde.writeSceneToJson(&scene, "t2.json", std.heap.page_allocator);
         es.state.loaded_scene = scene;
     } else if (editor_config.mode == .JSON) {
@@ -326,6 +327,8 @@ pub fn editorFrame() !void {
     _ = ig.igBegin("Entity Editor", 0, ig.ImGuiWindowFlags_None);
     if (es.selected_layer == .TILES_1 or es.selected_layer == .TILES_2) {
         try TypeEditors.drawTileEditor(&es);
+    } else {
+        try TypeEditors.drawEntityEditor(&es);
     }
     ig.igEnd();
 
@@ -347,7 +350,7 @@ pub fn editorFrame() !void {
     if (mouse_state.hover_over_scene) {
         const grid_size = 16.0;
         const grid_offset_x = 0.0; // Adjust as needed
-        const grid_offset_y = -12.0; // Adjust as needed
+        const grid_offset_y = 0.0; // Adjust as needed
         clamped_mouse_pos = math.Vec3{
             .x = @floor((mouse_world_space.x - grid_offset_x) / grid_size) * grid_size + grid_offset_x,
             .y = @floor((mouse_world_space.y - grid_offset_y) / grid_size) * grid_size + grid_offset_y,
@@ -368,7 +371,7 @@ pub fn editorFrame() !void {
     if (es.state.loaded_scene) |_| {
         es.state.render(vs_params);
     }
-    if (!es.state.selected_entity_click) {
+    if (!es.state.selected_tile_click) {
         es.state.collision(mouse_world_space);
     }
     sg.endPass();
@@ -448,15 +451,15 @@ pub fn editorEvent(ev: [*c]const app.Event) !void {
             .MIDDLE => mouse_middle_down = mouse_pressed,
             .LEFT => {
                 if (mouse_state.hover_over_scene) {
-                    if (es.state.selected_entity) |_| {
-                        es.state.selected_entity_click = true;
+                    if (es.state.selected_tile) |_| {
+                        es.state.selected_tile_click = true;
                     }
                 }
             },
             .RIGHT => {
-                if (es.state.selected_entity_click) {
-                    es.state.selected_entity_click = false;
-                    es.state.selected_entity = null;
+                if (es.state.selected_tile_click) {
+                    es.state.selected_tile_click = false;
+                    es.state.selected_tile = null;
                 }
             },
 
@@ -579,7 +582,7 @@ fn main_menu() !void {
                 es.state.loaded_scene = new_temp_scene;
                 try es.state.loaded_scene.?.loadScene(&es.state.renderer);
                 try Serde.writeSceneToBinary(&es.state.loaded_scene.?, es.state.loaded_scene.?.scene_name);
-                es.state.selected_entity = null;
+                es.state.selected_tile = null;
             }
         }
         ig.igEnd();

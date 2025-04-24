@@ -7,6 +7,7 @@ const Entity = @import("entity.zig");
 const Renderer = @import("../renderer.zig");
 const RendererTypes = @import("renderer.zig");
 const Tile = @import("tile.zig");
+const log = std.log.scoped(.scene);
 
 /// There is a lot for this class. The main idea is that we construct
 /// scenes similar to the way Godot handles scenes, but some more simple.
@@ -50,6 +51,7 @@ pub fn loadTestScene(
     allocator: std.mem.Allocator,
     state: *State,
 ) !void {
+    _ = state;
     self.id = 0;
     var file = try std.fs.cwd().openFile("levels/t1.txt", .{});
     defer file.close();
@@ -66,7 +68,7 @@ pub fn loadTestScene(
     self.width = try std.fmt.parseFloat(f32, width);
     self.height = try std.fmt.parseFloat(f32, height);
 
-    var y: f32 = try std.fmt.parseFloat(f32, height);
+    var y: f32 = 0;
     while (try reader.readUntilDelimiterOrEofAlloc(allocator, '\n', 10_000)) |line| {
         for (0.., line) |i, char| {
             const f: f32 = @floatFromInt(i);
@@ -87,12 +89,14 @@ pub fn loadTestScene(
                 },
             });
         }
-        y -= 1 * 16;
+        y += 16;
     }
 
-    for (self.tiles.items(.sprite_renderable)) |i| {
-        try state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
-    }
+    log.info("Scene: tiles: {}", .{self.tiles.len});
+
+    //for (self.tiles.items(.sprite_renderable)) |i| {
+    //    try state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
+    //}
 
     try self.writeSceneToBinary("t2.txt");
 }

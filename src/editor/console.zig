@@ -4,6 +4,9 @@ const log = std.log.scoped(.console);
 
 var console_buf: [8192]u8 = undefined;
 
+// @todo cli tools?
+pub const vtable = struct {};
+
 const Console = @This();
 history_buf: std.ArrayList([]const u8),
 history_file: std.fs.File,
@@ -30,16 +33,18 @@ pub fn console(
     for (self.history_buf.items) |entry| {
         ig.igText(entry.ptr);
     }
+    ig.igSameLine();
     if (ig.igInputText(" ", &console_buf, console_buf.len, ig.ImGuiInputTextFlags_EnterReturnsTrue | ig.ImGuiInputTextFlags_AllowTabInput)) {
         const console_input: []const u8 = std.mem.span(@as([*c]u8, @ptrCast(console_buf[0..].ptr)));
         try self.history_buf.append(try allocator.dupe(u8, console_input));
         log.info("{}", .{self.history_buf.items.len});
         console_buf = std.mem.zeroes([8192]u8);
-        if (self.history_buf.items.len >= 15) {
-            const record = self.history_buf.orderedRemove(0);
-            _ = try self.history_file.writeAll(record);
-            _ = try self.history_file.write("\n");
-        }
+        //if (self.history_buf.items.len >= 15) {
+        //    const record = self.history_buf.orderedRemove(0);
+        //    _ = try self.history_file.writeAll(record);
+        //    _ = try self.history_file.write("\n");
+        //}
     }
+    _ = ig.igButton("save logs");
     ig.igEnd();
 }

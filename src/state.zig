@@ -16,6 +16,8 @@ allocator: std.mem.Allocator,
 renderer: Renderer,
 passes: []RenderPass,
 loaded_scene: ?Scene,
+selected_tile: ?usize,
+selected_tile_click: bool = false,
 selected_entity: ?usize,
 selected_entity_click: bool = false,
 
@@ -26,6 +28,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .passes = try allocator.alloc(RenderPass, pass_count),
         .loaded_scene = null,
         .selected_entity = null,
+        .selected_tile = null,
     };
 
     try self.renderer.init(allocator);
@@ -54,10 +57,11 @@ pub fn render(self: *Self, vs_params: shd.VsParams) void {
 }
 
 pub fn collision(self: *Self, world_space: math.Vec4) void {
+    std.log.info("Render Size: {}", .{self.renderer.render_passes.items[0].batch.items.len});
     for (0.., self.renderer.render_passes.items[0].batch.items) |i, b| {
         if (b.pos.x < world_space.x and b.pos.x + 16 > world_space.x) {
             if (b.pos.y < world_space.y and b.pos.y + 16 > world_space.y) {
-                self.selected_entity = i;
+                self.selected_tile = i;
             }
         }
     }
