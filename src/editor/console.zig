@@ -16,8 +16,8 @@ pub fn init(
     self: *Console,
     allocator: std.mem.Allocator,
 ) !void {
-    self.history_buf = std.ArrayList([]const u8).init(allocator);
     var dir = try std.fs.cwd().openDir("assets", .{});
+    self.history_buf = std.ArrayList([]const u8).init(allocator);
     self.history_file = try dir.openFile("logs", .{ .mode = .read_write });
     self.open = false;
 }

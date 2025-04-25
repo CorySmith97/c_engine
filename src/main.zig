@@ -68,7 +68,7 @@ pub fn gameinit() !void {
 
     //try ad.init();
 
-    try global_state.init();
+    try global_state.init(std.heap.page_allocator);
     try console.init(global_state.allocator);
     var scene: Scene = .{};
     try Serde.loadSceneFromBinary(&scene, "t2.txt", global_state.allocator);

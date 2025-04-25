@@ -1,4 +1,5 @@
 const std = @import("std");
+
 const ig = @import("cimgui");
 const sokol = @import("sokol");
 const app = sokol.app;
@@ -6,14 +7,16 @@ const sg = sokol.gfx;
 const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
-const util = @import("../util.zig");
-const math = util.math;
-const mat4 = math.Mat4;
+
+const EditorState = @import("../editor.zig").EditorState;
+const State = @import("../state.zig");
 const types = @import("../types.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Entity = types.Entity;
-const State = @import("../state.zig");
-const EditorState = @import("../editor.zig").EditorState;
+const util = @import("../util.zig");
+const math = util.math;
+const mat4 = math.Mat4;
+
 const log = std.log.scoped(.entity_editor);
 
 const predefined_colors = [_]ig.ImVec4_t{
@@ -32,11 +35,10 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
             try scene.entities.append(editor_state.allocator, new_entity);
             editor_state.state.selected_entity = scene.entities.len - 1;
             try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.toSpriteRenderable());
-            log.info("entity count: {}", .{scene.entities.len});
         }
     }
     if (editor_state.state.selected_entity) |s| {
-        if (editor_state.state.selected_tile_click) {
+        if (editor_state.state.selected_entity_click) {
             const entity = editor_state.state.loaded_scene.?.entities.get(s);
             const selected = try std.fmt.allocPrint(
                 editor_state.allocator,
@@ -50,6 +52,22 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
             );
             defer editor_state.allocator.free(selected);
             ig.igText(selected.ptr);
+            if (ig.igButton("Move Default Location")) {
+                editor_state.mouse_state.moving_entity = true;
+            }
+        }
+    }
+
+    if (editor_state.state.selected_entity) |s| {
+        if (editor_state.mouse_state.moving_entity) {
+            var entity = editor_state.state.loaded_scene.?.entities.get(s);
+            entity.pos = editor_state.mouse_state.mouse_position_v2;
+            editor_state.state.loaded_scene.?.entities.set(s, entity);
+
+            if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
+                try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
+            }
+
         }
     }
 }

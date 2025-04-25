@@ -11,7 +11,7 @@ pub const EntityType = enum {
     default,
 };
 
-const AABB = struct {
+pub const AABB = struct {
     min: math.Vec2,
     max: math.Vec2,
 };
@@ -22,8 +22,8 @@ id: u32 = 10,
 spritesheet_id: RenderPassIds = .ENTITY_1,
 z_index: f32 = 0,
 entity_type: EntityType = .default,
-pos: math.Vec2i = .{},
-size: math.Vec2i = .{},
+pos: math.Vec2 = .{},
+size: math.Vec2 = .{},
 sprite_id: f32 = 0,
 aabb: AABB = .{
     .min = math.Vec2.zero(),
@@ -107,8 +107,8 @@ pub fn init(
 pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
     return .{
         .pos = .{
-            .x = @as(f32, @floatFromInt(self.pos.x * self.size.x)),
-            .y = @as(f32, @floatFromInt(self.pos.y * self.size.y)),
+            .x = self.pos.x * self.size.x,
+            .y = self.pos.y * self.size.y,
             .z = self.z_index,
         },
         .sprite_id = self.sprite_id,

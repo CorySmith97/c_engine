@@ -52,8 +52,8 @@ pub const Vec2i = extern struct {
     }
 };
 pub const Vec2 = extern struct {
-    x: f32,
-    y: f32,
+    x: f32 = 0,
+    y: f32 = 0,
 
     pub fn zero() Vec2 {
         return Vec2{ .x = 0.0, .y = 0.0 };
@@ -65,9 +65,9 @@ pub const Vec2 = extern struct {
 };
 
 pub const Vec3 = extern struct {
-    x: f32,
-    y: f32,
-    z: f32,
+    x: f32 = 0,
+    y: f32 = 0,
+    z: f32 = 0,
 
     pub fn zero() Vec3 {
         return Vec3{ .x = 0.0, .y = 0.0, .z = 0.0 };

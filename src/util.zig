@@ -2,6 +2,7 @@ pub const math = @import("util/math.zig");
 const mat4 = math.Mat4;
 const shd = @import("shaders/basic.glsl.zig");
 const ig = @import("cimgui");
+const AABB = @import("types/entity.zig").AABB;
 
 pub fn computeVsParams(proj: mat4, view: mat4) shd.VsParams {
     const model = mat4.identity();
@@ -12,8 +13,13 @@ pub fn computeVsParams(proj: mat4, view: mat4) shd.VsParams {
     //const proj = mat4.persp(60, aspect, 0.01, 100);
     return shd.VsParams{ .mvp = mat4.mul(mat4.mul(proj, view), model) };
 }
+pub fn aabbRec(point: math.Vec2, aabb: AABB) bool {
+    const is_point_inside = point.x >= aabb.min.x and point.x <= aabb.min.x + aabb.max.x and
+        point.y >= aabb.min.y and point.y <= aabb.min.y + aabb.max.y;
+    return is_point_inside;
+}
 
-pub fn aabb(point: ig.ImVec2_t, pos: ig.ImVec2_t, size: ig.ImVec2_t) bool {
+pub fn aabbIG(point: ig.ImVec2_t, pos: ig.ImVec2_t, size: ig.ImVec2_t) bool {
     const is_point_inside = point.x >= pos.x and point.x <= pos.x + size.x and
         point.y >= pos.y and point.y <= pos.y + size.y;
     return is_point_inside;

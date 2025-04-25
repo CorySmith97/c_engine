@@ -20,6 +20,7 @@ pub fn compileShaders(file_name: []const u8) void {
         "--format",
         "sokol_zig",
     };
+
     var compiler = std.process.Child.init(&args, std.heap.page_allocator);
     _ = compiler.spawnAndWait() catch @panic("Failed to compile shader");
 }

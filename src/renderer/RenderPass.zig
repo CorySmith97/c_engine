@@ -169,6 +169,7 @@ pub fn updateSpriteRenderables(
     index: usize,
     sprite: SpriteRenderable,
 ) !void {
+    log.info("Sprite Renderabled: {} {any}", .{index, sprite});
     self.batch.items[index] = sprite;
 }
 

@@ -7,7 +7,7 @@ const assert = std.debug.assert;
 const Renderer = @import("renderer.zig");
 const log = std.log.scoped(.serde);
 
-fn multiArrayListToArray(comptime T: type, allocator: std.mem.Allocator, list: std.MultiArrayList(T)) ![]T {
+fn multiArrayListToArray(comptime T: type, allocator: std.mem.Allocator, list: std.MultiArrayList(T),) ![]T {
     const slice = list.slice();
     const len = slice.len;
 
