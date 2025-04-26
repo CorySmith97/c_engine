@@ -5,18 +5,24 @@ const shaders = [2][]const u8{
     "src/shaders/quad.glsl",
 };
 
-pub fn compileShaders(file_name: []const u8) void {
+pub fn compileShaders(target: std.Build.ResolvedTarget, file_name: []const u8) void {
     var buf: [1024]u8 = undefined;
     const out_name = std.fmt.bufPrint(&buf, "{s}.zig", .{file_name}) catch @panic("failed to format");
     std.log.info("{s}", .{std.fs.selfExePathAlloc(std.heap.page_allocator) catch unreachable});
+    var sokol_proc: []const u8 = undefined;
+    if (target.result.isMinGW()) {
+        sokol_proc = "./sokol-shdc.exe";
+    } else {
+        sokol_proc = "./sokol-shdc";
+    }
     const args = [_][]const u8{
-        "./sokol-shdc",
+        sokol_proc,
         "--input",
         file_name,
         "--output",
         out_name,
         "--slang",
-        "glsl430:metal_macos",
+        "glsl430:metal_macos:hlsl5",
         "--format",
         "sokol_zig",
     };
@@ -26,17 +32,17 @@ pub fn compileShaders(file_name: []const u8) void {
 }
 
 pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
     const shd_only = b.option(bool, "shdonly", "compile only the shaders");
     for (shaders) |shader| {
-        compileShaders(shader);
+        compileShaders(target, shader);
     }
     if (shd_only) |s| {
         if (s) {
             return;
         }
     }
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
 
     const dep_sokol = b.dependency("sokol", .{
         .target = target,

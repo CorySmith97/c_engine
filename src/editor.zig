@@ -237,6 +237,7 @@ pub const EditorState = struct {
     console: Console = undefined,
     frame_count: std.ArrayList(f32) = undefined,
     continuous_sprite_mode: bool = false,
+    tile_group_selected: std.ArrayList(Tile) = undefined,
 
     pub fn init(self: *EditorState) !void {
         const gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -261,7 +262,14 @@ pub const EditorState = struct {
             .selected_layer = .TILES_1,
             .console = c,
             .frame_count = std.ArrayList(f32).init(allocator),
+            .tile_group_selected = std.ArrayList(Tile).init(allocator),
         };
+    }
+
+    pub fn deinit(self: *EditorState) void {
+        self.frame_count.deinit();
+        self.tile_group_selected.deinit();
+        _ = self.gpa.deinit();
     }
 
     pub fn updateSpriteRenderable(
@@ -532,6 +540,7 @@ pub fn editorFrame() !void {
 }
 
 pub fn editorCleanup() !void {
+    es.deinit();
     //ig.igSaveIniSettingsToDisk("imgui.ini");
     imgui.shutdown();
 }
