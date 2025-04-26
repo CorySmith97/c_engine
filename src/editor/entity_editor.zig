@@ -38,22 +38,46 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
         }
     }
     if (editor_state.state.selected_entity) |s| {
-            var entity = editor_state.state.loaded_scene.?.entities.get(s);
-            const selected = try std.fmt.allocPrint(
-                editor_state.allocator,
-                "ENTID: {d}\nSprite id: {d}\nPos: {}, {}",
-                .{
-                    s,
-                    entity.sprite_id,
-                    entity.pos.x,
-                    entity.pos.y,
-                },
-            );
-            defer editor_state.allocator.free(selected);
-            ig.igText(selected.ptr);
-            if (ig.igButton("Move Default Location")) {
-                editor_state.mouse_state.cursor = .moving_entity;
+        var entity = editor_state.state.loaded_scene.?.entities.get(s);
+        const selected = try std.fmt.allocPrint(
+            editor_state.allocator,
+            \\ENTID: {d}
+                \\Sprite id: {d}
+                \\Pos: {d:.1}, {d:.1}
+                \\Size: {d:.1}, {d:.1}
+                \\Spritesheet id: {s}
+                \\AABB:
+                \\   min: {d:.1} {d:.1}
+                \\   max: {d:.1} {d:.1}
+                \\Selected: {}
+                ,
+            .{
+                s,
+                entity.sprite_id,
+                entity.pos.x,
+                entity.pos.y,
+                entity.size.x,
+                entity.size.y,
+                @tagName(entity.spritesheet_id),
+                entity.aabb.min.x,
+                entity.aabb.min.y,
+                entity.aabb.max.x,
+                entity.aabb.max.y,
+                entity.selected,
+            },
+        );
+        defer editor_state.allocator.free(selected);
+        ig.igText(selected.ptr);
+
+        if (ig.igInputFloat("Sprite ID:", &entity.sprite_id)) {
+            editor_state.state.loaded_scene.?.entities.set(s, entity);
+            if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
+                try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
             }
+        }
+        if (ig.igButton("Move Default Location")) {
+            editor_state.mouse_state.cursor = .moving_entity;
+        }
         switch(editor_state.mouse_state.cursor) {
             .moving_entity => {
                 entity.pos = editor_state.mouse_state.mouse_position_v2;
