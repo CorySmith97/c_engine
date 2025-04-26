@@ -1,11 +1,14 @@
 const std = @import("std");
+const State = @import("../state.zig");
+const EditorState = @import("../editor.zig").EditorState;
 const ig = @import("cimgui");
 const log = std.log.scoped(.console);
 
 var console_buf: [8192]u8 = undefined;
 
 // @todo cli tools?
-pub const vtable = struct {};
+pub const cli_tools = std.StaticStringMap(*const fn(*State, [][]const u8) anyerror!void).initComptime((.{
+}));
 
 const Console = @This();
 history_buf: std.ArrayList([]const u8),
@@ -25,7 +28,9 @@ pub fn init(
 pub fn console(
     self: *Console,
     allocator: std.mem.Allocator,
+    state: *State,
 ) !void {
+    _ = state;
     _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
     if (ig.igIsWindowFocused(ig.ImGuiFocusedFlags_RootAndChildWindows)) {
         ig.igSetKeyboardFocusHere();

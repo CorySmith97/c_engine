@@ -30,6 +30,9 @@ fn rand(min_val: f32, max_val: f32) f32 {
     return (@as(f32, @floatFromInt(xorshift32() & 0xFFFF)) / 0x10000) * (max_val - min_val) + min_val;
 }
 
+// @todo This should possibly be split up. Or perhaps there needs to just be a
+// a seperate pass type for post processing/3d passes.
+// Maybe rename and refactor to Pass2d
 const Self = @This();
 id: RendererTypes.RenderPassIds,
 pass_action: sg.PassAction,
@@ -169,7 +172,6 @@ pub fn updateSpriteRenderables(
     index: usize,
     sprite: SpriteRenderable,
 ) !void {
-    log.info("Sprite Renderabled: {} {any}", .{index, sprite});
     self.batch.items[index] = sprite;
 }
 

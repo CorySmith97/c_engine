@@ -7,7 +7,7 @@ const RenderPassIds = Renderer.RenderPassIds;
 const util = @import("../util.zig");
 const math = util.math;
 
-pub const EntityType = enum {
+pub const EntityTag = enum {
     default,
 };
 
@@ -21,7 +21,7 @@ const Self = @This();
 id: u32 = 10,
 spritesheet_id: RenderPassIds = .ENTITY_1,
 z_index: f32 = 0,
-entity_type: EntityType = .default,
+entity_type: EntityTag = .default,
 pos: math.Vec2 = .{},
 size: math.Vec2 = .{},
 sprite_id: f32 = 0,
@@ -98,7 +98,7 @@ pub fn jsonStringify(self: *const Self, jws: anytype) !void {
 
 pub fn init(
     self: *Self,
-    e_type: EntityType,
+    e_type: EntityTag,
 ) void {
     _ = self;
     _ = e_type;
@@ -107,8 +107,8 @@ pub fn init(
 pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
     return .{
         .pos = .{
-            .x = self.pos.x * self.size.x,
-            .y = self.pos.y * self.size.y,
+            .x = self.pos.x,
+            .y = self.pos.y,
             .z = self.z_index,
         },
         .sprite_id = self.sprite_id,

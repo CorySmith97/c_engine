@@ -56,6 +56,7 @@ const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
 };
 
+// EDITOR TYPES
 pub const Input = struct {
     up: bool = false,
     down: bool = false,
@@ -66,98 +67,113 @@ pub const Input = struct {
 };
 
 pub const Cursor = enum {
-    moving_entity,
+    inactive,
     editing_tile,
+    moving_entity,
     editing_entity,
+    moving_scene,
 };
 
 pub const MouseState = struct {
+    cursor: Cursor = .inactive,
     mouse_position_ig: ig.ImVec2_t = .{},
     mouse_position_v2: math.Vec2 = .{},
     hover_over_scene: bool = false,
     moving_entity: bool = false,
+    mouse_clicked_left: bool = false,
 
     pub fn mouseEvents(self: *MouseState, ev: [*c]const app.Event) void {
         const eve = ev.*;
-    if (eve.type == .MOUSE_SCROLL) {
-        if (zoom_factor - 0.05 < 0) {
-            zoom_factor = 0.0;
+        if (eve.type == .MOUSE_SCROLL) {
+            if (zoom_factor - 0.05 < 0) {
+                zoom_factor = 0.0;
+            }
+            if (eve.scroll_y > 0 and zoom_factor < 5) {
+                zoom_factor += 0.05;
+            }
+            if (eve.scroll_y < 0 and zoom_factor > 0) {
+                zoom_factor -= 0.05;
+            }
+            es.proj = mat4.ortho(
+                -app.widthf() / 2 * zoom_factor + 50,
+                app.widthf() / 2 * zoom_factor + 50,
+                -app.heightf() / 2 * zoom_factor - 50,
+                app.heightf() / 2 * zoom_factor - 50,
+                -1,
+                1,
+            );
         }
-        if (eve.scroll_y > 0 and zoom_factor < 5) {
-            zoom_factor += 0.05;
+        if (ev.*.type == .MOUSE_MOVE) {}
+        if (ev.*.type == .MOUSE_MOVE) {
+            const mouse_rel_x = self.mouse_position_ig.x - scene_window_pos.x;
+            const mouse_rel_y = self.mouse_position_ig.y - scene_window_pos.y;
+
+            const texture_x = mouse_rel_x / 700.0;
+            const texture_y = mouse_rel_y / 440.0;
+
+            const ndc_x = texture_x * 2.0 - 1.0;
+            const ndc_y = 1.0 - texture_y * 2.0; // Flip Y for OpenGL-style coordinates
+
+            const view_proj = math.Mat4.mul(es.proj, es.view);
+            const inv = math.Mat4.inverse(view_proj);
+            mouse_world_space = math.Mat4.mulByVec4(inv, .{ .x = ndc_x, .y = ndc_y, .z = 0, .w = 1 });
         }
-        if (eve.scroll_y < 0 and zoom_factor > 0) {
-            zoom_factor -= 0.05;
+        if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
+            es.mouse_state.cursor = .moving_scene;
+            es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{
+                .x = zoom_factor * ev.*.mouse_dx,
+                .y = zoom_factor * -ev.*.mouse_dy,
+                .z = 0,
+            }));
         }
-        proj = mat4.ortho(
-            -app.widthf() / 2 * zoom_factor + 50,
-            app.widthf() / 2 * zoom_factor + 50,
-            -app.heightf() / 2 * zoom_factor - 50,
-            app.heightf() / 2 * zoom_factor - 50,
-            -1,
-            1,
-        );
-    }
-    if (ev.*.type == .MOUSE_MOVE) {
-    }
-    if (ev.*.type == .MOUSE_MOVE) {
-        const mouse_rel_x = self.mouse_position_ig.x - scene_window_pos.x;
-        const mouse_rel_y = self.mouse_position_ig.y - scene_window_pos.y;
-
-        const texture_x = mouse_rel_x / 700.0;
-        const texture_y = mouse_rel_y / 440.0;
-
-        const ndc_x = texture_x * 2.0 - 1.0;
-        const ndc_y = 1.0 - texture_y * 2.0; // Flip Y for OpenGL-style coordinates
-
-        const view_proj = math.Mat4.mul(proj, view);
-        const inv = math.Mat4.inverse(view_proj);
-        mouse_world_space = math.Mat4.mulByVec4(inv, .{ .x = ndc_x, .y = ndc_y, .z = 0, .w = 1 });
-    }
-    if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
-        view = math.Mat4.mul(view, math.Mat4.translate(.{
-            .x = zoom_factor * ev.*.mouse_dx,
-            .y = zoom_factor * -ev.*.mouse_dy,
-            .z = 0,
-        }));
-    }
-    if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
-        const mouse_pressed = ev.*.type == .MOUSE_DOWN;
-        switch (ev.*.mouse_button) {
-            .MIDDLE => mouse_middle_down = mouse_pressed,
-            .LEFT => {
-                if (self.hover_over_scene) {
-                    switch (es.selected_layer) {
-                        .ENTITY_1 => {
-                            if (es.state.loaded_scene) |s| {
-                                for (0.., s.entities.items(.aabb)) |i, aabb| {
-                                    if (util.aabbRec(es.mouse_state.mouse_position_v2, aabb))  {
-                                        es.state.selected_entity = i;
-                                    }
+        if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
+            const mouse_pressed = ev.*.type == .MOUSE_DOWN;
+            switch (ev.*.mouse_button) {
+                .MIDDLE => {
+                    mouse_middle_down = mouse_pressed;
+                    if (!mouse_pressed) {
+                        es.mouse_state.cursor = .inactive;
+                    }
+                },
+                .LEFT => {
+                    es.mouse_state.mouse_clicked_left = mouse_pressed;
+                    switch (es.mouse_state.cursor) {
+                        .inactive => {
+                            if (self.hover_over_scene) {
+                                switch (es.selected_layer) {
+                                    .ENTITY_1 => {
+                                        if (es.state.loaded_scene) |s| {
+                                            for (0.., s.entities.items(.aabb)) |i, aabb| {
+                                                if (util.aabbRec(es.mouse_state.mouse_position_v2, aabb)) {
+                                                    es.state.selected_entity = i;
+                                                }
+                                            }
+                                        }
+                                    },
+                                    .TILES_1 => {},
+                                    else => {},
+                                }
+                                if (es.state.selected_tile) |_| {
+                                    es.state.selected_tile_click = true;
                                 }
                             }
-                            if (es.state.selected_entity) |_| {
-                                es.state.selected_entity_click = true;
-                            }
                         },
-                        else =>{},
+                        .editing_tile => {},
+                        .moving_entity => {},
+                        .editing_entity => {},
+                        .moving_scene => {},
                     }
-                    if (es.state.selected_tile) |_| {
-                        es.state.selected_tile_click = true;
+                },
+                .RIGHT => {
+                    if (es.state.selected_tile_click) {
+                        es.state.selected_tile_click = false;
+                        es.state.selected_tile = null;
                     }
-                }
-            },
-            .RIGHT => {
-                if (es.state.selected_tile_click) {
-                    es.state.selected_tile_click = false;
-                    es.state.selected_tile = null;
-                }
-            },
+                },
 
-            else => {},
+                else => {},
+            }
         }
-    }
-
     }
 };
 
@@ -175,7 +191,7 @@ pub const EditorConfig = struct {
     ) !void {
         var cwd = std.fs.cwd();
 
-        var config_file = try cwd.openFile("editor.json", .{});
+        var config_file = try cwd.openFile("config_editor.json", .{});
         defer config_file.close();
 
         const config_buf = try config_file.readToEndAlloc(allo, 1000);
@@ -216,8 +232,8 @@ pub const EditorState = struct {
             .proj = mat4.ortho(
                 -app.widthf() / 2 * zoom_factor + 50,
                 app.widthf() / 2 * zoom_factor + 50,
-                -app.heightf() / 2 * zoom_factor - 50,
-                app.heightf() / 2 * zoom_factor - 50,
+                -app.heightf() / 2 * zoom_factor + 50,
+                app.heightf() / 2 * zoom_factor + 50,
                 -1,
                 1,
             ),
@@ -228,6 +244,7 @@ pub const EditorState = struct {
     }
 };
 
+// STATIC VARIABLES FOR EDITOR
 var es: EditorState = undefined;
 var mouse_middle_down: bool = false;
 var view: math.Mat4 = undefined;
@@ -283,18 +300,6 @@ const test_json =
 ;
 
 pub fn editorInit() !void {
-
-    // Default Projection matrix
-    proj = mat4.ortho(
-        -app.widthf() / 2 * zoom_factor + 50,
-        app.widthf() / 2 * zoom_factor + 50,
-        -app.heightf() / 2 * zoom_factor - 50,
-        app.heightf() / 2 * zoom_factor - 50,
-        -1,
-        1,
-    );
-    view = math.Mat4.identity();
-
     sg.setup(.{
         .environment = glue.environment(),
         .logger = .{ .func = slog.func },
@@ -422,7 +427,10 @@ pub fn editorFrame() !void {
     // Drawer for data. This is unused for now, but something will go here.
     // Idea tab for animations, or Possible script viewer.
     // @todo Move this to the console editor file.
-    try es.console.console(es.allocator);
+    try es.console.console(
+        es.allocator,
+        &es.state,
+    );
 
     //for (0..test_string.len) |i| {
     //    const f: f32 = @floatFromInt(i);
@@ -447,13 +455,19 @@ pub fn editorFrame() !void {
         es.mouse_state.mouse_position_v2.x = clamped_mouse_pos.x;
         es.mouse_state.mouse_position_v2.y = clamped_mouse_pos.y;
 
-        try es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{ .pos = clamped_mouse_pos, .sprite_id = 1, .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 }, },);
+        try es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+            .{
+                .pos = clamped_mouse_pos,
+                .sprite_id = 1,
+                .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
+            },
+        );
     }
 
     try left_window();
 
     // Prepare render data for instanced rendering
-    const vs_params = util.computeVsParams(proj, view);
+    const vs_params = util.computeVsParams(es.proj, es.view);
     es.state.updateBuffers();
 
     // === Render scene to image
@@ -498,16 +512,16 @@ pub fn editorEvent(ev: [*c]const app.Event) !void {
         const key_pressed = ev.*.type == .KEY_DOWN;
         switch (ev.*.key_code) {
             .LEFT => {
-                view = math.Mat4.mul(view, math.Mat4.translate(.{ .x = zoom_factor * -10, .y = zoom_factor * 0, .z = 0 }));
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * -10, .y = zoom_factor * 0, .z = 0 }));
             },
             .RIGHT => {
-                view = math.Mat4.mul(view, math.Mat4.translate(.{ .x = zoom_factor * 10, .y = zoom_factor * 0, .z = 0 }));
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 10, .y = zoom_factor * 0, .z = 0 }));
             },
             .UP => {
-                view = math.Mat4.mul(view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * 10, .z = 0 }));
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * 10, .z = 0 }));
             },
             .DOWN => {
-                view = math.Mat4.mul(view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * -10, .z = 0 }));
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * -10, .z = 0 }));
             },
             .W => input.forward = key_pressed,
             .S => input.backwards = key_pressed,
@@ -623,6 +637,21 @@ fn left_window() !void {
     _ = ig.igBegin("Settings", 0, ig.ImGuiWindowFlags_None);
     ig.igBeginGroup();
     ig.igTextColored(predefined_colors[1], "Stats");
+    ig.igText(
+        "Mouse Cursor State:",
+    );
+    ig.igText(@tagName(es.mouse_state.cursor));
+    ig.igText(
+        \\MouseFlags:
+        \\
+        \\Mouse Over Scene: %d
+        \\Mouse Clicked Left: %d
+        \\
+        \\
+    ,
+        es.mouse_state.hover_over_scene,
+        es.mouse_state.mouse_clicked_left,
+    );
     const text = try std.fmt.allocPrint(es.allocator, "frame duration: {d:.3}", .{app.frameDuration()});
     defer es.allocator.free(text);
     ig.igText(text.ptr);

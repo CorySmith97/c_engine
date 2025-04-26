@@ -14,6 +14,8 @@ pub const RenderPass = @import("renderer/RenderPass.zig");
 const RenderConfigs = @import("renderer/RenderConfigs.zig");
 const log = std.log.scoped(.renderer);
 
+// @todo add capability to filter on what passes are enabled
+
 const Self = @This();
 allocator: std.mem.Allocator,
 render_passes: std.ArrayList(RenderPass),
@@ -46,3 +48,5 @@ pub fn deinit(self: *Self) !void {
     log.info("Deitializing Renderer", .{});
     self.render_passes.deinit();
 }
+
+// @todo render function.

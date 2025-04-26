@@ -38,8 +38,7 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
         }
     }
     if (editor_state.state.selected_entity) |s| {
-        if (editor_state.state.selected_entity_click) {
-            const entity = editor_state.state.loaded_scene.?.entities.get(s);
+            var entity = editor_state.state.loaded_scene.?.entities.get(s);
             const selected = try std.fmt.allocPrint(
                 editor_state.allocator,
                 "ENTID: {d}\nSprite id: {d}\nPos: {}, {}",
@@ -53,21 +52,21 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
             defer editor_state.allocator.free(selected);
             ig.igText(selected.ptr);
             if (ig.igButton("Move Default Location")) {
-                editor_state.mouse_state.moving_entity = true;
+                editor_state.mouse_state.cursor = .moving_entity;
             }
-        }
-    }
+        switch(editor_state.mouse_state.cursor) {
+            .moving_entity => {
+                entity.pos = editor_state.mouse_state.mouse_position_v2;
+                editor_state.state.loaded_scene.?.entities.set(s, entity);
 
-    if (editor_state.state.selected_entity) |s| {
-        if (editor_state.mouse_state.moving_entity) {
-            var entity = editor_state.state.loaded_scene.?.entities.get(s);
-            entity.pos = editor_state.mouse_state.mouse_position_v2;
-            editor_state.state.loaded_scene.?.entities.set(s, entity);
-
-            if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
-                try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
-            }
-
+                if (editor_state.mouse_state.mouse_clicked_left) {
+                    if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
+                        try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
+                    }
+                    editor_state.mouse_state.cursor = .inactive;
+                }
+            },
+            else => {}
         }
     }
 }
