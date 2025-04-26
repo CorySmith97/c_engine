@@ -1,8 +1,9 @@
+const std = @import("std");
 pub const math = @import("util/math.zig");
 const mat4 = math.Mat4;
 const shd = @import("shaders/basic.glsl.zig");
 const ig = @import("cimgui");
-const AABB = @import("types/entity.zig").AABB;
+const AABB = @import("types.zig").AABB;
 
 pub fn computeVsParams(proj: mat4, view: mat4) shd.VsParams {
     const model = mat4.identity();
@@ -12,6 +13,14 @@ pub fn computeVsParams(proj: mat4, view: mat4) shd.VsParams {
     //const aspect = app.widthf() / app.heightf();
     //const proj = mat4.persp(60, aspect, 0.01, 100);
     return shd.VsParams{ .mvp = mat4.mul(mat4.mul(proj, view), model) };
+}
+pub fn aabbColl(a: AABB, b: AABB) bool {
+    return (
+            a.min.x <= b.min.x + b.max.x and
+            a.min.x + a.max.x >= b.min.x and
+            a.min.y <= b.min.y + b.max.y and
+            a.min.y  + a.max.y >= b.min.y
+    );
 }
 pub fn aabbRec(point: math.Vec2, aabb: AABB) bool {
     const is_point_inside = point.x >= aabb.min.x and point.x <= aabb.min.x + aabb.max.x and
@@ -31,3 +40,30 @@ pub const Interpolations = struct {
         _ = vec2;
     }
 };
+
+
+test "aabb" {
+    const a: AABB = .{
+        .min =  .{
+            .x = 0,
+            .y = 0,
+        },
+        .max =  .{
+            .x = 10,
+            .y = 10,
+        },
+    };
+    const b: AABB = .{
+        .min =  .{
+            .x = 5,
+            .y = 5,
+        },
+        .max =  .{
+            .x = 15,
+            .y = 15,
+        },
+    };
+
+
+    try std.testing.expect(aabbColl(a, b));
+}

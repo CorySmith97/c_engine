@@ -107,7 +107,7 @@ pub fn gameframe() !void {
     if (console.open) {
         ig.igSetNextWindowPos(.{ .x = 10, .y = 10 }, ig.ImGuiCond_Once);
         ig.igSetNextWindowSize(.{ .x = 400, .y = 100 }, ig.ImGuiCond_Once);
-        try console.console(global_state.allocator);
+        try console.console(global_state.allocator, &global_state);
     }
 
     var swapchain = glue.swapchain();

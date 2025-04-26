@@ -71,7 +71,7 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
 
         if (ig.igInputFloatEx("Sprite ID:", &entity.sprite_id, 1.0, 5.0, " ", ig.ImGuiInputTextFlags_None)) {
             editor_state.state.loaded_scene.?.entities.set(s, entity);
-            try editor_state.updateSpriteRenderable(&entity, s);
+            try editor_state.updateSpriteRenderable(@constCast(&entity.toSpriteRenderable()), s);
         }
         if (ig.igButton("Move Default Location")) {
             editor_state.mouse_state.cursor = .moving_entity;
@@ -82,7 +82,7 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
                 editor_state.state.loaded_scene.?.entities.set(s, entity);
 
                 if (editor_state.mouse_state.mouse_clicked_left) {
-                    try editor_state.updateSpriteRenderable(&entity, s);
+                    try editor_state.updateSpriteRenderable(@constCast(&entity.toSpriteRenderable()), s);
                     editor_state.mouse_state.cursor = .inactive;
                 }
             },
@@ -91,19 +91,31 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
     }
 }
 
+// @todo add a save custom color button.
+// @todo Have a seperate way to grab an item. IE One click. Not click and release.
 pub fn drawTileEditor(editor_state: *EditorState) !void {
+    if (ig.igButton("Continous Sprite Mode")) {
+        editor_state.continuous_sprite_mode = editor_state.continuous_sprite_mode;
+    }
     if (editor_state.state.selected_tile) |s| {
         if (editor_state.state.selected_tile_click) {
             var tile = editor_state.state.loaded_scene.?.tiles.get(s);
             const selected = try std.fmt.allocPrint(
                 editor_state.allocator,
-                "ENTID: {d}\nSprite id: {d}\nPos: {}, {}, {}",
+                    \\Tile id: {d}
+                    \\Sprite id: {d}
+                    \\Pos: {}, {}, {}
+                    \\Spawner: {}
+                    \\Traversable: {}
+                    ,
                 .{
                     s,
                     tile.sprite_renderable.sprite_id,
                     tile.sprite_renderable.pos.x,
                     tile.sprite_renderable.pos.y,
                     tile.sprite_renderable.pos.z,
+                    tile.spawner,
+                    tile.traversable,
                 },
             );
             defer editor_state.allocator.free(selected);
@@ -126,15 +138,14 @@ pub fn drawTileEditor(editor_state: *EditorState) !void {
                 }
             }
             tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
-            _ = ig.igInputFloat("Sprite ID: ", &tile.sprite_renderable.sprite_id);
+
+            _ = ig.igInputFloatEx("Sprite ID:", &tile.sprite_renderable.sprite_id, 1.0, 5.0, "%.0f", ig.ImGuiInputTextFlags_None);
 
             _ = ig.igCheckbox("Spawner", &tile.spawner);
             _ = ig.igCheckbox("Traversable", &tile.traversable);
             editor_state.state.loaded_scene.?.tiles.set(s, tile);
 
-            if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
-                try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, tile.sprite_renderable);
-            }
+            try editor_state.updateSpriteRenderable(&tile.sprite_renderable, s);
         }
     }
 }

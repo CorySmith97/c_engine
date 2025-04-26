@@ -92,7 +92,7 @@ pub fn loadTestScene(
         y += 16;
     }
 
-    log.info("Scene: tiles: {}", .{self.tiles.len});
+    log.info("Tile count {}", .{self.tiles.len});
 
     //for (self.tiles.items(.sprite_renderable)) |i| {
     //    try state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);

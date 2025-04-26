@@ -2,7 +2,7 @@
  "id": 0,
  "height": 1e2,
  "width": 1e2,
- "scene_name": "Test Level",
+ "scene_name": "t2.json",
  "entities": [],
  "tiles": [
   {
@@ -18,14 +18,14 @@
     },
     "sprite_id": 4.6e1,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 6.875e-1,
+     "y": 2.631836e-1,
+     "z": 2.631836e-1,
      "w": 1e0
     }
    },
-   "spawner": false,
-   "traversable": false
+   "spawner": true,
+   "traversable": true
   },
   {
    "pos": {
@@ -46,8 +46,8 @@
      "w": 1e0
     }
    },
-   "spawner": false,
-   "traversable": false
+   "spawner": true,
+   "traversable": true
   },
   {
    "pos": {

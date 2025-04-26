@@ -24,12 +24,14 @@ const Serde = @import("serde.zig");
 const Quad = @import("renderer/RenderQuad.zig");
 const TypeEditors = @import("editor/entity_editor.zig");
 const Console = @import("editor/console.zig");
+const SpriteRenderable = types.RendererTypes.SpriteRenderable;
+const AABB = types.AABB;
 
+// THIS IS A CUSTOM LOG INTERFACE
+// It makes logs look better for the default logging interface
+// found in std.log
 pub const std_options: std.Options = .{
-    // Set the log level to info
     .log_level = .info,
-
-    // Define logFn to override the std implementation
     .logFn = customLogFn,
 };
 
@@ -47,6 +49,7 @@ pub fn customLogFn(
     const stderr = std.io.getStdErr().writer();
     nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
 }
+
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
     .{ .x = 0.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // green
@@ -54,6 +57,8 @@ const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // yellow
     .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 1.0 }, // white
     .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
+    .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
+    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 } // brown
 };
 
 // EDITOR TYPES
@@ -72,6 +77,7 @@ pub const Cursor = enum {
     moving_entity,
     editing_entity,
     moving_scene,
+    box_select,
 };
 
 pub const MouseState = struct {
@@ -81,6 +87,9 @@ pub const MouseState = struct {
     hover_over_scene: bool = false,
     moving_entity: bool = false,
     mouse_clicked_left: bool = false,
+    click_and_hold_timer: u32 = 0,
+    select_box: AABB = .{},
+    select_box_start_grabed: bool = false,
 
     pub fn mouseEvents(self: *MouseState, ev: [*c]const app.Event) void {
         const eve = ev.*;
@@ -95,10 +104,10 @@ pub const MouseState = struct {
                 zoom_factor -= 0.05;
             }
             es.proj = mat4.ortho(
-                -app.widthf() / 2 * zoom_factor + 50,
-                app.widthf() / 2 * zoom_factor + 50,
-                -app.heightf() / 2 * zoom_factor - 50,
-                app.heightf() / 2 * zoom_factor - 50,
+                -app.widthf() / 2 * zoom_factor,
+                app.widthf() / 2 * zoom_factor,
+                -app.heightf() / 2 * zoom_factor,
+                app.heightf() / 2 * zoom_factor,
                 -1,
                 1,
             );
@@ -136,7 +145,15 @@ pub const MouseState = struct {
                     }
                 },
                 .LEFT => {
+                    es.mouse_state.click_and_hold_timer = 0;
                     es.mouse_state.mouse_clicked_left = mouse_pressed;
+                    if (!mouse_pressed) {
+                        if (es.mouse_state.cursor == .box_select) {
+                            es.mouse_state.select_box.max = es.mouse_state.mouse_position_v2;
+                            es.mouse_state.select_box_start_grabed = false;
+                        }
+                        es.mouse_state.cursor = .inactive;
+                    }
                     switch (es.mouse_state.cursor) {
                         .inactive => {
                             if (self.hover_over_scene) {
@@ -162,6 +179,7 @@ pub const MouseState = struct {
                         .moving_entity => {},
                         .editing_entity => {},
                         .moving_scene => {},
+                        .box_select => {},
                     }
                 },
                 .RIGHT => {
@@ -218,6 +236,7 @@ pub const EditorState = struct {
     state: State = undefined,
     console: Console = undefined,
     frame_count: std.ArrayList(f32) = undefined,
+    continuous_sprite_mode: bool = false,
 
     pub fn init(self: *EditorState) !void {
         const gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -229,12 +248,12 @@ pub const EditorState = struct {
         self.* = .{
             .gpa = gpa,
             .allocator = allocator,
-            .view = math.Mat4.identity(),
+            .view = math.Mat4.translate(.{.x = -150, .y = -100 , .z = 0}),
             .proj = mat4.ortho(
-                -app.widthf() / 2 * zoom_factor + 50,
-                app.widthf() / 2 * zoom_factor + 50,
-                -app.heightf() / 2 * zoom_factor + 50,
-                app.heightf() / 2 * zoom_factor + 50,
+                -app.widthf() / 2 * zoom_factor,
+                app.widthf() / 2 * zoom_factor ,
+                -app.heightf() / 2 * zoom_factor,
+                app.heightf() / 2 * zoom_factor ,
                 -1,
                 1,
             ),
@@ -247,11 +266,11 @@ pub const EditorState = struct {
 
     pub fn updateSpriteRenderable(
         self: *EditorState,
-        entity: *Entity,
+        sprite_ren: *SpriteRenderable,
         s: usize,
     ) !void {
         if (self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].batch.items.len > s) {
-            try self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
+            try self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].updateSpriteRenderables(s, sprite_ren.*);
         }
     }
 };
@@ -324,7 +343,7 @@ pub fn editorInit() !void {
     try es.init();
     //const testtile = try std.json.parseFromSliceLeaky(Tile, allocator, test_json, .{});
     //std.log.info("{any}", .{testtile});
-    try editor_config.loadConfig(es.allocator);
+    try es.editor_config.loadConfig(es.allocator);
     //try Lua.luaTest();
 
     scene_list_buffer = std.ArrayList([]const u8).init(es.allocator);
@@ -358,12 +377,12 @@ pub fn editorInit() !void {
     attachment = sg.makeAttachments(attachment_desc);
 
     //try scene.loadTestScene(allocator, &state);
-    if (editor_config.mode == .BINARY) {
-        try scene.loadTestScene(es.allocator, &es.state);
-        //try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
+    if (es.editor_config.mode == .BINARY) {
+        //try scene.loadTestScene(es.allocator, &es.state);
+        try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
         try Serde.writeSceneToJson(&scene, "t2.json", std.heap.page_allocator);
         es.state.loaded_scene = scene;
-    } else if (editor_config.mode == .JSON) {
+    } else if (es.editor_config.mode == .JSON) {
         try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator);
         es.state.loaded_scene = scene;
     }
@@ -372,16 +391,26 @@ pub fn editorInit() !void {
     // Default pass actions
     passaction.colors[0] = .{
         .load_action = .CLEAR,
-        .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
+        .clear_value = .{ .r = 0.2, .g = 0.2, .b = 0.2, .a = 2 },
     };
     offscreen.colors[0] = .{
         .load_action = .CLEAR,
-        .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
+        .clear_value = .{ .r = 0.2, .g = 0.2, .b = 0.2, .a = 2 },
     };
 }
 pub fn editorFrame() !void {
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
+    if (es.mouse_state.mouse_clicked_left) {
+        es.mouse_state.click_and_hold_timer += 1;
+        if (es.mouse_state.click_and_hold_timer >= 20) {
+            es.mouse_state.cursor = .box_select;
+            if (!es.mouse_state.select_box_start_grabed) {
+                es.mouse_state.select_box.min = es.mouse_state.mouse_position_v2;
+                es.mouse_state.select_box_start_grabed = true;
+            }
+        }
+    }
 
     // Imgui Frame setup
     imgui.newFrame(.{
@@ -454,23 +483,21 @@ pub fn editorFrame() !void {
     //    });
     //}
 
-    var clamped_mouse_pos: math.Vec3 = undefined;
     if (es.mouse_state.hover_over_scene) {
         const grid_size = 16.0;
-        const grid_offset_x = 0.0;
-        const grid_offset_y = 0.0;
-        clamped_mouse_pos = math.Vec3{
-            .x = @floor((mouse_world_space.x - grid_offset_x) / grid_size) * grid_size + grid_offset_x,
-            .y = @floor((mouse_world_space.y - grid_offset_y) / grid_size) * grid_size + grid_offset_y,
-            .z = 0,
+        es.mouse_state.mouse_position_v2 = math.Vec2{
+            .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
+            .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
         };
 
-        es.mouse_state.mouse_position_v2.x = clamped_mouse_pos.x;
-        es.mouse_state.mouse_position_v2.y = clamped_mouse_pos.y;
 
         try es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
             .{
-                .pos = clamped_mouse_pos,
+                .pos = .{
+                    .x = es.mouse_state.mouse_position_v2.x,
+                    .y = es.mouse_state.mouse_position_v2.y,
+                    .z = 0,
+                         },
                 .sprite_id = 1,
                 .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
             },
@@ -540,7 +567,7 @@ pub fn editorEvent(ev: [*c]const app.Event) !void {
             .S => input.backwards = key_pressed,
             .A => input.left = key_pressed,
             .D => input.right = key_pressed,
-            .ESCAPE => app.quit(),
+            //.ESCAPE => app.quit(),
             else => {},
         }
     }
@@ -560,7 +587,8 @@ fn main_menu() !void {
         }
         if (ig.igButton("Save Scenes")) {
             if (es.state.loaded_scene) |*s| {
-                try Serde.writeSceneToBinary(s, s.scene_name);
+                //try Serde.writeSceneToBinary(s, s.scene_name);
+                try Serde.writeSceneToJson(s, s.scene_name, es.allocator);
             }
             ig.igCloseCurrentPopup();
         }
@@ -568,7 +596,11 @@ fn main_menu() !void {
             var level_dir = try std.fs.cwd().openDir("levels", .{});
             var level_walker = try level_dir.walk(es.allocator);
             while (try level_walker.next()) |entry| {
-                try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
+                if (es.editor_config.mode == .JSON and std.mem.containsAtLeast(u8, entry.basename, 1, ".json")) {
+                    try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
+                } else if (es.editor_config.mode == .BINARY and std.mem.containsAtLeast(u8, entry.basename, 1, ".txt")) {
+                    try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
+                }
             }
             level_walker.deinit();
             load_scene_open = true;
@@ -587,7 +619,7 @@ fn main_menu() !void {
                             loaded_scene.deloadScene(es.allocator, &es.state);
                         }
                         var temp_scene: Scene = .{};
-                        try Serde.loadSceneFromBinary(&temp_scene, s, es.allocator);
+                        try Serde.loadSceneFromJson(&temp_scene, s, es.allocator);
                         es.state.loaded_scene = temp_scene;
                         try es.state.loaded_scene.?.loadScene(&es.state.renderer);
 
@@ -652,8 +684,9 @@ fn left_window() !void {
     if (es.frame_count.items.len > 60) {
         _ = es.frame_count.orderedRemove(0);
     }
+    ig.igText("Frame info");
     ig.igPlotLinesEx(
-        "Frame Duration",
+        " ",
         es.frame_count.items.ptr,
         @intCast(es.frame_count.items.len),
         0,
@@ -674,11 +707,21 @@ fn left_window() !void {
         \\
         \\Mouse Over Scene: %d
         \\Mouse Clicked Left: %d
-        \\
+        \\Mouse Click Timer: %d
+        \\Mouse Position: %.1f, %.1f
+        \\Mouse Select min: %.1f, %.1f
+        \\Mouse Select max: %.1f, %.1f
         \\
     ,
         es.mouse_state.hover_over_scene,
         es.mouse_state.mouse_clicked_left,
+        es.mouse_state.click_and_hold_timer,
+        es.mouse_state.mouse_position_v2.x,
+        es.mouse_state.mouse_position_v2.y,
+        es.mouse_state.select_box.min.x,
+        es.mouse_state.select_box.min.y,
+        es.mouse_state.select_box.max.x,
+        es.mouse_state.select_box.max.y,
     );
     const text = try std.fmt.allocPrint(es.allocator, "frame duration: {d:.3}", .{app.frameDuration()});
     defer es.allocator.free(text);
@@ -723,6 +766,6 @@ pub fn main() !void {
         .cleanup_cb = cleanup,
         .width = 1200,
         .height = 800,
-        .window_title = "HELLO",
+        .window_title = "C-engine",
     });
 }
