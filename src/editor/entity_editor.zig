@@ -69,11 +69,9 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
         defer editor_state.allocator.free(selected);
         ig.igText(selected.ptr);
 
-        if (ig.igInputFloat("Sprite ID:", &entity.sprite_id)) {
+        if (ig.igInputFloatEx("Sprite ID:", &entity.sprite_id, 1.0, 5.0, " ", ig.ImGuiInputTextFlags_None)) {
             editor_state.state.loaded_scene.?.entities.set(s, entity);
-            if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
-                try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
-            }
+            try editor_state.updateSpriteRenderable(&entity, s);
         }
         if (ig.igButton("Move Default Location")) {
             editor_state.mouse_state.cursor = .moving_entity;
@@ -84,9 +82,7 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
                 editor_state.state.loaded_scene.?.entities.set(s, entity);
 
                 if (editor_state.mouse_state.mouse_clicked_left) {
-                    if (editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].batch.items.len > s) {
-                        try editor_state.state.renderer.render_passes.items[@intFromEnum(editor_state.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
-                    }
+                    try editor_state.updateSpriteRenderable(&entity, s);
                     editor_state.mouse_state.cursor = .inactive;
                 }
             },

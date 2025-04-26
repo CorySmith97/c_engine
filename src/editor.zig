@@ -217,6 +217,7 @@ pub const EditorState = struct {
     selected_layer: RenderPassIds = .TILES_1,
     state: State = undefined,
     console: Console = undefined,
+    frame_count: std.ArrayList(f32) = undefined,
 
     pub fn init(self: *EditorState) !void {
         const gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -240,7 +241,18 @@ pub const EditorState = struct {
             .state = s,
             .selected_layer = .TILES_1,
             .console = c,
+            .frame_count = std.ArrayList(f32).init(allocator),
         };
+    }
+
+    pub fn updateSpriteRenderable(
+        self: *EditorState,
+        entity: *Entity,
+        s: usize,
+    ) !void {
+        if (self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].batch.items.len > s) {
+            try self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].updateSpriteRenderables(s, entity.toSpriteRenderable());
+        }
     }
 };
 
@@ -368,6 +380,7 @@ pub fn editorInit() !void {
     };
 }
 pub fn editorFrame() !void {
+    try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
 
     // Imgui Frame setup
@@ -635,6 +648,21 @@ fn main_menu() !void {
 fn left_window() !void {
     // General Scene Settings
     _ = ig.igBegin("Settings", 0, ig.ImGuiWindowFlags_None);
+
+    if (es.frame_count.items.len > 60) {
+        _ = es.frame_count.orderedRemove(0);
+    }
+    ig.igPlotLinesEx(
+        "Frame Duration",
+        es.frame_count.items.ptr,
+        @intCast(es.frame_count.items.len),
+        0,
+        " ",
+        0.0,
+        0.033,
+        .{ .x = 200, .y = 80 },
+        4,
+    );
     ig.igBeginGroup();
     ig.igTextColored(predefined_colors[1], "Stats");
     ig.igText(
