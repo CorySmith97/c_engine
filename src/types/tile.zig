@@ -1,3 +1,14 @@
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-04-05
+///
+/// Description:
+///     Tile class for the world. World is grid based made of these as
+///     basic building blocks.
+/// ===========================================================================
+
 const std = @import("std");
 const SpriteRenderable = @import("renderer.zig").SpriteRenderable;
 const util = @import("../util.zig");

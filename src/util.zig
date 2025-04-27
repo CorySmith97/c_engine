@@ -1,3 +1,12 @@
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-04-01
+///
+/// Description:
+///     Utility Library
+/// ===========================================================================
 const std = @import("std");
 pub const math = @import("util/math.zig");
 const mat4 = math.Mat4;

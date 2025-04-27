@@ -1,3 +1,11 @@
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-04-01
+///
+/// Description:
+/// ===========================================================================
 const std = @import("std");
 const RenderPass = @import("renderer.zig").RenderPass;
 const types = @import("types.zig");

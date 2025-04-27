@@ -1,5 +1,13 @@
-/// This is my generic entity class. All entities will belong to This
-/// class at the end of the day. Entities will be store via MultiArrayList
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-04-05
+///
+/// Description:
+/// ===========================================================================
+
+
 const std = @import("std");
 const Renderer = @import("renderer.zig");
 const SpriteRenderable = Renderer.SpriteRenderable;

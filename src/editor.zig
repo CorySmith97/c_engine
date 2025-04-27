@@ -1,7 +1,17 @@
-/// === EDITOR ===
-/// This is the entire editor in a single file basically.
-/// It may be split apart later, but for now its completely
-/// fine.
+
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-04-05
+///
+/// Description:
+///     This is the entire editor in a single file basically.
+///     It may be split apart later, but for now its completely
+///     fine.
+/// ===========================================================================
+
+
 const std = @import("std");
 const ig = @import("cimgui");
 const sokol = @import("sokol");
@@ -27,31 +37,6 @@ const TypeEditors = @import("editor/entity_editor.zig");
 const Console = @import("editor/console.zig");
 const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const AABB = types.AABB;
-
-
-
-// THIS IS A CUSTOM LOG INTERFACE
-// It makes logs look better for the default logging interface
-// found in std.log
-pub const std_options: std.Options = .{
-    .log_level = .info,
-    .logFn = customLogFn,
-};
-
-pub fn customLogFn(
-    comptime level: std.log.Level,
-    comptime scope: @Type(.enum_literal),
-    comptime format: []const u8,
-    args: anytype,
-) void {
-    const prefix = "[" ++ comptime level.asText() ++ "] " ++ "(" ++ @tagName(scope) ++ "):\t";
-
-    // Print the message to stderr, silently ignoring any errors
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
-    const stderr = std.io.getStdErr().writer();
-    nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
-}
 
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
@@ -94,18 +79,32 @@ pub const MouseState = struct {
     select_box: AABB = .{},
     select_box_start_grabed: bool = false,
 
+    /// ====================
+
+    /// FunctionName
+
+
+    /// Description
+
+    /// ====================
     pub fn mouseEvents(self: *MouseState, ev: [*c]const app.Event) !void {
+
         const eve = ev.*;
-        if (eve.type == .MOUSE_SCROLL) {
+
+
+        if ( eve.type == .MOUSE_SCROLL ) {
             if (zoom_factor - 0.05 < 0) {
                 zoom_factor = 0.0;
             }
+
             if (eve.scroll_y > 0 and zoom_factor < 5) {
                 zoom_factor += 0.05;
             }
+
             if (eve.scroll_y < 0 and zoom_factor > 0) {
                 zoom_factor -= 0.05;
             }
+
             es.proj = mat4.ortho(
                 -app.widthf() / 2 * zoom_factor,
                 app.widthf() / 2 * zoom_factor,
@@ -115,7 +114,11 @@ pub const MouseState = struct {
                 1,
             );
         }
+
+
         if (ev.*.type == .MOUSE_MOVE) {}
+
+
         if (ev.*.type == .MOUSE_MOVE) {
             const mouse_rel_x = self.mouse_position_ig.x - scene_window_pos.x;
             const mouse_rel_y = self.mouse_position_ig.y - scene_window_pos.y;
@@ -130,7 +133,7 @@ pub const MouseState = struct {
             const inv = math.Mat4.inverse(view_proj);
             mouse_world_space = math.Mat4.mulByVec4(inv, .{ .x = ndc_x, .y = ndc_y, .z = 0, .w = 1 });
         }
-        if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
+        if ( ev.*.type == .MOUSE_MOVE and mouse_middle_down ) {
             es.mouse_state.cursor = .moving_scene;
             es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{
                 .x = zoom_factor * ev.*.mouse_dx,
@@ -138,7 +141,7 @@ pub const MouseState = struct {
                 .z = 0,
             }));
         }
-        if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
+        if ( ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP ) {
             const mouse_pressed = ev.*.type == .MOUSE_DOWN;
             switch (ev.*.mouse_button) {
                 .MIDDLE => {
@@ -210,11 +213,14 @@ pub const MouseState = struct {
                     }
                 },
                 .RIGHT => {
+
                     if (es.state.selected_tile_click) {
                         es.state.selected_tile_click = false;
                         es.state.selected_tile = null;
                         es.mouse_state.select_box = .{};
                     }
+
+                    // Clear the group on click so as to not continue to break stuff.
                     es.tile_group_selected.clearAndFree();
                 },
 
@@ -248,9 +254,8 @@ pub const EditorConfig = struct {
     }
 };
 
-var history_buf: std.ArrayList([]const u8) = undefined;
-
 pub const EditorState = struct {
+
     gpa: std.heap.GeneralPurposeAllocator(.{}),
     allocator: std.mem.Allocator = undefined,
     view: math.Mat4 = undefined,
@@ -268,13 +273,21 @@ pub const EditorState = struct {
     continuous_sprite_mode: bool = false,
     tile_group_selected: std.ArrayList(GroupTile) = undefined,
 
-    pub fn init(self: *EditorState) !void {
+    pub fn init(
+        self: *EditorState,
+    ) !void {
         const gpa = std.heap.GeneralPurposeAllocator(.{}){};
         const allocator = std.heap.page_allocator;
+
+
         var s: State = undefined;
         try s.init(allocator);
+
+
         var c: Console = undefined;
         try c.init(allocator);
+
+
         self.* = .{
             .gpa = gpa,
             .allocator = allocator,
@@ -293,9 +306,45 @@ pub const EditorState = struct {
             .frame_count = std.ArrayList(f32).init(allocator),
             .tile_group_selected = std.ArrayList(GroupTile).init(allocator),
         };
+
+
+        // While in the editor, we render the game to a texture. that
+        // texture is then rendered within an Imgui window.
+        var img_desc: sg.ImageDesc = .{
+            .render_target = true,
+            .width = 700,
+            .height = 440,
+            .pixel_format = .RGBA8,
+            .sample_count = 1,
+        };
+
+        // Image for scene needs both Image, and depth image
+        self.editor_scene_image = sg.makeImage(img_desc);
+
+
+        var attachment_desc: sg.AttachmentsDesc = .{};
+
+        attachment_desc.colors[0].image = es.editor_scene_image;
+        img_desc.pixel_format = .DEPTH_STENCIL;
+
+        self.editor_scene_image_depth = sg.makeImage(img_desc);
+        attachment_desc.depth_stencil.image = es.editor_scene_image_depth;
+
+        attachment = sg.makeAttachments(attachment_desc);
+
+        // Load the scene from disk Switch Depending on the mode we are in.
+        switch (self.editor_config.mode) {
+            .BINARY => try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator),
+            .JSON => try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator),
+        }
+
+        self.state.loaded_scene = scene;
+        try self.state.loaded_scene.?.loadScene(&self.state.renderer);
     }
 
-    pub fn deinit(self: *EditorState) void {
+    pub fn deinit(
+        self: *EditorState,
+    ) void {
         self.frame_count.deinit();
         self.tile_group_selected.deinit();
         _ = self.gpa.deinit();
@@ -367,7 +416,12 @@ const test_json =
     \\}
 ;
 
+
+// Main Initialization function for the Editor
+// Passed to Sokol as the init function through a wrapper
 pub fn editorInit() !void {
+
+    // Graphics initialization
     sg.setup(.{
         .environment = glue.environment(),
         .logger = .{ .func = slog.func },
@@ -377,65 +431,34 @@ pub fn editorInit() !void {
         .logger = .{ .func = slog.func },
         .ini_filename = "imgui.ini",
     });
-    try es.init();
-    //const testtile = try std.json.parseFromSliceLeaky(Tile, allocator, test_json, .{});
-    //std.log.info("{any}", .{testtile});
-    try es.editor_config.loadConfig(es.allocator);
-    //try Lua.luaTest();
 
+    // State Initialization
+    try es.init();
+    try es.editor_config.loadConfig(es.allocator);
+
+    // Static Variable Initialization
     scene_list_buffer = std.ArrayList([]const u8).init(es.allocator);
-    history_buf = std.ArrayList([]const u8).init(es.allocator);
 
     const io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_ViewportsEnable;
     ig.igLoadIniSettingsFromDisk(io.*.IniFilename);
 
-    // While in the editor, we render the game to a texture. that
-    // texture is then rendered within an Imgui window.
-    var img_desc: sg.ImageDesc = .{
-        .render_target = true,
-        .width = 700,
-        .height = 440,
-        .pixel_format = .RGBA8,
-        .sample_count = 1,
-    };
-
-    // Image for scene needs both Image, and depth image
-    es.editor_scene_image = sg.makeImage(img_desc);
-
-    var attachment_desc: sg.AttachmentsDesc = .{};
-    attachment_desc.colors[0].image = es.editor_scene_image;
-    img_desc.pixel_format = .DEPTH_STENCIL;
-
-    es.editor_scene_image_depth = sg.makeImage(img_desc);
-    attachment_desc.depth_stencil.image = es.editor_scene_image_depth;
-
-    attachment = sg.makeAttachments(attachment_desc);
-
-    //try scene.loadTestScene(allocator, &state);
-    if (es.editor_config.mode == .BINARY) {
-        //try scene.loadTestScene(es.allocator, &es.state);
-        try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator);
-        try Serde.writeSceneToJson(&scene, "t2.json", std.heap.page_allocator);
-        es.state.loaded_scene = scene;
-    } else if (es.editor_config.mode == .JSON) {
-        try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator);
-        es.state.loaded_scene = scene;
-    }
-    try es.state.loaded_scene.?.loadScene(&es.state.renderer);
 
     // Default pass actions
     passaction.colors[0] = .{
         .load_action = .CLEAR,
         .clear_value = .{ .r = 0.2, .g = 0.2, .b = 0.2, .a = 2 },
     };
+
     offscreen.colors[0] = .{
         .load_action = .CLEAR,
         .clear_value = .{ .r = 0.2, .g = 0.2, .b = 0.2, .a = 2 },
     };
 }
-pub fn editorFrame() !void {
+
+pub fn editorFrame(
+) !void {
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
     if (es.mouse_state.mouse_clicked_left) {
@@ -511,6 +534,7 @@ pub fn editorFrame() !void {
         &es.state,
     );
 
+
     //for (0..test_string.len) |i| {
     //    const f: f32 = @floatFromInt(i);
     //    try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{
@@ -519,6 +543,7 @@ pub fn editorFrame() !void {
     //        .color = .{ .x = 0.1, .y = 1, .z = 0.5, .w = 1 },
     //    });
     //}
+
 
     if (es.mouse_state.hover_over_scene) {
         const grid_size = 16.0;
@@ -568,13 +593,16 @@ pub fn editorFrame() !void {
     es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
 }
 
-pub fn editorCleanup() !void {
+pub fn editorCleanup(
+) !void {
     es.deinit();
     //ig.igSaveIniSettingsToDisk("imgui.ini");
     imgui.shutdown();
 }
 
-pub fn editorEvent(ev: [*c]const app.Event) !void {
+pub fn editorEvent(
+    ev: [*c]const app.Event
+) !void {
     try es.mouse_state.mouseEvents(ev);
     // forward input events to sokol-imgui
     _ = imgui.handleEvent(ev.*);
@@ -611,7 +639,8 @@ pub fn editorEvent(ev: [*c]const app.Event) !void {
     }
 }
 
-fn main_menu() !void {
+fn main_menu(
+) !void {
     if (ig.igBeginMainMenuBar()) {}
     if (ig.igButton("Open Dropdown")) {
         ig.igOpenPopup("dropdown", 0);

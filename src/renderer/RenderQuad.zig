@@ -1,5 +1,11 @@
-// The idea is these are quads that do not have other
-// features, ie textures.
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-04-22
+///
+/// Description:
+/// ===========================================================================
 
 const std = @import("std");
 const log = std.log.scoped(.render_quad);
