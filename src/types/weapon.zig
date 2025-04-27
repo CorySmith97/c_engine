@@ -32,11 +32,12 @@ pub const Tag = enum {
 
 pub const Subtype = enum {
     magical,
-    physical,
+    physical_str,
+    physical_dex,
 };
 
 const Self = @This();
 tag     : Tag = .fist,
-subtype : Subtype = .physical,
+subtype : Subtype = .physical_str,
 weight  : u32 = 0,
 damage  : u32 = 1,

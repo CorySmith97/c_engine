@@ -9,14 +9,35 @@
 ///     L in the game.
 /// ===========================================================================
 const std = @import("std");
+const assert = std.debug.assert;
+
 const State = @import("../state.zig");
 const EditorState = @import("../editor.zig").EditorState;
 const ig = @import("cimgui");
 const log = std.log.scoped(.console);
+const Serde = @import("../serde.zig");
+const Scene = @import("../types.zig").Scene;
 
 var console_buf: [8192]u8 = undefined;
 
 const cli_fn = *const fn (*State, [][]const u8) anyerror!void;
+
+pub fn cliLevel(
+    state: *State,
+    args: [][]const u8,
+) !void {
+    assert(args.len > 1);
+
+    if (state.loaded_scene) |*s| {
+        s.deloadScene(state.allocator, state);
+    }
+
+    var scene: Scene = undefined;
+    log.info("{s}, {s}", .{args[0], args[1]});
+    try Serde.loadSceneFromJson(&scene, args[1], state.allocator);
+    state.loaded_scene = scene;
+    try state.loaded_scene.?.loadScene(&state.renderer);
+}
 
 // @todo cli tools?
 pub const cli_tools = std.StaticStringMap(cli_fn).initComptime((.{}));
@@ -49,7 +70,6 @@ pub fn console(
     allocator: std.mem.Allocator,
     state: *State,
 ) !void {
-    _ = state;
     _ = ig.igBegin("Drawer", 0, ig.ImGuiWindowFlags_None);
     if (ig.igIsWindowFocused(ig.ImGuiFocusedFlags_RootAndChildWindows)) {
         ig.igSetKeyboardFocusHere();
@@ -66,7 +86,23 @@ pub fn console(
     )) {
         const console_input: []const u8 = std.mem.span(@as([*c]u8, @ptrCast(console_buf[0..].ptr)));
         try self.history_buf.append(try allocator.dupe(u8, console_input));
-        log.info("{}", .{self.history_buf.items.len});
+        var args: [][]const u8 = try allocator.alloc([]const u8, 0);
+
+        if (std.mem.startsWith(u8, console_input, "level")) {
+            var iter = std.mem.splitAny(u8, console_input, " ");
+            var i: usize = 0;
+            while (iter.next()) | arg| {
+                args = try allocator.realloc(args, args.len + 1);
+                args[i] = arg;
+
+                i += 1;
+            }
+
+            try cliLevel(state, args);
+
+        }
+
+        //log.info("{}", .{self.history_buf.items.len});
         console_buf = std.mem.zeroes([8192]u8);
         if (self.history_buf.items.len >= 15) {
             const record = self.history_buf.orderedRemove(0);

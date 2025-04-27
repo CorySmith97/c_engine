@@ -5,6 +5,17 @@ an amazing starting place. However a lot has likewise been taken from
 ID software and the way that they write code. Read through the doom 
 source code, and Im sure you will agree that its amazingly beautiful.
 
+## Testing
+
+Testing is an interesting field. Test should only be written once a system is ready to go.
+Mathematic/Determinstic fields that are stagnate should have tests, IE Vector mathematic classes.
+
+## Prefixes
+
+THIS IS EXPERIMENTAL AS OF NOW.
+
+- al_ = ArrayLists
+
 ## Comments
 
 Files should have headers providing information about the file you 

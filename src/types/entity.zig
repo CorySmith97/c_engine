@@ -47,14 +47,14 @@ const Stats = struct {
 };
 
 const Animation = struct {
-    indicies: []u32,
-    cur_frame: u32,
-    speed: u32,
+    indicies  : []u32 = &.{},
+    cur_frame : u32 = 0,
+    speed     : u32 = 0,
 };
 
 
 
-// @important @incorrect_rendering We have to manually change serde formatting as we go.
+// @incorrect_rendering We have to manually change serde formatting as we go.
 const Self = @This();
 id             : u32 = 10,
 spritesheet_id : RenderPassIds = .ENTITY_1,
@@ -70,6 +70,7 @@ selected       : bool = false,
 player_team    : bool = false,
 weapon         : Weapon = .{},
 stats          : Stats = .{},
+animation      : ?Animation = .{},
 
 
 pub fn init(
@@ -78,6 +79,29 @@ pub fn init(
 ) void {
     _ = self;
     _ = e_type;
+}
+
+//
+// Frame based update
+//
+pub fn update(
+    self: *Self,
+) void {
+    _ = self;
+}
+
+pub fn combat(
+    self: *Self,
+    other: *Self,
+) !void {
+    _ = self;
+    _ = other;
+}
+
+pub fn render(
+    self: *Self,
+) !void {
+    _ = self;
 }
 
 pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
