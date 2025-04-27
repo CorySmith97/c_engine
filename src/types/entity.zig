@@ -5,6 +5,12 @@
 /// Date: 2025-04-05
 ///
 /// Description:
+///     Everything that is not a tile in the game world is an entity.
+///     This is a generic class right now, there will be optimizations
+///     built into it later. But it will be exclusively stored in a
+///     multiarraylist, meaning we only have to filter over the fields that
+///     we want to use for a specific entity. IE if there is a destructable
+///     wall, then there is no need to access weapon data for examples.
 /// ===========================================================================
 
 
@@ -16,6 +22,7 @@ const util = @import("../util.zig");
 const math = util.math;
 const types = @import("../types.zig");
 const AABB = types.AABB;
+const Weapon = @import("weapon.zig");
 
 pub const EntityTag = enum {
     default,
@@ -24,6 +31,25 @@ pub const EntityTag = enum {
 const default_aabb: AABB = .{
     .min = math.Vec2.zero(),
     .max = math.Vec2{ .x = 16, .y = 16 },
+};
+
+const Stats = struct {
+    health     : u16 = 10,
+    strength   : u16 = 10,
+    magic      : u16 = 10,
+    dexterity  : u16 = 10,
+    wisdom     : u16 = 10,
+    charisma   : u16 = 10,
+    speed      : u16 = 10,
+    defense    : u16 = 10,
+    resistence : u16 = 10,
+    move_speed : u16 = 5,
+};
+
+const Animation = struct {
+    indicies: []u32,
+    cur_frame: u32,
+    speed: u32,
 };
 
 
@@ -41,11 +67,14 @@ aabb           : AABB = default_aabb,
 lua_script     : []const u8 = "",
 // FLAGS
 selected       : bool = false,
+player_team    : bool = false,
+weapon         : Weapon = .{},
+stats          : Stats = .{},
 
 
 pub fn init(
     self: *Self,
-    e_type: EntityTag,
+    e_type: []const u8,
 ) void {
     _ = self;
     _ = e_type;
@@ -62,3 +91,11 @@ pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
         .color = .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 },
     };
 }
+
+
+//
+// Global Entity list with all the default types for enemies/reusable entities.
+//
+pub const EntityList = std.StaticStringMap(Self).initComptime(.{
+    .{"default", .{}},
+});
