@@ -8,8 +8,10 @@
 ///     This is the entire editor in a single file basically.
 ///     It may be split apart later, but for now its completely
 ///     fine.
+///
 /// ===========================================================================
 const std = @import("std");
+const builtin = @import("builtin");
 const ig = @import("cimgui");
 const sokol = @import("sokol");
 const app = sokol.app;
@@ -58,6 +60,40 @@ pub const Input = struct {
     backwards: bool = false,
 };
 
+pub const Rect = struct {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+
+    pub fn rectFromAABB(
+        aabb: AABB
+    ) Rect {
+        return .{
+            .x = aabb.min.x,
+            .y = aabb.min.y,
+            .width = aabb.max.x - aabb.min.x,
+            .height = aabb.max.y - aabb.min.y,
+        };
+    }
+
+    //
+    // Assumption that point 2 is further.
+    // IE start drag from left to right
+    //
+    pub fn rectFromPoints(
+        p1: math.Vec2,
+        p2: math.Vec2,
+    ) Rect {
+        return .{
+            .x = p1.x,
+            .y = p1.y,
+            .width = p2.x - p1.x,
+            .height = p2.y - p1.y,
+        };
+    }
+};
+
 //
 // All the possible states that the cursor can be.
 //
@@ -84,6 +120,18 @@ pub const MouseState = struct {
     click_and_hold_timer: u32 = 0,
     select_box: AABB = .{},
     select_box_start_grabed: bool = false,
+
+    //
+    // Convert float mouse coords to snapped grid coords
+    //
+    pub fn mouseToGridv2(
+        self: *MouseState,
+    ) math.Vec2 {
+        return .{
+            .x = @intFromFloat(self.mouse_position_v2.x / 16.0),
+            .y = @intFromFloat(self.mouse_position_v2.y / 16.0),
+        };
+    }
 
     //
     // This is the function that handles mouse input for the sokol events
@@ -127,7 +175,17 @@ pub const MouseState = struct {
             const texture_y = mouse_rel_y / 440.0;
 
             const ndc_x = texture_x * 2.0 - 1.0;
-            const ndc_y = 1.0 - texture_y * 2.0; // Flip Y for OpenGL-style coordinates
+
+            //
+            // Adjust for texture coordinates for different
+            // graphics apis
+            //
+            var ndc_y: f32 = 0;
+            if (builtin.os.tag == .linux) {
+                ndc_y = texture_y * 2.0 - 1.0;
+            } else {
+                ndc_y = 1.0 - texture_y * 2.0;
+            }
 
             const view_proj = math.Mat4.mul(es.proj, es.view);
             const inv = math.Mat4.inverse(view_proj);
@@ -151,66 +209,7 @@ pub const MouseState = struct {
                     }
                 },
                 .LEFT => {
-                    es.mouse_state.click_and_hold_timer = 0;
-                    es.mouse_state.mouse_clicked_left = mouse_pressed;
-                    if (!mouse_pressed) {
-                        if (es.mouse_state.cursor == .box_select and es.mouse_state.hover_over_scene) {
-                            es.mouse_state.select_box.max = es.mouse_state.mouse_position_v2;
-                            es.mouse_state.select_box_start_grabed = false;
-                            if (es.state.loaded_scene) |s| {
-                                switch (es.selected_layer) {
-                                    .TILES_1 => {
-                                        for (0..s.tiles.len) |i| {
-                                            const t = s.tiles.get(i);
-                                            const tile_aabb: AABB = .{
-                                                .min = .{
-                                                    .x = t.sprite_renderable.pos.x,
-                                                    .y = t.sprite_renderable.pos.y,
-                                                },
-                                                .max = .{
-                                                    .x = t.sprite_renderable.pos.x + 16,
-                                                    .y = t.sprite_renderable.pos.y + 16,
-                                                },
-                                            };
-
-                                            if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
-                                                try es.tile_group_selected.append(.{ .id = i, .tile = t });
-                                            }
-                                        }
-                                    },
-                                    else => {},
-                                }
-                            }
-                        }
-                        es.mouse_state.cursor = .inactive;
-                    }
-                    switch (es.mouse_state.cursor) {
-                        .inactive => {
-                            if (self.hover_over_scene) {
-                                switch (es.selected_layer) {
-                                    .ENTITY_1 => {
-                                        if (es.state.loaded_scene) |s| {
-                                            for (0.., s.entities.items(.aabb)) |i, aabb| {
-                                                if (util.aabbRec(es.mouse_state.mouse_position_v2, aabb)) {
-                                                    es.state.selected_entity = i;
-                                                }
-                                            }
-                                        }
-                                    },
-                                    .TILES_1 => {},
-                                    else => {},
-                                }
-                                if (es.state.selected_tile) |_| {
-                                    es.state.selected_tile_click = true;
-                                }
-                            }
-                        },
-                        .editing_tile => {},
-                        .moving_entity => {},
-                        .editing_entity => {},
-                        .moving_scene => {},
-                        .box_select => {},
-                    }
+                    try self.leftMouseClick(mouse_pressed);
                 },
                 .RIGHT => {
                     if (es.state.selected_tile_click) {
@@ -219,12 +218,81 @@ pub const MouseState = struct {
                         es.mouse_state.select_box = .{};
                     }
 
+                    //
                     // Clear the group on click so as to not continue to break stuff.
-                    es.tile_group_selected.clearAndFree();
+                    //
+                    es.al_tile_group_selected.clearAndFree();
                 },
 
                 else => {},
             }
+        }
+    }
+
+    fn leftMouseClick(self: *MouseState, mouse_pressed: bool) !void {
+        es.mouse_state.click_and_hold_timer = 0;
+        es.mouse_state.mouse_clicked_left = mouse_pressed;
+
+        if (!mouse_pressed) {
+            if (es.mouse_state.cursor == .box_select and es.mouse_state.hover_over_scene) {
+
+                es.mouse_state.select_box.max = es.mouse_state.mouse_position_v2;
+                es.mouse_state.select_box_start_grabed = false;
+
+                if (es.state.loaded_scene) |s| {
+                    switch (es.selected_layer) {
+                        .TILES_1 => {
+                            for (0..s.tiles.len) |i| {
+                                const t = s.tiles.get(i);
+
+                                const tile_aabb: AABB = .{
+                                    .min = .{
+                                        .x = t.sprite_renderable.pos.x,
+                                        .y = t.sprite_renderable.pos.y,
+                                    },
+                                    .max = .{
+                                        .x = t.sprite_renderable.pos.x + 16,
+                                        .y = t.sprite_renderable.pos.y + 16,
+                                    },
+                                };
+
+                                if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
+                                    try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
+                                }
+                            }
+                        },
+                        else => {},
+                    }
+                }
+            }
+            es.mouse_state.cursor = .inactive;
+        }
+        switch (es.mouse_state.cursor) {
+            .inactive => {
+                if (self.hover_over_scene) {
+                    switch (es.selected_layer) {
+                        .ENTITY_1 => {
+                            if (es.state.loaded_scene) |s| {
+                                for (0.., s.entities.items(.aabb)) |i, aabb| {
+                                    if (util.aabbRec(es.mouse_state.mouse_position_v2, aabb)) {
+                                        es.state.selected_entity = i;
+                                    }
+                                }
+                            }
+                        },
+                        .TILES_1 => {},
+                        else => {},
+                    }
+                    if (es.state.selected_tile) |_| {
+                        es.state.selected_tile_click = true;
+                    }
+                }
+            },
+            .editing_tile => {},
+            .moving_entity => {},
+            .editing_entity => {},
+            .moving_scene => {},
+            .box_select => {},
         }
     }
 };
@@ -270,20 +338,32 @@ pub const EditorConfig = struct {
 pub const EditorState = struct {
     gpa: std.heap.GeneralPurposeAllocator(.{}),
     allocator: std.mem.Allocator = undefined,
+
+    // Global state
+    state: State = undefined,
+
+    //
+    // @cleanup move these into a camera class. That allows for swapping
+    // from orthographic to perspective if we move to 3d.
+    //
     view: math.Mat4 = undefined,
     proj: math.Mat4 = undefined,
     mouse_state: MouseState = .{},
+    zoom_factor: f32 = 0.25,
+
+    // Render Surface
     editor_scene_image: sg.Image = .{},
     editor_scene_image_depth: sg.Image = .{},
     attachment: sg.Attachments = .{},
+
+    // Serde info
     editor_config: EditorConfig = .{},
-    zoom_factor: f32 = 0.25,
     selected_layer: RenderPassIds = .TILES_1,
-    state: State = undefined,
     console: Console = undefined,
     frame_count: std.ArrayList(f32) = undefined,
     continuous_sprite_mode: bool = false,
-    tile_group_selected: std.ArrayList(GroupTile) = undefined,
+    al_tile_group_selected: std.ArrayList(GroupTile) = undefined,
+    al_lasso_tool_buffer: std.ArrayList(GroupTile) = undefined,
 
     pub fn init(
         self: *EditorState,
@@ -313,7 +393,8 @@ pub const EditorState = struct {
             .selected_layer = .TILES_1,
             .console = c,
             .frame_count = std.ArrayList(f32).init(allocator),
-            .tile_group_selected = std.ArrayList(GroupTile).init(allocator),
+            .al_tile_group_selected = std.ArrayList(GroupTile).init(allocator),
+            .al_lasso_tool_buffer = std.ArrayList(GroupTile).init(allocator),
         };
 
         //
@@ -355,21 +436,99 @@ pub const EditorState = struct {
         try self.state.loaded_scene.?.loadScene(&self.state.renderer);
     }
 
+    //
+    // Draw the quad for multiselect with a lasso type sprite
+    //
+    pub fn drawMouseSelectBox(
+        self: *EditorState,
+    ) void {
+
+        // @cleanup this is not a great way to store the selected_layer I think
+        const old_layer = self.selected_layer;
+
+        switch (self.mouse_state.cursor) {
+            .box_select => {
+
+                //
+                // This needs to be different as the select should be reactive
+                // and the selected_tile_group is only grabbed once the mouse
+                // is released
+                //
+                self.selected_layer = .UI_1;
+                try self.updateSpriteRenderable(
+                    &.{
+                        .color = .{ .w = 1 },
+                        .pos = .{
+                            .x = self.mouse_state.mouse_position_v2.x,
+                            .y = self.mouse_state.mouse_position_v2.y,
+                        },
+                        .sprite_id = 3,
+                    },
+                    1,
+                );
+            },
+            else => {},
+        }
+        self.selected_layer = old_layer;
+    }
+
     pub fn deinit(
         self: *EditorState,
     ) void {
         self.frame_count.deinit();
-        self.tile_group_selected.deinit();
+        self.al_tile_group_selected.deinit();
         _ = self.gpa.deinit();
     }
 
     pub fn updateSpriteRenderable(
         self: *EditorState,
-        sprite_ren: *SpriteRenderable,
+        sprite_ren: *const SpriteRenderable,
         s: usize,
     ) !void {
+        //
+        // Hopefully this is a nice wrapper to update sprites in the
+        // layer we are currently working on
+        //
         if (self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].batch.items.len > s) {
             try self.state.renderer.render_passes.items[@intFromEnum(self.selected_layer)].updateSpriteRenderables(s, sprite_ren.*);
+        }
+    }
+
+    pub fn resetUiBuffer(
+        self: *EditorState,
+    ) !void {
+
+        //
+        // The UI is rendered from scratch each from. We need to manually
+        // change the buffers and recalc that every frame as it changes
+        // often. This is called Immediate mode ui
+        //
+        self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
+        self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
+    }
+
+    pub fn drawMouseUI(
+        self: *EditorState
+    ) !void {
+        if (self.mouse_state.hover_over_scene) {
+            const grid_size = 16.0;
+            self.mouse_state.mouse_position_v2 = math.Vec2{
+                .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
+                .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
+            };
+
+            try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+                .{
+                    .pos = .{
+                        .x = es.mouse_state.mouse_position_v2.x,
+                        .y = es.mouse_state.mouse_position_v2.y,
+                        .z = 0,
+                    },
+                    .sprite_id = 1,
+                    .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
+                },
+            );
+            self.drawMouseSelectBox();
         }
     }
 };
@@ -526,14 +685,18 @@ pub fn editorFrame() !void {
 
     try main_menu();
 
+    //
     // Create a dockspace to enable window docking
+    //
     _ = ig.igBegin("DockSpace", null, window_flags);
     const dockspace_id = ig.igGetIDStr("MyDockSpace".ptr, null);
     _ = ig.igDockSpace(dockspace_id);
     ig.igSetNextWindowDockID(dockspace_id, ig.ImGuiCond_Once);
     ig.igEnd();
 
+    //
     // Game scene renderer. Game rendered to a texture
+    //
     ig.igSetNextWindowDockID(dockspace_id, ig.ImGuiCond_Once);
     _ = ig.igBegin("Scene", 0, ig.ImGuiWindowFlags_None);
     scene_window_pos = ig.igGetWindowPos();
@@ -541,7 +704,9 @@ pub fn editorFrame() !void {
     ig.igImage(imgui.imtextureid(es.editor_scene_image), ig.ImVec2{ .x = 700, .y = 440 });
     ig.igEnd();
 
+    //
     // Editor for Entity
+    //
     _ = ig.igBegin("Entity Editor", 0, ig.ImGuiWindowFlags_None);
     if (es.selected_layer == .TILES_1 or es.selected_layer == .TILES_2) {
         try TypeEditors.drawTileEditor(&es);
@@ -550,53 +715,33 @@ pub fn editorFrame() !void {
     }
     ig.igEnd();
 
+    //
     // Drawer for data. This is unused for now, but something will go here.
     // Idea tab for animations, or Possible script viewer.
     // @todo Move this to the console editor file.
+    //
     try es.console.console(
         es.allocator,
         &es.state,
     );
 
-    //for (0..test_string.len) |i| {
-    //    const f: f32 = @floatFromInt(i);
-    //    try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{
-    //        .pos = .{ .x = f * 16 - 32, .y = 26, .z = 0 },
-    //        .sprite_id = @floatFromInt(test_string[i]),
-    //        .color = .{ .x = 0.1, .y = 1, .z = 0.5, .w = 1 },
-    //    });
-    //}
-
-    if (es.mouse_state.hover_over_scene) {
-        const grid_size = 16.0;
-        es.mouse_state.mouse_position_v2 = math.Vec2{
-            .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
-            .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
-        };
-
-        try es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
-            .{
-                .pos = .{
-                    .x = es.mouse_state.mouse_position_v2.x,
-                    .y = es.mouse_state.mouse_position_v2.y,
-                    .z = 0,
-                },
-                .sprite_id = 1,
-                .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
-            },
-        );
-    }
+    try es.drawMouseUI();
 
     try left_window();
 
+    //
     // Prepare render data for instanced rendering
+    //
     const vs_params = util.computeVsParams(es.proj, es.view);
     es.state.updateBuffers();
 
-    // === Render scene to image
+    //
+    // Render scene to image
+    //
     sg.beginPass(.{ .action = offscreen, .attachments = attachment });
     if (es.state.loaded_scene) |_| {
         es.state.render(vs_params);
+
     }
     if (!es.state.selected_tile_click) {
         es.state.collision(mouse_world_space);
@@ -605,13 +750,15 @@ pub fn editorFrame() !void {
 
     //Quad.drawQuad2dSpace(.{ .x = 10, .y = 10 }, .{ .x = 1, .y = 0, .z = 0 }, .{ .mvp = vs_params.mvp });
 
-    // === Render IMGUI windows
+    //
+    // Render IMGUI windows
+    //
     sg.beginPass(.{ .action = passaction, .swapchain = glue.swapchain() });
     imgui.render();
     sg.endPass();
     sg.commit();
-    es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
-    es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
+
+    try es.resetUiBuffer();
 }
 
 pub fn editorCleanup() !void {
