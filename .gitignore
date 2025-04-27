@@ -10,5 +10,5 @@ libs/lua
 libs/sdk
 libs/stb_image.h
 .dir-local.el
-src/.yas-compiled-snippets.el
+.yas-compiled-snippets.el
 .idea/
