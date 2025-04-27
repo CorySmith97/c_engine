@@ -12,6 +12,7 @@
 /// ===========================================================================
 const std = @import("std");
 const builtin = @import("builtin");
+
 const ig = @import("cimgui");
 const sokol = @import("sokol");
 const app = sokol.app;
@@ -19,23 +20,24 @@ const sg = sokol.gfx;
 const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
-const State = @import("state.zig");
-const util = @import("util.zig");
-const math = util.math;
-const mat4 = math.Mat4;
+
+const Console = @import("editor/console.zig");
+const TypeEditors = @import("editor/entity_editor.zig");
+const Quad = @import("renderer/RenderQuad.zig");
 const Lua = @import("scripting/lua.zig");
+const Serde = @import("serde.zig");
+const State = @import("state.zig");
 const types = @import("types.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Scene = types.Scene;
 const Entity = types.Entity;
 const GroupTile = types.GroupTile;
 const Tile = types.Tile;
-const Serde = @import("serde.zig");
-const Quad = @import("renderer/RenderQuad.zig");
-const TypeEditors = @import("editor/entity_editor.zig");
-const Console = @import("editor/console.zig");
 const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const AABB = types.AABB;
+const util = @import("util.zig");
+const math = util.math;
+const mat4 = math.Mat4;
 
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
@@ -52,23 +54,21 @@ const predefined_colors = [_]ig.ImVec4_t{
 // EDITOR TYPES
 //
 pub const Input = struct {
-    up: bool = false,
-    down: bool = false,
-    left: bool = false,
-    right: bool = false,
-    forward: bool = false,
-    backwards: bool = false,
+    up        : bool = false,
+    down      : bool = false,
+    left      : bool = false,
+    right     : bool = false,
+    forward   : bool = false,
+    backwards : bool = false,
 };
 
 pub const Rect = struct {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
+    x      : f32,
+    y      : f32,
+    width  : f32,
+    height : f32,
 
-    pub fn rectFromAABB(
-        aabb: AABB
-    ) Rect {
+    pub fn rectFromAABB(aabb: AABB) Rect {
         return .{
             .x = aabb.min.x,
             .y = aabb.min.y,
@@ -111,15 +111,15 @@ pub const Cursor = enum {
 // many different files.
 //
 pub const MouseState = struct {
-    cursor: Cursor = .inactive,
-    mouse_position_ig: ig.ImVec2_t = .{},
-    mouse_position_v2: math.Vec2 = .{},
-    hover_over_scene: bool = false,
-    moving_entity: bool = false,
-    mouse_clicked_left: bool = false,
-    click_and_hold_timer: u32 = 0,
-    select_box: AABB = .{},
-    select_box_start_grabed: bool = false,
+    cursor                  : Cursor = .inactive,
+    mouse_position_ig       : ig.ImVec2_t = .{},
+    mouse_position_v2       : math.Vec2 = .{},
+    hover_over_scene        : bool = false,
+    moving_entity           : bool = false,
+    mouse_clicked_left      : bool = false,
+    click_and_hold_timer    : u32 = 0,
+    select_box              : AABB = .{},
+    select_box_start_grabed : bool = false,
 
     //
     // Convert float mouse coords to snapped grid coords
@@ -235,7 +235,6 @@ pub const MouseState = struct {
 
         if (!mouse_pressed) {
             if (es.mouse_state.cursor == .box_select and es.mouse_state.hover_over_scene) {
-
                 es.mouse_state.select_box.max = es.mouse_state.mouse_position_v2;
                 es.mouse_state.select_box_start_grabed = false;
 
@@ -377,34 +376,33 @@ pub const EditorConfig = struct {
 // I think is fine. It allows for easy iteration speeds.
 //
 pub const EditorState = struct {
-    gpa: std.heap.GeneralPurposeAllocator(.{}),
-    allocator: std.mem.Allocator = undefined,
+    gpa                      : std.heap.GeneralPurposeAllocator(.{}),
+    allocator                : std.mem.Allocator = undefined,
 
     // Global state
-    state: State = undefined,
+    state                    : State = undefined,
 
     //
     // @cleanup move these into a camera class. That allows for swapping
     // from orthographic to perspective if we move to 3d.
     //
-    view: math.Mat4 = undefined,
-    proj: math.Mat4 = undefined,
-    mouse_state: MouseState = .{},
-    zoom_factor: f32 = 0.25,
+    view                     : math.Mat4 = undefined,
+    proj                     : math.Mat4 = undefined,
+    mouse_state              : MouseState = .{},
+    zoom_factor              : f32 = 0.25,
 
     // Render Surface
-    editor_scene_image: sg.Image = .{},
-    editor_scene_image_depth: sg.Image = .{},
-    attachment: sg.Attachments = .{},
+    editor_scene_image       : sg.Image = .{},
+    editor_scene_image_depth : sg.Image = .{},
+    attachment               : sg.Attachments = .{},
 
     // Serde info
-    editor_config: EditorConfig = .{},
-    selected_layer: RenderPassIds = .TILES_1,
-    console: Console = undefined,
-    frame_count: std.ArrayList(f32) = undefined,
-    continuous_sprite_mode: bool = false,
-    al_tile_group_selected: std.ArrayList(GroupTile) = undefined,
-    al_lasso_tool_buffer: std.ArrayList(GroupTile) = undefined,
+    editor_config            : EditorConfig = .{},
+    selected_layer           : RenderPassIds = .TILES_1,
+    frame_count              : std.ArrayList(f32) = undefined,
+    continuous_sprite_mode   : bool = false,
+    al_tile_group_selected   : std.ArrayList(GroupTile) = undefined,
+    al_lasso_tool_buffer     : std.ArrayList(GroupTile) = undefined,
 
     pub fn init(
         self: *EditorState,
@@ -414,9 +412,6 @@ pub const EditorState = struct {
 
         var s: State = undefined;
         try s.init(allocator);
-
-        var c: Console = undefined;
-        try c.init(allocator);
 
         self.* = .{
             .gpa = gpa,
@@ -432,7 +427,6 @@ pub const EditorState = struct {
             ),
             .state = s,
             .selected_layer = .TILES_1,
-            .console = c,
             .frame_count = std.ArrayList(f32).init(allocator),
             .al_tile_group_selected = std.ArrayList(GroupTile).init(allocator),
             .al_lasso_tool_buffer = std.ArrayList(GroupTile).init(allocator),
@@ -554,9 +548,7 @@ pub const EditorState = struct {
         self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
     }
 
-    pub fn drawMouseUI(
-        self: *EditorState
-    ) !void {
+    pub fn drawMouseUI(self: *EditorState) !void {
         if (self.mouse_state.hover_over_scene) {
             const grid_size = 16.0;
             self.mouse_state.mouse_position_v2 = math.Vec2{
@@ -586,59 +578,32 @@ pub const EditorState = struct {
 // These are primarily for testing and for having a global
 // editor state.
 //
-var es: EditorState = undefined;
-var mouse_middle_down: bool = false;
-var view: math.Mat4 = undefined;
-var passaction: sg.PassAction = .{};
-var offscreen: sg.PassAction = .{};
-var image: sg.Image = .{};
-var input: Input = .{};
-var r: f32 = 0;
-var proj: math.Mat4 = undefined;
-var zoom_factor: f32 = 0.25;
-var settings_docked: bool = false;
-var attachment: sg.Attachments = .{};
-var layout_initialized: bool = false;
-var mouse_world_space: math.Vec4 = .{};
+var es                 : EditorState = undefined;
+var mouse_middle_down  : bool = false;
+var view               : math.Mat4 = undefined;
+var passaction         : sg.PassAction = .{};
+var offscreen          : sg.PassAction = .{};
+var image              : sg.Image = .{};
+var input              : Input = .{};
+var r                  : f32 = 0;
+var proj               : math.Mat4 = undefined;
+var zoom_factor        : f32 = 0.25;
+var settings_docked    : bool = false;
+var attachment         : sg.Attachments = .{};
+var layout_initialized : bool = false;
+var mouse_world_space  : math.Vec4 = .{};
 var scene_window_pos = ig.ImVec2_t{};
 var scene_window_size = ig.ImVec2_t{};
-var is_mouse_in_scene: bool = false;
-var scene: Scene = undefined;
-var buf: [8192]u8 = undefined;
-var mouse_state: MouseState = .{};
-var scene_list_buffer: std.ArrayList([]const u8) = undefined;
-var new_temp_scene: Scene = .{};
-var new_scene_open: bool = false;
-var load_scene_open: bool = false;
-var editor_config: EditorConfig = .{};
-var console_buf: [8192]u8 = undefined;
-
-const test_string = "HELLO FROM HERE";
-
-const test_json =
-    \\{
-    \\    "pos": {
-    \\        "x": 0,
-    \\        "y": 0
-    \\    },
-    \\    "sprite_renderable": {
-    \\        "pos": {
-    \\            "x": 0e0,
-    \\            "y": 1e2,
-    \\            "z": 0e0
-    \\        },
-    \\        "sprite_id": 4.6e1,
-    \\        "color": {
-    \\            "x": 1e0,
-    \\            "y": 1e0,
-    \\            "z": 1e0,
-    \\            "w": 1e0
-    \\        }
-    \\    },
-    \\    "spawner": false,
-    \\    "traversable": false
-    \\}
-;
+var is_mouse_in_scene  : bool = false;
+var scene              : Scene = undefined;
+var buf                : [8192]u8 = undefined;
+var mouse_state        : MouseState = .{};
+var scene_list_buffer  : std.ArrayList([]const u8) = undefined;
+var new_temp_scene     : Scene = .{};
+var new_scene_open     : bool = false;
+var load_scene_open    : bool = false;
+var editor_config      : EditorConfig = .{};
+var console_buf        : [8192]u8 = undefined;
 
 //
 // ===========================================================================
@@ -771,9 +736,8 @@ pub fn editorFrame() !void {
     //
     // Drawer for data. This is unused for now, but something will go here.
     // Idea tab for animations, or Possible script viewer.
-    // @todo Move this to the console editor file.
     //
-    try es.console.console(
+    try es.state.console.console(
         es.allocator,
         &es.state,
     );
@@ -794,7 +758,6 @@ pub fn editorFrame() !void {
     sg.beginPass(.{ .action = offscreen, .attachments = attachment });
     if (es.state.loaded_scene) |_| {
         es.state.render(vs_params);
-
     }
     if (!es.state.selected_tile_click) {
         es.state.collision(mouse_world_space);

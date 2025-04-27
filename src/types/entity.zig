@@ -21,23 +21,26 @@ pub const EntityTag = enum {
     default,
 };
 
+const default_aabb: AABB = .{
+    .min = math.Vec2.zero(),
+    .max = math.Vec2{ .x = 16, .y = 16 },
+};
+
+
 
 // @important @incorrect_rendering We have to manually change serde formatting as we go.
 const Self = @This();
-id: u32 = 10,
-spritesheet_id: RenderPassIds = .ENTITY_1,
-z_index: f32 = 0,
-entity_type: EntityTag = .default,
-pos: math.Vec2 = .{},
-size: math.Vec2 = .{},
-sprite_id: f32 = 0,
-aabb: AABB = .{
-    .min = math.Vec2.zero(),
-    .max = math.Vec2{ .x = 16, .y = 16 },
-},
-lua_script: []const u8 = "",
+id             : u32 = 10,
+spritesheet_id : RenderPassIds = .ENTITY_1,
+z_index        : f32 = 0,
+entity_type    : EntityTag = .default,
+pos            : math.Vec2 = .{},
+size           : math.Vec2 = .{},
+sprite_id      : f32 = 0,
+aabb           : AABB = default_aabb,
+lua_script     : []const u8 = "",
 // FLAGS
-selected: bool = false,
+selected       : bool = false,
 
 
 pub fn init(

@@ -9,3 +9,5 @@ libs/lua/README.md
 libs/lua
 libs/sdk
 libs/stb_image.h
+.dir-local.el
+src/.yas-compiled-snippets.el

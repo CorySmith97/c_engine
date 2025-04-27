@@ -5,6 +5,8 @@
 /// Date: 2025-04-26
 ///
 /// Description:
+///     There is a lot for this class. The main idea is that we construct
+///     scenes similar to the way Godot handles scenes, but some more simple.
 /// ===========================================================================
 
 const std = @import("std");
@@ -18,16 +20,17 @@ const RendererTypes = @import("renderer.zig");
 const Tile = @import("tile.zig");
 const log = std.log.scoped(.scene);
 
-/// There is a lot for this class. The main idea is that we construct
-/// scenes similar to the way Godot handles scenes, but some more simple.
 const Self = @This();
-id: u32 = 0,
-height: f32 = 0,
-width: f32 = 0,
-scene_name: []const u8 = "",
-entities: std.MultiArrayList(Entity) = .{},
-tiles: std.MultiArrayList(Tile) = .{},
+id         : u32 = 0,
+height     : f32 = 0,
+width      : f32 = 0,
+scene_name : []const u8 = "",
+entities   : std.MultiArrayList(Entity) = .{},
+tiles      : std.MultiArrayList(Tile) = .{},
 
+//
+// Default Scene configuration
+//
 pub fn default(self: *Self, allocator: std.mem.Allocator, state: *State) !void {
     self.id = 0;
     self.height = 16.0;
@@ -55,6 +58,9 @@ pub fn default(self: *Self, allocator: std.mem.Allocator, state: *State) !void {
     }
 }
 
+//
+// This is Deprecated. Was to set up initial scene testing
+//
 pub fn loadTestScene(
     self: *Self,
     allocator: std.mem.Allocator,

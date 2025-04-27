@@ -5,26 +5,29 @@
 /// Date: 2025-04-01
 ///
 /// Description:
+///     This is our global state management.
+///     Ideally we dont add too much to this file. but it is used for
+///     both the game and the editor.
 /// ===========================================================================
 const std = @import("std");
+const assert = std.debug.assert;
+
+const Console = @import("editor/console.zig");
+const Renderer = @import("renderer.zig");
 const RenderPass = @import("renderer.zig").RenderPass;
+const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
-const shd = @import("shaders/basic.glsl.zig");
 const math = @import("util/math.zig");
-const Renderer = @import("renderer.zig");
-const assert = std.debug.assert;
-const Console = @import("editor/console.zig");
 
 pub const pass_count: u32 = 4;
 
-/// === GLOBAL STATE ===
 const Self = @This();
 allocator: std.mem.Allocator,
 renderer: Renderer,
 passes: []RenderPass,
-console: *Console,
+console: Console,
 loaded_scene: ?Scene,
 selected_cell: ?usize,
 selected_tile: ?usize,
@@ -39,7 +42,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .allocator = allocator,
         .renderer = undefined,
         .passes = try allocator.alloc(RenderPass, pass_count),
-        .console = &console,
+        .console = console,
         .loaded_scene = null,
         .selected_entity = null,
         .selected_tile = null,

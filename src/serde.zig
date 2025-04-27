@@ -188,7 +188,10 @@ pub fn loadSceneFromJson(
 
     const file_buf = try reader.readAllAlloc(allocator, 10_000_000);
     var scene_json: SceneJson = undefined;
-    scene_json = try std.json.parseFromSliceLeaky(SceneJson, allocator, file_buf, .{ .allocate = .alloc_always });
+    scene_json = try std.json.parseFromSliceLeaky(SceneJson, allocator, file_buf, .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = true,
+    });
 
     scene.* = try scene_json.sceneJsonToScene(allocator);
 }

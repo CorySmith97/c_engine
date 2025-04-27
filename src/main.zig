@@ -113,7 +113,7 @@ pub fn gameframe() !void {
     ig.igSetNextWindowSize(viewport.*.WorkSize, ig.ImGuiCond_Always);
     ig.igSetNextWindowViewport(viewport.*.ID);
 
-    if (console.open) {
+    if (global_state.console.open) {
         ig.igSetNextWindowPos(.{ .x = 10, .y = 10 }, ig.ImGuiCond_Once);
         ig.igSetNextWindowSize(.{ .x = 400, .y = 100 }, ig.ImGuiCond_Once);
         try console.console(global_state.allocator, &global_state);
@@ -159,4 +159,5 @@ pub fn main() !void {
     };
 
     app.run(desc);
+
 }
