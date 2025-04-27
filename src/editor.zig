@@ -19,6 +19,7 @@ const types = @import("types.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Scene = types.Scene;
 const Entity = types.Entity;
+const GroupTile = types.GroupTile;
 const Tile = types.Tile;
 const Serde = @import("serde.zig");
 const Quad = @import("renderer/RenderQuad.zig");
@@ -26,6 +27,8 @@ const TypeEditors = @import("editor/entity_editor.zig");
 const Console = @import("editor/console.zig");
 const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const AABB = types.AABB;
+
+
 
 // THIS IS A CUSTOM LOG INTERFACE
 // It makes logs look better for the default logging interface
@@ -91,7 +94,7 @@ pub const MouseState = struct {
     select_box: AABB = .{},
     select_box_start_grabed: bool = false,
 
-    pub fn mouseEvents(self: *MouseState, ev: [*c]const app.Event) void {
+    pub fn mouseEvents(self: *MouseState, ev: [*c]const app.Event) !void {
         const eve = ev.*;
         if (eve.type == .MOUSE_SCROLL) {
             if (zoom_factor - 0.05 < 0) {
@@ -148,9 +151,33 @@ pub const MouseState = struct {
                     es.mouse_state.click_and_hold_timer = 0;
                     es.mouse_state.mouse_clicked_left = mouse_pressed;
                     if (!mouse_pressed) {
-                        if (es.mouse_state.cursor == .box_select) {
+                        if (es.mouse_state.cursor == .box_select and es.mouse_state.hover_over_scene) {
                             es.mouse_state.select_box.max = es.mouse_state.mouse_position_v2;
                             es.mouse_state.select_box_start_grabed = false;
+                            if (es.state.loaded_scene) |s| {
+                                switch (es.selected_layer) {
+                                    .TILES_1 => {
+                                        for (0..s.tiles.len) |i| {
+                                            const t = s.tiles.get(i);
+                                            const tile_aabb: AABB = .{
+                                                .min = .{
+                                                    .x = t.sprite_renderable.pos.x,
+                                                    .y = t.sprite_renderable.pos.y,
+                                                },
+                                                .max = .{
+                                                    .x = t.sprite_renderable.pos.x + 16,
+                                                    .y = t.sprite_renderable.pos.y + 16,
+                                                },
+                                            };
+
+                                            if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
+                                                try es.tile_group_selected.append(.{.id = i, .tile = t});
+                                            }
+                                        }
+                                    },
+                                    else => {},
+                                }
+                            }
                         }
                         es.mouse_state.cursor = .inactive;
                     }
@@ -186,7 +213,9 @@ pub const MouseState = struct {
                     if (es.state.selected_tile_click) {
                         es.state.selected_tile_click = false;
                         es.state.selected_tile = null;
+                        es.mouse_state.select_box = .{};
                     }
+                    es.tile_group_selected.clearAndFree();
                 },
 
                 else => {},
@@ -237,7 +266,7 @@ pub const EditorState = struct {
     console: Console = undefined,
     frame_count: std.ArrayList(f32) = undefined,
     continuous_sprite_mode: bool = false,
-    tile_group_selected: std.ArrayList(Tile) = undefined,
+    tile_group_selected: std.ArrayList(GroupTile) = undefined,
 
     pub fn init(self: *EditorState) !void {
         const gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -262,7 +291,7 @@ pub const EditorState = struct {
             .selected_layer = .TILES_1,
             .console = c,
             .frame_count = std.ArrayList(f32).init(allocator),
-            .tile_group_selected = std.ArrayList(Tile).init(allocator),
+            .tile_group_selected = std.ArrayList(GroupTile).init(allocator),
         };
     }
 
@@ -411,7 +440,7 @@ pub fn editorFrame() !void {
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
     if (es.mouse_state.mouse_clicked_left) {
         es.mouse_state.click_and_hold_timer += 1;
-        if (es.mouse_state.click_and_hold_timer >= 20) {
+        if (es.mouse_state.click_and_hold_timer >= 10) {
             es.mouse_state.cursor = .box_select;
             if (!es.mouse_state.select_box_start_grabed) {
                 es.mouse_state.select_box.min = es.mouse_state.mouse_position_v2;
@@ -546,7 +575,7 @@ pub fn editorCleanup() !void {
 }
 
 pub fn editorEvent(ev: [*c]const app.Event) !void {
-    es.mouse_state.mouseEvents(ev);
+    try es.mouse_state.mouseEvents(ev);
     // forward input events to sokol-imgui
     _ = imgui.handleEvent(ev.*);
     const ig_mouse = ig.igGetMousePos();
@@ -602,7 +631,7 @@ fn main_menu() !void {
             ig.igCloseCurrentPopup();
         }
         if (ig.igButton("Load Scene")) {
-            var level_dir = try std.fs.cwd().openDir("levels", .{});
+            var level_dir = try std.fs.cwd().openDir("levels", .{.iterate = true});
             var level_walker = try level_dir.walk(es.allocator);
             while (try level_walker.next()) |entry| {
                 if (es.editor_config.mode == .JSON and std.mem.containsAtLeast(u8, entry.basename, 1, ".json")) {
@@ -623,6 +652,9 @@ fn main_menu() !void {
             if (scene_list_buffer.items.len > 0) {
                 for (scene_list_buffer.items) |s| {
                     if (ig.igButton(s.ptr)) {
+                        es.state.selected_cell = null;
+                        es.state.selected_tile = null;
+                        es.state.selected_entity = null;
                         // @todo load a scene, and set the scene to the state loaded scene
                         if (es.state.loaded_scene) |*loaded_scene| {
                             loaded_scene.deloadScene(es.allocator, &es.state);

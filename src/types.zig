@@ -10,3 +10,8 @@ pub const AABB = struct {
     min: math.Vec2 = .{},
     max: math.Vec2 = .{},
 };
+
+pub const GroupTile = struct {
+    id: usize,
+    tile: Tile,
+};

@@ -11,6 +11,7 @@ const imgui = sokol.imgui;
 const EditorState = @import("../editor.zig").EditorState;
 const State = @import("../state.zig");
 const types = @import("../types.zig");
+const Tile = types.Tile;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Entity = types.Entity;
 const util = @import("../util.zig");
@@ -19,6 +20,7 @@ const mat4 = math.Mat4;
 
 const log = std.log.scoped(.entity_editor);
 
+
 const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
     .{ .x = 0.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // green
@@ -26,6 +28,7 @@ const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // yellow
     .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 1.0 }, // white
     .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
+    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 } // brown
 };
 
 pub fn drawEntityEditor(editor_state: *EditorState) !void {
@@ -91,6 +94,7 @@ pub fn drawEntityEditor(editor_state: *EditorState) !void {
     }
 }
 
+            var ttile: Tile = .{};
 // @todo add a save custom color button.
 // @todo Have a seperate way to grab an item. IE One click. Not click and release.
 pub fn drawTileEditor(editor_state: *EditorState) !void {
@@ -98,7 +102,65 @@ pub fn drawTileEditor(editor_state: *EditorState) !void {
         editor_state.continuous_sprite_mode = editor_state.continuous_sprite_mode;
     }
     if (editor_state.state.selected_tile) |s| {
-        if (editor_state.state.selected_tile_click) {
+        if (editor_state.tile_group_selected.items.len > 0) {
+            ig.igText("Group List Size: %d", editor_state.tile_group_selected.items.len);
+            const selected = try std.fmt.allocPrint(
+                editor_state.allocator,
+                    \\Sprite id: {d}
+                    \\Pos: {}, {}, {}
+                    \\Spawner: {}
+                    \\Traversable: {}
+                    ,
+                .{
+                    ttile.sprite_renderable.sprite_id,
+                    ttile.sprite_renderable.pos.x,
+                    ttile.sprite_renderable.pos.y,
+                    ttile.sprite_renderable.pos.z,
+                    ttile.spawner,
+                    ttile.traversable,
+                },
+            );
+            defer editor_state.allocator.free(selected);
+            ig.igText(selected.ptr);
+
+            var color_array = ttile.sprite_renderable.color.toArray();
+            _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
+            _ = ig.igText("Preset Colors:");
+            ig.igNewLine();
+            for (predefined_colors, 0..) |preset, i| {
+                ig.igSameLine();
+                const str = try std.fmt.allocPrintZ(editor_state.allocator, "##c{}", .{i});
+                defer editor_state.allocator.free(str);
+                if (ig.igColorButton(
+                    str.ptr,
+                    preset,
+                    ig.ImGuiColorEditFlags_None,
+                )) {
+                    color_array = [4]f32{ preset.x, preset.y, preset.z, preset.w };
+                }
+            }
+            ttile.sprite_renderable.color = math.Vec4.fromArray(color_array);
+
+            _ = ig.igInputFloatEx("Sprite ID:", &ttile.sprite_renderable.sprite_id, 1.0, 5.0, "%.0f", ig.ImGuiInputTextFlags_None);
+
+            _ = ig.igCheckbox("Spawner", &ttile.spawner);
+            _ = ig.igCheckbox("Traversable", &ttile.traversable);
+            for (editor_state.tile_group_selected.items) |*gt| {
+                gt.*.tile.spawner = ttile.spawner;
+                gt.*.tile.traversable = ttile.traversable;
+                gt.*.tile.sprite_renderable.sprite_id  = ttile.sprite_renderable.sprite_id;
+                gt.*.tile.sprite_renderable.color  = ttile.sprite_renderable.color;
+                ig.igText("id %d", gt.id);
+                ig.igText("pos %.1f %.1f", gt.tile.sprite_renderable.pos.x, gt.tile.sprite_renderable.pos.y);
+
+                editor_state.state.loaded_scene.?.tiles.set(gt.id, gt.*.tile);
+
+                try editor_state.updateSpriteRenderable(&gt.*.tile.sprite_renderable, gt.id);
+
+            }
+
+        }
+        if (editor_state.state.selected_tile_click and editor_state.tile_group_selected.items.len == 0) {
             var tile = editor_state.state.loaded_scene.?.tiles.get(s);
             const selected = try std.fmt.allocPrint(
                 editor_state.allocator,
