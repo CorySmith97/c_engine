@@ -1,4 +1,3 @@
-
 /// ===========================================================================
 ///
 /// Author: Cory Smith
@@ -10,8 +9,6 @@
 ///     It may be split apart later, but for now its completely
 ///     fine.
 /// ===========================================================================
-
-
 const std = @import("std");
 const ig = @import("cimgui");
 const sokol = @import("sokol");
@@ -46,10 +43,12 @@ const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 1.0 }, // white
     .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
     .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
-    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 } // brown
+    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 }, // brown
 };
 
+//
 // EDITOR TYPES
+//
 pub const Input = struct {
     up: bool = false,
     down: bool = false,
@@ -59,6 +58,9 @@ pub const Input = struct {
     backwards: bool = false,
 };
 
+//
+// All the possible states that the cursor can be.
+//
 pub const Cursor = enum {
     inactive,
     editing_tile,
@@ -68,6 +70,10 @@ pub const Cursor = enum {
     box_select,
 };
 
+//
+// Data structure to manage mouse information over
+// many different files.
+//
 pub const MouseState = struct {
     cursor: Cursor = .inactive,
     mouse_position_ig: ig.ImVec2_t = .{},
@@ -79,20 +85,16 @@ pub const MouseState = struct {
     select_box: AABB = .{},
     select_box_start_grabed: bool = false,
 
-    /// ====================
-
-    /// FunctionName
-
-
-    /// Description
-
-    /// ====================
-    pub fn mouseEvents(self: *MouseState, ev: [*c]const app.Event) !void {
-
+    //
+    // This is the function that handles mouse input for the sokol events
+    //
+    pub fn mouseEvents(
+        self: *MouseState,
+        ev: [*c]const app.Event,
+    ) !void {
         const eve = ev.*;
 
-
-        if ( eve.type == .MOUSE_SCROLL ) {
+        if (eve.type == .MOUSE_SCROLL) {
             if (zoom_factor - 0.05 < 0) {
                 zoom_factor = 0.0;
             }
@@ -115,9 +117,7 @@ pub const MouseState = struct {
             );
         }
 
-
         if (ev.*.type == .MOUSE_MOVE) {}
-
 
         if (ev.*.type == .MOUSE_MOVE) {
             const mouse_rel_x = self.mouse_position_ig.x - scene_window_pos.x;
@@ -133,7 +133,7 @@ pub const MouseState = struct {
             const inv = math.Mat4.inverse(view_proj);
             mouse_world_space = math.Mat4.mulByVec4(inv, .{ .x = ndc_x, .y = ndc_y, .z = 0, .w = 1 });
         }
-        if ( ev.*.type == .MOUSE_MOVE and mouse_middle_down ) {
+        if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
             es.mouse_state.cursor = .moving_scene;
             es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{
                 .x = zoom_factor * ev.*.mouse_dx,
@@ -141,7 +141,7 @@ pub const MouseState = struct {
                 .z = 0,
             }));
         }
-        if ( ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP ) {
+        if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
             const mouse_pressed = ev.*.type == .MOUSE_DOWN;
             switch (ev.*.mouse_button) {
                 .MIDDLE => {
@@ -174,7 +174,7 @@ pub const MouseState = struct {
                                             };
 
                                             if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
-                                                try es.tile_group_selected.append(.{.id = i, .tile = t});
+                                                try es.tile_group_selected.append(.{ .id = i, .tile = t });
                                             }
                                         }
                                     },
@@ -213,7 +213,6 @@ pub const MouseState = struct {
                     }
                 },
                 .RIGHT => {
-
                     if (es.state.selected_tile_click) {
                         es.state.selected_tile_click = false;
                         es.state.selected_tile = null;
@@ -230,11 +229,19 @@ pub const MouseState = struct {
     }
 };
 
+//
+// Serialization mode. Set in the config_editor.json file
+//
 const SerdeMode = enum {
     JSON,
     BINARY,
 };
 
+//
+// Place to store the configuration. Its in its own struct
+// as we dont know what other data I may want to have be
+// configurable within the editor.
+//
 pub const EditorConfig = struct {
     mode: SerdeMode = .BINARY,
 
@@ -254,8 +261,13 @@ pub const EditorConfig = struct {
     }
 };
 
+//
+// This is the state management for the editor. This will likely
+// be a changin structure as I figure out how to better abstract.
+// However for the meantime having it be a monolith data structure
+// I think is fine. It allows for easy iteration speeds.
+//
 pub const EditorState = struct {
-
     gpa: std.heap.GeneralPurposeAllocator(.{}),
     allocator: std.mem.Allocator = undefined,
     view: math.Mat4 = undefined,
@@ -279,24 +291,21 @@ pub const EditorState = struct {
         const gpa = std.heap.GeneralPurposeAllocator(.{}){};
         const allocator = std.heap.page_allocator;
 
-
         var s: State = undefined;
         try s.init(allocator);
-
 
         var c: Console = undefined;
         try c.init(allocator);
 
-
         self.* = .{
             .gpa = gpa,
             .allocator = allocator,
-            .view = math.Mat4.translate(.{.x = -150, .y = -100 , .z = 0}),
+            .view = math.Mat4.translate(.{ .x = -150, .y = -100, .z = 0 }),
             .proj = mat4.ortho(
                 -app.widthf() / 2 * zoom_factor,
-                app.widthf() / 2 * zoom_factor ,
+                app.widthf() / 2 * zoom_factor,
                 -app.heightf() / 2 * zoom_factor,
-                app.heightf() / 2 * zoom_factor ,
+                app.heightf() / 2 * zoom_factor,
                 -1,
                 1,
             ),
@@ -307,9 +316,10 @@ pub const EditorState = struct {
             .tile_group_selected = std.ArrayList(GroupTile).init(allocator),
         };
 
-
+        //
         // While in the editor, we render the game to a texture. that
         // texture is then rendered within an Imgui window.
+        //
         var img_desc: sg.ImageDesc = .{
             .render_target = true,
             .width = 700,
@@ -318,9 +328,10 @@ pub const EditorState = struct {
             .sample_count = 1,
         };
 
+        //
         // Image for scene needs both Image, and depth image
+        //
         self.editor_scene_image = sg.makeImage(img_desc);
-
 
         var attachment_desc: sg.AttachmentsDesc = .{};
 
@@ -332,7 +343,9 @@ pub const EditorState = struct {
 
         attachment = sg.makeAttachments(attachment_desc);
 
+        //
         // Load the scene from disk Switch Depending on the mode we are in.
+        //
         switch (self.editor_config.mode) {
             .BINARY => try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator),
             .JSON => try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator),
@@ -361,7 +374,12 @@ pub const EditorState = struct {
     }
 };
 
+//
 // STATIC VARIABLES FOR EDITOR
+// These are varaibles that only live within this file.
+// These are primarily for testing and for having a global
+// editor state.
+//
 var es: EditorState = undefined;
 var mouse_middle_down: bool = false;
 var view: math.Mat4 = undefined;
@@ -416,12 +434,16 @@ const test_json =
     \\}
 ;
 
-
+//
+// ===========================================================================
 // Main Initialization function for the Editor
 // Passed to Sokol as the init function through a wrapper
+//
 pub fn editorInit() !void {
 
+    //
     // Graphics initialization
+    //
     sg.setup(.{
         .environment = glue.environment(),
         .logger = .{ .func = slog.func },
@@ -432,18 +454,21 @@ pub fn editorInit() !void {
         .ini_filename = "imgui.ini",
     });
 
+    //
     // State Initialization
+    //
     try es.init();
     try es.editor_config.loadConfig(es.allocator);
 
+    //
     // Static Variable Initialization
+    //
     scene_list_buffer = std.ArrayList([]const u8).init(es.allocator);
 
     const io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_ViewportsEnable;
     ig.igLoadIniSettingsFromDisk(io.*.IniFilename);
-
 
     // Default pass actions
     passaction.colors[0] = .{
@@ -457,8 +482,7 @@ pub fn editorInit() !void {
     };
 }
 
-pub fn editorFrame(
-) !void {
+pub fn editorFrame() !void {
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
     if (es.mouse_state.mouse_clicked_left) {
@@ -534,7 +558,6 @@ pub fn editorFrame(
         &es.state,
     );
 
-
     //for (0..test_string.len) |i| {
     //    const f: f32 = @floatFromInt(i);
     //    try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(.{
@@ -544,7 +567,6 @@ pub fn editorFrame(
     //    });
     //}
 
-
     if (es.mouse_state.hover_over_scene) {
         const grid_size = 16.0;
         es.mouse_state.mouse_position_v2 = math.Vec2{
@@ -552,14 +574,13 @@ pub fn editorFrame(
             .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
         };
 
-
         try es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
             .{
                 .pos = .{
                     .x = es.mouse_state.mouse_position_v2.x,
                     .y = es.mouse_state.mouse_position_v2.y,
                     .z = 0,
-                         },
+                },
                 .sprite_id = 1,
                 .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
             },
@@ -593,18 +614,18 @@ pub fn editorFrame(
     es.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
 }
 
-pub fn editorCleanup(
-) !void {
+pub fn editorCleanup() !void {
     es.deinit();
     //ig.igSaveIniSettingsToDisk("imgui.ini");
     imgui.shutdown();
 }
 
-pub fn editorEvent(
-    ev: [*c]const app.Event
-) !void {
+pub fn editorEvent(ev: [*c]const app.Event) !void {
     try es.mouse_state.mouseEvents(ev);
+
+    //
     // forward input events to sokol-imgui
+    //
     _ = imgui.handleEvent(ev.*);
     const ig_mouse = ig.igGetMousePos();
 
@@ -639,8 +660,11 @@ pub fn editorEvent(
     }
 }
 
-fn main_menu(
-) !void {
+//
+// ===========================================================================
+// Main Menu. What is found at the top of the screen.
+//
+fn main_menu() !void {
     if (ig.igBeginMainMenuBar()) {}
     if (ig.igButton("Open Dropdown")) {
         ig.igOpenPopup("dropdown", 0);
@@ -660,7 +684,7 @@ fn main_menu(
             ig.igCloseCurrentPopup();
         }
         if (ig.igButton("Load Scene")) {
-            var level_dir = try std.fs.cwd().openDir("levels", .{.iterate = true});
+            var level_dir = try std.fs.cwd().openDir("levels", .{ .iterate = true });
             var level_walker = try level_dir.walk(es.allocator);
             while (try level_walker.next()) |entry| {
                 if (es.editor_config.mode == .JSON and std.mem.containsAtLeast(u8, entry.basename, 1, ".json")) {
@@ -838,4 +862,29 @@ pub fn main() !void {
         .height = 800,
         .window_title = "C-engine",
     });
+}
+
+//
+// THIS IS A CUSTOM LOG INTERFACE
+// It makes logs look better for the default logging interface
+// found in std.log
+//
+pub const std_options: std.Options = .{
+    .log_level = .info,
+    .logFn = customLogFn,
+};
+
+pub fn customLogFn(
+    comptime level: std.log.Level,
+    comptime scope: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    const prefix = "[" ++ comptime level.asText() ++ "] " ++ "(" ++ @tagName(scope) ++ "):\t";
+
+    // Print the message to stderr, silently ignoring any errors
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
+    const stderr = std.io.getStdErr().writer();
+    nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
 }

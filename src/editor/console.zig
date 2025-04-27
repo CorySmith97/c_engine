@@ -8,7 +8,6 @@
 ///     This is the console found at the bottom of the editor or by pressing
 ///     L in the game.
 /// ===========================================================================
-
 const std = @import("std");
 const State = @import("../state.zig");
 const EditorState = @import("../editor.zig").EditorState;
@@ -17,17 +16,20 @@ const log = std.log.scoped(.console);
 
 var console_buf: [8192]u8 = undefined;
 
-const cli_fn = *const fn(*State, [][]const u8) anyerror!void;
+const cli_fn = *const fn (*State, [][]const u8) anyerror!void;
+
 // @todo cli tools?
-pub const cli_tools = std.StaticStringMap(cli_fn).initComptime((.{
-}));
+pub const cli_tools = std.StaticStringMap(cli_fn).initComptime((.{}));
 
 const Console = @This();
 history_buf: std.ArrayList([]const u8),
 history_file: std.fs.File,
 open: bool,
 
-// Initialization for the Console
+//
+// ===========================================================================
+// Initialization for the Console.
+//
 pub fn init(
     self: *Console,
     allocator: std.mem.Allocator,
@@ -38,6 +40,10 @@ pub fn init(
     self.open = false;
 }
 
+//
+// ===========================================================================
+// Main loop for the console to run within an imgui window
+//
 pub fn console(
     self: *Console,
     allocator: std.mem.Allocator,
@@ -54,10 +60,11 @@ pub fn console(
     ig.igSameLine();
 
     if (ig.igInputText(
-            " ",
-            &console_buf, console_buf.len,
-            ig.ImGuiInputTextFlags_EnterReturnsTrue | ig.ImGuiInputTextFlags_AllowTabInput,)
-        ) {
+        " ",
+        &console_buf,
+        console_buf.len,
+        ig.ImGuiInputTextFlags_EnterReturnsTrue | ig.ImGuiInputTextFlags_AllowTabInput,
+    )) {
         const console_input: []const u8 = std.mem.span(@as([*c]u8, @ptrCast(console_buf[0..].ptr)));
         try self.history_buf.append(try allocator.dupe(u8, console_input));
         log.info("{}", .{self.history_buf.items.len});

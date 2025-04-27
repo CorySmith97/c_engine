@@ -5,9 +5,14 @@
 /// Date: 2025-04-01
 ///
 /// Description:
+///     Serde stands for serialize/deserialize. This is the way that we
+///     write data to disk for have it persist.
+///
+///     As of now serde supports a basic Binary format, that will be updated
+///     as the project goes. But default for editing is JSON. Json should
+///     not be shipped to anyone as a standard json scene is multiple
+///     megabytes, and the binary format is maybe a few hundred kilobytes.
 /// ===========================================================================
-
-
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
@@ -17,7 +22,11 @@ const assert = std.debug.assert;
 const Renderer = @import("renderer.zig");
 const log = std.log.scoped(.serde);
 
-fn multiArrayListToArray(comptime T: type, allocator: std.mem.Allocator, list: std.MultiArrayList(T),) ![]T {
+fn multiArrayListToArray(
+    comptime T: type,
+    allocator: std.mem.Allocator,
+    list: std.MultiArrayList(T),
+) ![]T {
     const slice = list.slice();
     const len = slice.len;
 
@@ -39,7 +48,10 @@ const SceneJson = struct {
     entities: []Entity,
     tiles: []Tile,
 
-    pub fn sceneToSceneJson(scene: *Scene, allocator: std.mem.Allocator) !SceneJson {
+    pub fn sceneToSceneJson(
+        scene: *Scene,
+        allocator: std.mem.Allocator,
+    ) !SceneJson {
         const entities = try multiArrayListToArray(Entity, allocator, scene.entities);
         const tiles = try multiArrayListToArray(Tile, allocator, scene.tiles);
         return SceneJson{
@@ -52,7 +64,10 @@ const SceneJson = struct {
         };
     }
 
-    pub fn sceneJsonToScene(self: *SceneJson, allocator: std.mem.Allocator) !Scene {
+    pub fn sceneJsonToScene(
+        self: *SceneJson,
+        allocator: std.mem.Allocator,
+    ) !Scene {
         var entities = std.MultiArrayList(Entity){};
         var tiles = std.MultiArrayList(Tile){};
 
@@ -74,7 +89,10 @@ const SceneJson = struct {
     }
 };
 
-pub fn writeSceneToBinary(scene: *Scene, file_name: []const u8) !void {
+pub fn writeSceneToBinary(
+    scene: *Scene,
+    file_name: []const u8,
+) !void {
     assert(file_name.len > 0);
     var level_dir = try std.fs.cwd().openDir("levels", .{});
 
@@ -103,7 +121,11 @@ pub fn writeSceneToBinary(scene: *Scene, file_name: []const u8) !void {
     }
 }
 
-pub fn loadSceneFromBinary(scene: *Scene, file_name: []const u8, allocator: std.mem.Allocator) !void {
+pub fn loadSceneFromBinary(
+    scene: *Scene,
+    file_name: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
     assert(file_name.len > 0);
     var level_dir = try std.fs.cwd().openDir("levels", .{});
 

@@ -55,7 +55,10 @@ pub fn build(b: *std.Build) void {
     });
 
     dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src-docking"));
-    const editor_only = b.option(bool, "editor", "editor mode activated") orelse false;
+
+    // This is set to true for the mean time as I am primarily working on the editor.
+    // @important
+    const editor_only = b.option(bool, "editor", "editor mode activated") orelse true;
 
     if (editor_only) {
         const exe_mod = b.createModule(.{

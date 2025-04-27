@@ -15,28 +15,6 @@ pub const RendererTypes = @import("types/renderer.zig");
 const math = @import("util/math.zig");
 pub const Editor = @import("types/editor.zig");
 
-// THIS IS A CUSTOM LOG INTERFACE
-// It makes logs look better for the default logging interface
-// found in std.log
-pub const std_options: std.Options = .{
-    .log_level = .info,
-    .logFn = customLogFn,
-};
-
-pub fn customLogFn(
-    comptime level: std.log.Level,
-    comptime scope: @Type(.enum_literal),
-    comptime format: []const u8,
-    args: anytype,
-) void {
-    const prefix = "[" ++ comptime level.asText() ++ "] " ++ "(" ++ @tagName(scope) ++ "):\t";
-
-    // Print the message to stderr, silently ignoring any errors
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
-    const stderr = std.io.getStdErr().writer();
-    nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
-}
 
 
 
