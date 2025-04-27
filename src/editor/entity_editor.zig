@@ -139,23 +139,7 @@ pub fn drawTileEditor(
             defer editor_state.allocator.free(selected);
             ig.igText(selected.ptr);
 
-            var color_array = model_tile.sprite_renderable.color.toArray();
-            _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
-            _ = ig.igText("Preset Colors:");
-            ig.igNewLine();
-            for (predefined_colors, 0..) |preset, i| {
-                ig.igSameLine();
-                const str = try std.fmt.allocPrintZ(editor_state.allocator, "##c{}", .{i});
-                defer editor_state.allocator.free(str);
-                if (ig.igColorButton(
-                    str.ptr,
-                    preset,
-                    ig.ImGuiColorEditFlags_None,
-                )) {
-                    color_array = [4]f32{ preset.x, preset.y, preset.z, preset.w };
-                }
-            }
-            model_tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
+            try colorPicker(&model_tile, editor_state);
 
             _ = ig.igInputFloatEx("Sprite ID:", &model_tile.sprite_renderable.sprite_id, 1.0, 5.0, "%.0f", ig.ImGuiInputTextFlags_None);
 
@@ -171,10 +155,11 @@ pub fn drawTileEditor(
                 gt.*.tile.traversable = model_tile.traversable;
                 gt.*.tile.sprite_renderable.sprite_id = model_tile.sprite_renderable.sprite_id;
                 gt.*.tile.sprite_renderable.color = model_tile.sprite_renderable.color;
-                ig.igText("id %d", gt.id);
-                ig.igText("pos %.1f %.1f", gt.tile.sprite_renderable.pos.x, gt.tile.sprite_renderable.pos.y);
+
+                // Update the tile in the scene
                 editor_state.state.loaded_scene.?.tiles.set(gt.id, gt.*.tile);
 
+                // Update renderer with the new sprite data
                 try editor_state.updateSpriteRenderable(&gt.*.tile.sprite_renderable, gt.id);
             }
         }
@@ -201,28 +186,7 @@ pub fn drawTileEditor(
             defer editor_state.allocator.free(selected);
             ig.igText(selected.ptr);
 
-            var color_array = tile.sprite_renderable.color.toArray();
-
-            _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
-            _ = ig.igText("Preset Colors:");
-
-            ig.igNewLine();
-
-            for (predefined_colors, 0..) |preset, i| {
-                ig.igSameLine();
-
-                const str = try std.fmt.allocPrintZ(editor_state.allocator, "##c{}", .{i});
-                defer editor_state.allocator.free(str);
-
-                if (ig.igColorButton(
-                    str.ptr,
-                    preset,
-                    ig.ImGuiColorEditFlags_None,
-                )) {
-                    color_array = [4]f32{ preset.x, preset.y, preset.z, preset.w };
-                }
-            }
-            tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
+            try colorPicker(&tile, editor_state);
 
             _ = ig.igInputFloatEx("Sprite ID:", &tile.sprite_renderable.sprite_id, 1.0, 5.0, "%.0f", ig.ImGuiInputTextFlags_None);
 
@@ -234,4 +198,37 @@ pub fn drawTileEditor(
             try editor_state.updateSpriteRenderable(&tile.sprite_renderable, s);
         }
     }
+}
+
+
+fn colorPicker(
+    tile: *Tile,
+    editor_state: *EditorState,
+) !void {
+    var color_array = tile.sprite_renderable.color.toArray();
+
+    _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
+    _ = ig.igText("Preset Colors:");
+
+    ig.igNewLine();
+
+    for (predefined_colors, 0..) |preset, i| {
+        ig.igSameLine();
+
+        const str = try std.fmt.allocPrintZ(editor_state.allocator, "##c{}", .{i});
+        defer editor_state.allocator.free(str);
+
+        if (ig.igColorButton(
+            str.ptr,
+            preset,
+            ig.ImGuiColorEditFlags_None,
+        )) {
+            color_array = [4]f32{ preset.x, preset.y, preset.z, preset.w };
+        }
+
+        if (@mod(i + 1, 5) == 0) {
+            ig.igNewLine();
+        }
+    }
+    tile.sprite_renderable.color = math.Vec4.fromArray(color_array);
 }

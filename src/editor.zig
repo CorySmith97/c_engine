@@ -256,7 +256,18 @@ pub const MouseState = struct {
                                     },
                                 };
 
-                                if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
+                                const normalized_select_box: AABB = .{
+                                    .min = .{
+                                        .x = @min(es.mouse_state.select_box.min.x, es.mouse_state.select_box.max.x),
+                                        .y = @min(es.mouse_state.select_box.min.y, es.mouse_state.select_box.max.y),
+                                    },
+                                    .max = .{
+                                        .x = @max(es.mouse_state.select_box.min.x, es.mouse_state.select_box.max.x),
+                                        .y = @max(es.mouse_state.select_box.min.y, es.mouse_state.select_box.max.y),
+                                    },
+                                };
+
+                                if (util.aabbColl(tile_aabb, normalized_select_box)) {
                                     try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
                                 }
                             }
@@ -280,7 +291,6 @@ pub const MouseState = struct {
                                 }
                             }
                         },
-                        .TILES_1 => {},
                         else => {},
                     }
                     if (es.state.selected_tile) |_| {
@@ -292,8 +302,39 @@ pub const MouseState = struct {
             .moving_entity => {},
             .editing_entity => {},
             .moving_scene => {},
-            .box_select => {},
+            .box_select => {
+                if (self.hover_over_scene) {
+                    es.al_tile_group_selected.clearAndFree();
+                    if (es.state.loaded_scene) |s| {
+                        switch (es.selected_layer) {
+                            .TILES_1 => {
+                                for (0..s.tiles.len) |i| {
+                                    const t = s.tiles.get(i);
+
+                                    const tile_aabb: AABB = .{
+                                        .min = .{
+                                            .x = t.sprite_renderable.pos.x,
+                                            .y = t.sprite_renderable.pos.y,
+                                        },
+                                        .max = .{
+                                            .x = t.sprite_renderable.pos.x + 16,
+                                            .y = t.sprite_renderable.pos.y + 16,
+                                        },
+                                    };
+
+                                    if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
+                                        try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
+                                    }
+                                }
+                            },
+                            else => {},
+                        }
+                    }
+                }
+            },
         }
+
+        // End switch
     }
 };
 
@@ -434,6 +475,12 @@ pub const EditorState = struct {
 
         self.state.loaded_scene = scene;
         try self.state.loaded_scene.?.loadScene(&self.state.renderer);
+    }
+
+    pub fn drawLassoFromAABB(
+        self: *EditorState,
+    ) !void {
+        _ = self;
     }
 
     //
@@ -645,6 +692,12 @@ pub fn editorFrame() !void {
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
     if (es.mouse_state.mouse_clicked_left) {
+
+        //
+        // @cleanup This is a terrible way to determine if multiselect
+        // should be used. Its tied to framerate, and also feels
+        // incredibly jank
+        //
         es.mouse_state.click_and_hold_timer += 1;
         if (es.mouse_state.click_and_hold_timer >= 10) {
             es.mouse_state.cursor = .box_select;

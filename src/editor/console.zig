@@ -57,7 +57,6 @@ pub fn console(
     for (self.history_buf.items) |entry| {
         ig.igText(entry.ptr);
     }
-    ig.igSameLine();
 
     if (ig.igInputText(
         " ",

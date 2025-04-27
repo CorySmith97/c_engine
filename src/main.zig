@@ -28,6 +28,7 @@ const State = @import("state.zig");
 const Serde = @import("serde.zig");
 const AudioDriver = @import("audio.zig");
 const Console = @import("editor/console.zig");
+const Input = @import("input.zig");
 
 pub const std_options: std.Options = .{
     // Set the log level to info
@@ -59,7 +60,6 @@ var view: math.Mat4 = undefined;
 const zoom_factor = 0.25;
 var depth_image: sg.Image = .{};
 var ad: AudioDriver = undefined;
-var console: Console = undefined;
 
 pub fn gameinit() !void {
     var env = glue.environment();
@@ -79,7 +79,6 @@ pub fn gameinit() !void {
     //try ad.init();
 
     try global_state.init(std.heap.page_allocator);
-    try console.init(global_state.allocator);
     var scene: Scene = .{};
     try Serde.loadSceneFromBinary(&scene, "t2.txt", global_state.allocator);
     global_state.loaded_scene = scene;
@@ -130,16 +129,6 @@ pub fn gameframe() !void {
     sg.commit();
 }
 pub fn gamecleanup() !void {}
-pub fn gameevent(ev: [*c]const app.Event) !void {
-    if (ev.*.type == .KEY_UP or ev.*.type == .KEY_DOWN) {
-        switch (ev.*.key_code) {
-            .A => console.open = true,
-            .B => console.open = false,
-            .ESCAPE => app.quit(),
-            else => {},
-        }
-    }
-}
 export fn init() void {
     gameinit() catch unreachable;
 }
@@ -153,7 +142,7 @@ export fn cleanup() void {
     gamecleanup() catch unreachable;
 }
 export fn event(ev: [*c]const app.Event) void {
-    gameevent(ev) catch unreachable;
+    Input.gameevent(ev, *global_state) catch unreachable;
 }
 
 pub fn main() !void {

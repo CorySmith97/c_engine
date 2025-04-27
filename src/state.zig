@@ -15,6 +15,7 @@ const shd = @import("shaders/basic.glsl.zig");
 const math = @import("util/math.zig");
 const Renderer = @import("renderer.zig");
 const assert = std.debug.assert;
+const Console = @import("editor/console.zig");
 
 pub const pass_count: u32 = 4;
 
@@ -23,6 +24,7 @@ const Self = @This();
 allocator: std.mem.Allocator,
 renderer: Renderer,
 passes: []RenderPass,
+console: *Console,
 loaded_scene: ?Scene,
 selected_cell: ?usize,
 selected_tile: ?usize,
@@ -31,10 +33,13 @@ selected_entity: ?usize,
 selected_entity_click: bool = false,
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
+    var console: Console = undefined;
+    try console.init(allocator);
     self.* = .{
         .allocator = allocator,
         .renderer = undefined,
         .passes = try allocator.alloc(RenderPass, pass_count),
+        .console = &console,
         .loaded_scene = null,
         .selected_entity = null,
         .selected_tile = null,
