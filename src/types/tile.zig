@@ -14,7 +14,7 @@ const SpriteRenderable = @import("renderer.zig").SpriteRenderable;
 const util = @import("../util.zig");
 const math = util.math;
 
-const default_tile_sprite = .{
+const default_tile_sprite: SpriteRenderable = .{
     .pos       = .{ .x = 0, .y = 0, .z = 0 },
     .sprite_id = 0,
     .color     = .{ .x = 0, .y = 0, .z = 0, .w = 1 },

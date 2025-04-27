@@ -19,7 +19,7 @@ pub const WeaponList = std.StaticStringMap(Self).initComptime(.{
 });
 
 pub const Tag = enum {
-    fists,
+    fist,
 
     // Sword class
     sword_iron,

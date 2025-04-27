@@ -71,7 +71,9 @@ pub fn updateBuffers(self: *Self) void {
 pub fn render(self: *Self, vs_params: shd.VsParams) void {
     assert(self.loaded_scene != null);
     for (self.renderer.render_passes.items) |*pass| {
-        pass.render(vs_params);
+        if (pass.enabled) {
+            pass.render(vs_params);
+        }
     }
 }
 

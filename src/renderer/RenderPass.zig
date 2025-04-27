@@ -42,17 +42,18 @@ fn rand(min_val: f32, max_val: f32) f32 {
 // a seperate pass type for post processing/3d passes.
 // Maybe rename and refactor to Pass2d
 const Self = @This();
-id: RendererTypes.RenderPassIds,
-pass_action: sg.PassAction,
-bindings: sg.Bindings,
-image: sg.Image,
-pipeline: sg.Pipeline,
-batch: std.ArrayList(SpriteRenderable),
-cur_num_of_sprite: u32 = 0,
-max_sprites_per_batch: u32,
-sprite_size: [2]f32,
-atlas_size: [2]f32,
-path: []const u8,
+id                    : RendererTypes.RenderPassIds,
+pass_action           : sg.PassAction,
+bindings              : sg.Bindings,
+image                 : sg.Image,
+pipeline              : sg.Pipeline,
+batch                 : std.ArrayList(SpriteRenderable),
+cur_num_of_sprite     : u32 = 0,
+max_sprites_per_batch : u32,
+sprite_size           : [2]f32,
+atlas_size            : [2]f32,
+path                  : []const u8,
+enabled               : bool = true,
 
 pub fn init(
     self: *Self,
@@ -70,6 +71,7 @@ pub fn init(
     self.sprite_size = sprite_size;
     self.atlas_size = atlas_size;
     self.path = spritesheet_path;
+    self.enabled = true;
 
     const verts = [_]f32{
         0, 1, 0.0, 0.0, 1.0,

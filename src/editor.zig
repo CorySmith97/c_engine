@@ -62,6 +62,12 @@ pub const Input = struct {
     backwards : bool = false,
 };
 
+pub const WindowDropdowns = struct {
+    frame_data: bool = false,
+    mouse_data: bool = false,
+    layer_data: bool = false,
+};
+
 pub const Rect = struct {
     x      : f32,
     y      : f32,
@@ -403,6 +409,8 @@ pub const EditorState = struct {
     continuous_sprite_mode   : bool = false,
     al_tile_group_selected   : std.ArrayList(GroupTile) = undefined,
     al_lasso_tool_buffer     : std.ArrayList(GroupTile) = undefined,
+
+    window_dropdowns         : WindowDropdowns = .{},
 
     pub fn init(
         self: *EditorState,
@@ -941,6 +949,8 @@ fn left_window() !void {
     if (es.frame_count.items.len > 60) {
         _ = es.frame_count.orderedRemove(0);
     }
+
+    if (ig.igCollapsingHeader("Frame Data", ig.ImGuiTreeNodeFlags_DefaultOpen)) {
     ig.igText("Frame info");
     ig.igPlotLinesEx(
         " ",
@@ -953,50 +963,58 @@ fn left_window() !void {
         .{ .x = 200, .y = 80 },
         4,
     );
-    ig.igBeginGroup();
-    ig.igTextColored(predefined_colors[1], "Stats");
-    ig.igText(
-        "Mouse Cursor State:",
-    );
-    ig.igText(@tagName(es.mouse_state.cursor));
-    ig.igText(
-        \\MouseFlags:
-        \\
-        \\Mouse Over Scene: %d
-        \\Mouse Clicked Left: %d
-        \\Mouse Click Timer: %d
-        \\Mouse Position: %.1f, %.1f
-        \\Mouse Select min: %.1f, %.1f
-        \\Mouse Select max: %.1f, %.1f
-        \\
-    ,
-        es.mouse_state.hover_over_scene,
-        es.mouse_state.mouse_clicked_left,
-        es.mouse_state.click_and_hold_timer,
-        es.mouse_state.mouse_position_v2.x,
-        es.mouse_state.mouse_position_v2.y,
-        es.mouse_state.select_box.min.x,
-        es.mouse_state.select_box.min.y,
-        es.mouse_state.select_box.max.x,
-        es.mouse_state.select_box.max.y,
-    );
-    const text = try std.fmt.allocPrint(es.allocator, "frame duration: {d:.3}", .{app.frameDuration()});
-    defer es.allocator.free(text);
-    ig.igText(text.ptr);
-    const render_pass_count = try std.fmt.allocPrint(es.allocator, "RenderPass Count: {d}", .{es.state.passes.len});
-    defer es.allocator.free(render_pass_count);
-    ig.igText(render_pass_count.ptr);
-
-    ig.igNewLine();
-    ig.igSameLine();
-    ig.igText("Selected Layer");
-    ig.igText(@tagName(es.selected_layer));
-    for (std.meta.tags(RenderPassIds)) |id| {
-        if (ig.igButton(@tagName(id).ptr)) {
-            es.selected_layer = id;
-        }
     }
-    ig.igEndGroup();
+    if (ig.igCollapsingHeader("Mouse Data", ig.ImGuiTreeNodeFlags_DefaultOpen)) {
+        ig.igBeginGroup();
+        ig.igTextColored(predefined_colors[1], "Stats");
+        ig.igText(
+            "Mouse Cursor State:",
+        );
+        ig.igText(@tagName(es.mouse_state.cursor));
+        ig.igText(
+            \\MouseFlags:
+                \\
+                \\Mouse Over Scene: %d
+                \\Mouse Clicked Left: %d
+                \\Mouse Click Timer: %d
+                \\Mouse Position: %.1f, %.1f
+                \\Mouse Select min: %.1f, %.1f
+                \\Mouse Select max: %.1f, %.1f
+                \\
+                ,
+            es.mouse_state.hover_over_scene,
+            es.mouse_state.mouse_clicked_left,
+            es.mouse_state.click_and_hold_timer,
+            es.mouse_state.mouse_position_v2.x,
+            es.mouse_state.mouse_position_v2.y,
+            es.mouse_state.select_box.min.x,
+            es.mouse_state.select_box.min.y,
+            es.mouse_state.select_box.max.x,
+            es.mouse_state.select_box.max.y,
+        );
+        ig.igEndGroup();
+    }
+    if (ig.igCollapsingHeader("Render Data", ig.ImGuiTreeNodeFlags_None)) {
+        const render_pass_count = try std.fmt.allocPrint(es.allocator, "RenderPass Count: {d}", .{es.state.passes.len});
+        defer es.allocator.free(render_pass_count);
+        ig.igText(render_pass_count.ptr);
+
+        ig.igNewLine();
+        ig.igSameLine();
+        ig.igText("Selected Layer");
+        ig.igText(@tagName(es.selected_layer));
+        ig.igNewLine();
+        for (std.meta.tags(RenderPassIds)) |id| {
+            ig.igPushIDInt(@intFromEnum(id));
+            if (ig.igButton(@tagName(id).ptr)) {
+                es.selected_layer = id;
+            }
+            ig.igSameLine();
+            _ = ig.igCheckbox("Enable ##c", &es.state.renderer.render_passes.items[@intFromEnum(id)].enabled);
+            ig.igPopID();
+        }
+
+    }
     ig.igEnd();
 }
 
