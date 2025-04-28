@@ -11,9 +11,9 @@ pub fn compileShaders(target: std.Build.ResolvedTarget, file_name: []const u8) v
     std.log.info("{s}", .{std.fs.selfExePathAlloc(std.heap.page_allocator) catch unreachable});
     var sokol_proc: []const u8 = undefined;
     if (target.result.isMinGW()) {
-        sokol_proc = "./sokol-shdc.exe";
+        sokol_proc = "./shader_comp_tools/sokol-shdc.exe";
     } else {
-        sokol_proc = "./sokol-shdc";
+        sokol_proc = "./shader_comp_tools/sokol-shdc";
     }
     const args = [_][]const u8{
         sokol_proc,

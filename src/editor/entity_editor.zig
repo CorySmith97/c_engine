@@ -84,7 +84,7 @@ pub fn drawEntityEditor(
                 entity.aabb.min.y,
                 entity.aabb.max.x,
                 entity.aabb.max.y,
-                entity.selected,
+                entity.flags.selected,
             },
         );
         defer editor_state.allocator.free(selected);
@@ -117,6 +117,8 @@ var model_tile: Tile = .{};
 //
 // @todo add a save custom color button.
 // @todo Have a seperate way to grab an item. IE One click. Not click and release.
+// @todo This needs to be show lasso, and then if the user wants, upate the sprites. Not default
+// everything to black.
 //
 pub fn drawTileEditor(
     editor_state: *EditorState,
@@ -128,6 +130,7 @@ pub fn drawTileEditor(
     // @copypasta
     if (editor_state.state.selected_tile) |s| {
         if (editor_state.al_tile_group_selected.items.len > 0) {
+            model_tile = editor_state.al_tile_group_selected.items[0].tile;
             ig.igText("Group List Size: %d", editor_state.al_tile_group_selected.items.len);
             const selected = try std.fmt.allocPrint(
                 editor_state.allocator,

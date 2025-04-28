@@ -1,3 +1,4 @@
 {
-    "mode": "JSON"
+    "mode": "JSON",
+    "starting_level": "t1.json"
 }

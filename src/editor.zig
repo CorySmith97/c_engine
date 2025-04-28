@@ -351,13 +351,25 @@ const SerdeMode = enum {
     BINARY,
 };
 
+
+const SPRITE_TOP_EDGE = 4;
+const SPRITE_BOTTOM_EDGE = 6;
+const SPRITE_LEFT_EDGE = 5;
+const SPRITE_RIGHT_EDGE = 4;
+const SPRITE_TOP_LEFT_CORNER = 9;
+const SPRITE_TOP_RIGHT_CORNER = 10;
+const SPRITE_BOTTOM_LEFT_CORNER = 7;
+const SPRITE_BOTTOM_RIGHT_CORNER = 8;
+const SPRITE_CENTER = 11;
+
 //
 // Place to store the configuration. Its in its own struct
 // as we dont know what other data I may want to have be
 // configurable within the editor.
 //
 pub const EditorConfig = struct {
-    mode: SerdeMode = .BINARY,
+    mode: SerdeMode = .JSON,
+    starting_level: []const u8 = "t1.json",
 
     pub fn loadConfig(
         self: *EditorConfig,
@@ -408,7 +420,7 @@ pub const EditorState = struct {
     frame_count              : std.ArrayList(f32) = undefined,
     continuous_sprite_mode   : bool = false,
     al_tile_group_selected   : std.ArrayList(GroupTile) = undefined,
-    al_lasso_tool_buffer     : std.ArrayList(GroupTile) = undefined,
+    al_lasso_tool_buffer     : std.ArrayList(SpriteRenderable) = undefined,
 
     window_dropdowns         : WindowDropdowns = .{},
 
@@ -420,6 +432,10 @@ pub const EditorState = struct {
 
         var s: State = undefined;
         try s.init(allocator);
+
+        try self.editor_config.loadConfig(allocator);
+
+        occupied = std.AutoHashMap(math.Vec2i, bool).init(allocator);
 
         self.* = .{
             .gpa = gpa,
@@ -437,7 +453,7 @@ pub const EditorState = struct {
             .selected_layer = .TILES_1,
             .frame_count = std.ArrayList(f32).init(allocator),
             .al_tile_group_selected = std.ArrayList(GroupTile).init(allocator),
-            .al_lasso_tool_buffer = std.ArrayList(GroupTile).init(allocator),
+            .al_lasso_tool_buffer = std.ArrayList(SpriteRenderable).init(allocator),
         };
 
         //
@@ -472,7 +488,7 @@ pub const EditorState = struct {
         //
         switch (self.editor_config.mode) {
             .BINARY => try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator),
-            .JSON => try Serde.loadSceneFromJson(&scene, "t2.json", std.heap.page_allocator),
+            .JSON => try Serde.loadSceneFromJson(&scene, self.editor_config.starting_level, std.heap.page_allocator),
         }
 
         self.state.loaded_scene = scene;
@@ -490,10 +506,7 @@ pub const EditorState = struct {
     //
     pub fn drawMouseSelectBox(
         self: *EditorState,
-    ) void {
-
-        // @cleanup this is not a great way to store the selected_layer I think
-        const old_layer = self.selected_layer;
+    ) !void {
 
         switch (self.mouse_state.cursor) {
             .box_select => {
@@ -503,22 +516,44 @@ pub const EditorState = struct {
                 // and the selected_tile_group is only grabbed once the mouse
                 // is released
                 //
-                self.selected_layer = .UI_1;
-                try self.updateSpriteRenderable(
-                    &.{
-                        .color = .{ .w = 1 },
-                        .pos = .{
-                            .x = self.mouse_state.mouse_position_v2.x,
-                            .y = self.mouse_state.mouse_position_v2.y,
-                        },
-                        .sprite_id = 3,
-                    },
-                    1,
-                );
+                if (self.state.loaded_scene) |s| {
+                    for (s.tiles.items(.sprite_renderable)) |sprite| {
+                        const tile_aabb: AABB = .{
+                            .min = .{
+                                .x = sprite.pos.x,
+                                .y = sprite.pos.y,
+                            },
+                            .max = .{
+                                .x = sprite.pos.x + 16,
+                                .y = sprite.pos.y + 16,
+                            },
+                        };
+
+                        const normalized_select_box: AABB = .{
+                            .min = .{
+                                .x = @min(es.mouse_state.select_box.min.x, es.mouse_state.mouse_position_v2.x),
+                                .y = @min(es.mouse_state.select_box.min.y, es.mouse_state.mouse_position_v2.y),
+                            },
+                            .max = .{
+                                .x = @max(es.mouse_state.select_box.min.x, es.mouse_state.mouse_position_v2.x),
+                                .y = @max(es.mouse_state.select_box.min.y, es.mouse_state.mouse_position_v2.y),
+                            },
+                        };
+
+                        if (util.aabbColl(tile_aabb, normalized_select_box)) {
+                            const lasso_sprite: SpriteRenderable = .{
+                                .pos = sprite.pos,
+                                .sprite_id = 2,
+                                .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
+                            };
+                            try occupied.put(.{.x = @intFromFloat(lasso_sprite.pos.x) , .y = @intFromFloat(lasso_sprite.pos.y)}, true);
+                            try self.al_lasso_tool_buffer.append(lasso_sprite);
+                        }
+                    }
+                }
             },
             else => {},
         }
-        self.selected_layer = old_layer;
     }
 
     pub fn deinit(
@@ -560,22 +595,34 @@ pub const EditorState = struct {
         if (self.mouse_state.hover_over_scene) {
             const grid_size = 16.0;
             self.mouse_state.mouse_position_v2 = math.Vec2{
-                .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
-                .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
+                .x = mouse_world_space.x,
+                .y = mouse_world_space.y,
             };
+            self.al_lasso_tool_buffer.clearAndFree();
 
-            try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
-                .{
-                    .pos = .{
-                        .x = es.mouse_state.mouse_position_v2.x,
-                        .y = es.mouse_state.mouse_position_v2.y,
-                        .z = 0,
+            try self.drawMouseSelectBox();
+            for (self.al_lasso_tool_buffer.items) |*item| {
+
+
+                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+                    item.*
+                );
+            }
+
+            if (self.mouse_state.cursor != .box_select) {
+                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+                    .{
+                        .pos = .{
+                            .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
+                            .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
+                            .z = 0,
+                        },
+                        .sprite_id = 1,
+                        .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
                     },
-                    .sprite_id = 1,
-                    .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
-                },
-            );
-            self.drawMouseSelectBox();
+                );
+
+            }
         }
     }
 };
@@ -612,6 +659,7 @@ var new_scene_open     : bool = false;
 var load_scene_open    : bool = false;
 var editor_config      : EditorConfig = .{};
 var console_buf        : [8192]u8 = undefined;
+var occupied           : std.AutoHashMap(math.Vec2i, bool) = undefined;
 
 //
 // ===========================================================================
@@ -637,7 +685,6 @@ pub fn editorInit() !void {
     // State Initialization
     //
     try es.init();
-    try es.editor_config.loadConfig(es.allocator);
 
     //
     // Static Variable Initialization
@@ -661,6 +708,11 @@ pub fn editorInit() !void {
     };
 }
 
+//
+// ===========================================================================
+// Frame function for Sokol
+// wrapped for error handling
+//
 pub fn editorFrame() !void {
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
@@ -750,8 +802,8 @@ pub fn editorFrame() !void {
         &es.state,
     );
 
-    try es.drawMouseUI();
 
+    try es.drawMouseUI();
     try left_window();
 
     //

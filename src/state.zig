@@ -19,6 +19,7 @@ const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
+const RenderTypes = types.RendererTypes;
 const math = @import("util/math.zig");
 
 pub const pass_count: u32 = 4;
@@ -71,10 +72,14 @@ pub fn updateBuffers(self: *Self) void {
 pub fn render(self: *Self, vs_params: shd.VsParams) void {
     assert(self.loaded_scene != null);
     for (self.renderer.render_passes.items) |*pass| {
-        if (pass.enabled) {
-            pass.render(vs_params);
+        if (pass.id != .UI_1) {
+            if (pass.enabled) {
+                pass.render(vs_params);
+            }
         }
     }
+    //std.log.info("render ui: {}", .{self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.UI_1)].batch.items.len});
+    self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.UI_1)].render(vs_params);
 }
 
 pub fn collision(self: *Self, world_space: math.Vec4) void {

@@ -52,6 +52,11 @@ const Animation = struct {
     speed     : u32 = 0,
 };
 
+const Flags = packed struct {
+    selected       : bool = false,
+    player_team    : bool = false,
+};
+
 
 
 // @incorrect_rendering We have to manually change serde formatting as we go.
@@ -65,9 +70,7 @@ size           : math.Vec2 = .{},
 sprite_id      : f32 = 0,
 aabb           : AABB = default_aabb,
 lua_script     : []const u8 = "",
-// FLAGS
-selected       : bool = false,
-player_team    : bool = false,
+flags          : Flags = .{},
 weapon         : Weapon = .{},
 stats          : Stats = .{},
 animation      : ?Animation = .{},
@@ -91,11 +94,15 @@ pub fn update(
 }
 
 pub fn combat(
-    self: *Self,
-    other: *Self,
+    e1_stats: Stats,
+    e1_weapon: Weapon,
+    e2_stats: Stats,
+    e2_weapon: Weapon,
 ) !void {
-    _ = self;
-    _ = other;
+    _ = e1_stats ;
+    _ = e1_weapon ;
+    _ = e2_stats  ;
+    _ = e2_weapon ;
 }
 
 pub fn render(
