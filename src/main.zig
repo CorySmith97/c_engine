@@ -29,6 +29,7 @@ const Serde = @import("serde.zig");
 const AudioDriver = @import("audio.zig");
 const Console = @import("editor/console.zig");
 const Input = @import("input.zig");
+const RenderPassIds = types.RendererTypes.RenderPassIds;
 
 pub const std_options: std.Options = .{
     // Set the log level to info
@@ -116,9 +117,20 @@ pub fn gameframe() !void {
     if (global_state.console.open) {
         ig.igSetNextWindowPos(.{ .x = 10, .y = 10 }, ig.ImGuiCond_Once);
         ig.igSetNextWindowSize(.{ .x = 400, .y = 100 }, ig.ImGuiCond_Once);
-        try console.console(global_state.allocator, &global_state);
+        try global_state.console.console(global_state.allocator, &global_state);
     }
 
+    try global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+        .{
+            .pos = .{
+                .x = (global_state.game_cursor.x),
+                .y = (global_state.game_cursor.y),
+                .z = 0,
+            },
+            .sprite_id = 1,
+            .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
+        },
+    );
     var swapchain = glue.swapchain();
     swapchain.color_format = .RGBA8;
     global_state.updateBuffers();
@@ -127,6 +139,8 @@ pub fn gameframe() !void {
     imgui.render();
     sg.endPass();
     sg.commit();
+    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
+    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
 }
 pub fn gamecleanup() !void {}
 export fn init() void {
@@ -142,7 +156,7 @@ export fn cleanup() void {
     gamecleanup() catch unreachable;
 }
 export fn event(ev: [*c]const app.Event) void {
-    Input.gameevent(ev, *global_state) catch unreachable;
+    Input.gameevent(ev, &global_state) catch unreachable;
 }
 
 pub fn main() !void {

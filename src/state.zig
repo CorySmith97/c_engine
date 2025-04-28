@@ -24,17 +24,23 @@ const math = @import("util/math.zig");
 
 pub const pass_count: u32 = 4;
 
+
+//
+// @todo State needs a camera that is seperate from the editor camera
+// that can be tracked to follow the player cursor.
+//
 const Self = @This();
-allocator: std.mem.Allocator,
-renderer: Renderer,
-passes: []RenderPass,
-console: Console,
-loaded_scene: ?Scene,
-selected_cell: ?usize,
-selected_tile: ?usize,
-selected_tile_click: bool = false,
-selected_entity: ?usize,
-selected_entity_click: bool = false,
+allocator             : std.mem.Allocator,
+renderer              : Renderer,
+passes                : []RenderPass,
+console               : Console,
+loaded_scene          : ?Scene,
+game_cursor           : math.Vec2,
+selected_cell         : ?usize,
+selected_tile         : ?usize,
+selected_tile_click   : bool = false,
+selected_entity       : ?usize,
+selected_entity_click : bool = false,
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     var console: Console = undefined;
@@ -44,6 +50,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .renderer = undefined,
         .passes = try allocator.alloc(RenderPass, pass_count),
         .console = console,
+        .game_cursor = .{},
         .loaded_scene = null,
         .selected_entity = null,
         .selected_tile = null,

@@ -592,6 +592,7 @@ pub const EditorState = struct {
     }
 
     pub fn drawMouseUI(self: *EditorState) !void {
+
         if (self.mouse_state.hover_over_scene) {
             const grid_size = 16.0;
             self.mouse_state.mouse_position_v2 = math.Vec2{

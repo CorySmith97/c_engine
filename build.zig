@@ -58,7 +58,7 @@ pub fn build(b: *std.Build) void {
 
     // This is set to true for the mean time as I am primarily working on the editor.
     // @important
-    const editor_only = b.option(bool, "editor", "editor mode activated") orelse true;
+    const editor_only = b.option(bool, "editor", "editor mode activated") orelse false;
 
     if (editor_only) {
         const exe_mod = b.createModule(.{

@@ -23,10 +23,14 @@ const State = @import("state.zig");
 
 
 pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
-    if (ev.*.type == .KEY_UP or ev.*.type == .KEY_DOWN) {
+    if (ev.*.type == .KEY_DOWN) {
+        const key_pressed = ev.*.type == .KEY_DOWN;
         switch (ev.*.key_code) {
-            .A => console.open = true,
-            .B => console.open = false,
+            .A => state.console.open = key_pressed,
+            .LEFT => state.game_cursor.x -= 16,
+            .RIGHT => state.game_cursor.x += 16,
+            .UP => state.game_cursor.y += 16,
+            .DOWN => state.game_cursor.y -= 16,
             .ESCAPE => app.quit(),
             else => {},
         }
