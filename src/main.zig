@@ -60,7 +60,7 @@ var proj: math.Mat4 = undefined;
 var view: math.Mat4 = undefined;
 const zoom_factor = 0.25;
 var depth_image: sg.Image = .{};
-var ad: AudioDriver = undefined;
+//var ad: AudioDriver = undefined;
 
 pub fn gameinit() !void {
     var env = glue.environment();
@@ -152,7 +152,7 @@ export fn frame() void {
 }
 
 export fn cleanup() void {
-    ad.deinit();
+    //ad.deinit();
     gamecleanup() catch unreachable;
 }
 export fn event(ev: [*c]const app.Event) void {

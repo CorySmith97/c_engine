@@ -29,6 +29,8 @@ pub const pass_count: u32 = 4;
 // @todo State needs a camera that is seperate from the editor camera
 // that can be tracked to follow the player cursor.
 //
+// @todo Audio subsystem needs to be in here
+//
 const Self = @This();
 allocator             : std.mem.Allocator,
 renderer              : Renderer,
@@ -52,6 +54,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .console = console,
         .game_cursor = .{},
         .loaded_scene = null,
+        // @cleanup I dont think these should be in here? These are more editor specific. outside of the cell
         .selected_entity = null,
         .selected_tile = null,
         .selected_cell =   null,
@@ -60,6 +63,10 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     try self.renderer.init(allocator);
 }
 
+//
+// When a pass is reloaded, we have to clear its batch, otherwise we
+// have overdraw.
+//
 pub fn resetRenderPasses(self: *Self) !void {
     for (self.passes) |pass| {
         pass.batch.clearAndFree();
@@ -76,6 +83,9 @@ pub fn updateBuffers(self: *Self) void {
 }
 
 
+//
+// @todo move this to the renderer?
+//
 pub fn render(self: *Self, vs_params: shd.VsParams) void {
     assert(self.loaded_scene != null);
     for (self.renderer.render_passes.items) |*pass| {
@@ -89,6 +99,10 @@ pub fn render(self: *Self, vs_params: shd.VsParams) void {
     self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.UI_1)].render(vs_params);
 }
 
+
+//
+// This collision function is for mouse to world. Its used in the editor
+//
 pub fn collision(self: *Self, world_space: math.Vec4) void {
     for (0.., self.renderer.render_passes.items[0].batch.items) |i, b| {
         if (b.pos.x < world_space.x and b.pos.x + 16 > world_space.x) {

@@ -34,15 +34,15 @@ pub fn compileShaders(target: std.Build.ResolvedTarget, file_name: []const u8) v
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    //const shd_only = b.option(bool, "shdonly", "compile only the shaders");
-    //for (shaders) |shader| {
-    //    compileShaders(target, shader);
-    //}
-    //if (shd_only) |s| {
-    //    if (s) {
-    //        return;
-    //    }
-    //}
+    const shd_only = b.option(bool, "shdonly", "compile only the shaders");
+    for (shaders) |shader| {
+        compileShaders(target, shader);
+    }
+    if (shd_only) |s| {
+        if (s) {
+            return;
+        }
+    }
 
     const dep_sokol = b.dependency("sokol", .{
         .target = target,
