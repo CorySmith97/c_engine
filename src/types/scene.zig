@@ -117,6 +117,8 @@ pub fn loadTestScene(
 }
 
 pub fn reloadScene(self: *Self, allocator: std.mem.Allocator) !void {
+    self.entities.deinit(allocator);
+    self.entities = .{};
     self.tiles.deinit(allocator);
     self.tiles = .{};
 }
@@ -124,6 +126,10 @@ pub fn reloadScene(self: *Self, allocator: std.mem.Allocator) !void {
 pub fn loadScene(self: *Self, renderer: *Renderer) !void {
     for (self.tiles.items(.sprite_renderable)) |i| {
         try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
+    }
+    for (0..self.entities.len) |i| {
+        const ent = self.entities.get(i);
+        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.ENTITY_1)].appendSpriteToBatch(ent.toSpriteRenderable());
     }
 }
 

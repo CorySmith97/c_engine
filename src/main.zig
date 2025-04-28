@@ -5,6 +5,13 @@
 /// Date: 2025-04-22
 ///
 /// Description:
+///
+///     Global state. This is where all of the subsystems are managed from.
+///
+///     Core Systems:
+///     - Rendering
+///     - Audio
+///     - Input
 /// ===========================================================================
 
 

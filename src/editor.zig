@@ -33,22 +33,12 @@ const Scene = types.Scene;
 const Entity = types.Entity;
 const GroupTile = types.GroupTile;
 const Tile = types.Tile;
+const GlobalConstants = types.GlobalConstants;
 const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const AABB = types.AABB;
 const util = @import("util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
-
-const predefined_colors = [_]ig.ImVec4_t{
-    .{ .x = 1.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // red
-    .{ .x = 0.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // green
-    .{ .x = 0.0, .y = 0.0, .z = 1.0, .w = 1.0 }, // blue
-    .{ .x = 1.0, .y = 1.0, .z = 0.0, .w = 1.0 }, // yellow
-    .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 1.0 }, // white
-    .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
-    .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 }, // black
-    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 }, // brown
-};
 
 //
 // EDITOR TYPES
@@ -117,15 +107,16 @@ pub const Cursor = enum {
 // many different files.
 //
 pub const MouseState = struct {
-    cursor                  : Cursor = .inactive,
-    mouse_position_ig       : ig.ImVec2_t = .{},
-    mouse_position_v2       : math.Vec2 = .{},
-    hover_over_scene        : bool = false,
-    moving_entity           : bool = false,
-    mouse_clicked_left      : bool = false,
-    click_and_hold_timer    : u32 = 0,
-    select_box              : AABB = .{},
-    select_box_start_grabed : bool = false,
+    cursor                    : Cursor = .inactive,
+    mouse_position_ig         : ig.ImVec2_t = .{},
+    mouse_position_v2         : math.Vec2 = .{},
+    mouse_position_clamped_v2 : math.Vec2 = .{},
+    hover_over_scene          : bool = false,
+    moving_entity             : bool = false,
+    mouse_clicked_left        : bool = false,
+    click_and_hold_timer      : u32 = 0,
+    select_box                : AABB = .{},
+    select_box_start_grabed   : bool = false,
 
     //
     // Convert float mouse coords to snapped grid coords
@@ -149,16 +140,16 @@ pub const MouseState = struct {
         const eve = ev.*;
 
         if (eve.type == .MOUSE_SCROLL) {
-            if (zoom_factor - 0.05 < 0) {
-                zoom_factor = 0.0;
+            if (zoom_factor - 0.02 < 0.1) {
+                zoom_factor = 0.1;
             }
 
-            if (eve.scroll_y > 0 and zoom_factor < 5) {
-                zoom_factor += 0.05;
+            if (eve.scroll_y > 0.1 and zoom_factor < 5) {
+                zoom_factor += 0.02;
             }
 
-            if (eve.scroll_y < 0 and zoom_factor > 0) {
-                zoom_factor -= 0.05;
+            if (eve.scroll_y < 0.1 and zoom_factor > 0.1) {
+                zoom_factor -= 0.02;
             }
 
             es.proj = mat4.ortho(
@@ -199,12 +190,22 @@ pub const MouseState = struct {
         }
         if (ev.*.type == .MOUSE_MOVE and mouse_middle_down) {
             es.mouse_state.cursor = .moving_scene;
-            es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{
-                .x = zoom_factor * ev.*.mouse_dx,
-                .y = zoom_factor * -ev.*.mouse_dy,
-                .z = 0,
-            }));
+            if (builtin.os.tag == .linux) {
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{
+                    .x = zoom_factor * ev.*.mouse_dx,
+                    .y = zoom_factor * ev.*.mouse_dy,
+                    .z = 0,
+                }));
+            } else {
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{
+                    .x = zoom_factor * ev.*.mouse_dx,
+                    .y = zoom_factor * -ev.*.mouse_dy,
+                    .z = 0,
+                }));
+            }
         }
+
+
         if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
             const mouse_pressed = ev.*.type == .MOUSE_DOWN;
             switch (ev.*.mouse_button) {
@@ -219,6 +220,7 @@ pub const MouseState = struct {
                 },
                 .RIGHT => {
                     if (es.state.selected_tile_click) {
+                        es.state.selected_entity = null;
                         es.state.selected_tile_click = false;
                         es.state.selected_tile = null;
                         es.mouse_state.select_box = .{};
@@ -247,33 +249,17 @@ pub const MouseState = struct {
                 if (es.state.loaded_scene) |s| {
                     switch (es.selected_layer) {
                         .TILES_1 => {
-                            for (0..s.tiles.len) |i| {
-                                const t = s.tiles.get(i);
-
-                                const tile_aabb: AABB = .{
-                                    .min = .{
-                                        .x = t.sprite_renderable.pos.x,
-                                        .y = t.sprite_renderable.pos.y,
-                                    },
-                                    .max = .{
-                                        .x = t.sprite_renderable.pos.x + 16,
-                                        .y = t.sprite_renderable.pos.y + 16,
-                                    },
-                                };
-
-                                const normalized_select_box: AABB = .{
-                                    .min = .{
-                                        .x = @min(es.mouse_state.select_box.min.x, es.mouse_state.select_box.max.x),
-                                        .y = @min(es.mouse_state.select_box.min.y, es.mouse_state.select_box.max.y),
-                                    },
-                                    .max = .{
-                                        .x = @max(es.mouse_state.select_box.min.x, es.mouse_state.select_box.max.x),
-                                        .y = @max(es.mouse_state.select_box.min.y, es.mouse_state.select_box.max.y),
-                                    },
-                                };
-
-                                if (util.aabbColl(tile_aabb, normalized_select_box)) {
-                                    try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
+                            try self.leftMouseClickTile1(&s);
+                        },
+                        .ENTITY_1 => {
+                            for (0..s.entities.len) |i| {
+                                const ent = s.entities.get(i);
+                                if (util.aabbIG(
+                                    .{.x = mouse_world_space.x, .y = mouse_world_space.y},
+                                    .{.x = ent.pos.x, .y = ent.pos.y} ,
+                                    .{.x = GlobalConstants.grid_size, .y = GlobalConstants.grid_size},)
+                                 ) {
+                                    es.state.selected_entity = i;
                                 }
                             }
                         },
@@ -313,24 +299,7 @@ pub const MouseState = struct {
                     if (es.state.loaded_scene) |s| {
                         switch (es.selected_layer) {
                             .TILES_1 => {
-                                for (0..s.tiles.len) |i| {
-                                    const t = s.tiles.get(i);
-
-                                    const tile_aabb: AABB = .{
-                                        .min = .{
-                                            .x = t.sprite_renderable.pos.x,
-                                            .y = t.sprite_renderable.pos.y,
-                                        },
-                                        .max = .{
-                                            .x = t.sprite_renderable.pos.x + 16,
-                                            .y = t.sprite_renderable.pos.y + 16,
-                                        },
-                                    };
-
-                                    if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
-                                        try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
-                                    }
-                                }
+                                try self.boxselectTile1(&s);
                             },
                             else => {},
                         }
@@ -341,6 +310,67 @@ pub const MouseState = struct {
 
         // End switch
     }
+
+    fn leftMouseClickTile1(
+        self: *MouseState,
+        s: *const Scene,
+    ) !void {
+        _ = self;
+        for (0..s.tiles.len) |i| {
+            const t = s.tiles.get(i);
+
+            const tile_aabb: AABB = .{
+                .min = .{
+                    .x = t.sprite_renderable.pos.x,
+                    .y = t.sprite_renderable.pos.y,
+                },
+                .max = .{
+                    .x = t.sprite_renderable.pos.x + 16,
+                    .y = t.sprite_renderable.pos.y + 16,
+                },
+            };
+
+            const normalized_select_box: AABB = .{
+                .min = .{
+                    .x = @min(es.mouse_state.select_box.min.x, es.mouse_state.select_box.max.x),
+                    .y = @min(es.mouse_state.select_box.min.y, es.mouse_state.select_box.max.y),
+                },
+                .max = .{
+                    .x = @max(es.mouse_state.select_box.min.x, es.mouse_state.select_box.max.x),
+                    .y = @max(es.mouse_state.select_box.min.y, es.mouse_state.select_box.max.y),
+                },
+            };
+
+            if (util.aabbColl(tile_aabb, normalized_select_box)) {
+                try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
+            }
+        }
+    }
+
+    fn boxselectTile1(
+        self: *MouseState,
+        s: *const Scene,
+    ) !void {
+        _ = self;
+        for (0..s.tiles.len) |i| {
+            const t = s.tiles.get(i);
+
+            const tile_aabb: AABB = .{
+                .min = .{
+                    .x = t.sprite_renderable.pos.x,
+                    .y = t.sprite_renderable.pos.y,
+                },
+                .max = .{
+                    .x = t.sprite_renderable.pos.x + 16,
+                    .y = t.sprite_renderable.pos.y + 16,
+                },
+            };
+
+            if (util.aabbColl(tile_aabb, es.mouse_state.select_box)) {
+                try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
+            }
+        }
+}
 };
 
 //
@@ -594,7 +624,12 @@ pub const EditorState = struct {
     pub fn drawMouseUI(self: *EditorState) !void {
 
         if (self.mouse_state.hover_over_scene) {
+
             const grid_size = 16.0;
+            self.mouse_state.mouse_position_clamped_v2 = .{
+                .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
+                .y = @floor((mouse_world_space.y) / grid_size) * grid_size,
+            };
             self.mouse_state.mouse_position_v2 = math.Vec2{
                 .x = mouse_world_space.x,
                 .y = mouse_world_space.y,
@@ -633,6 +668,8 @@ pub const EditorState = struct {
 // These are varaibles that only live within this file.
 // These are primarily for testing and for having a global
 // editor state.
+//
+// @refactor many of these things can move to the editor state
 //
 var es                 : EditorState = undefined;
 var mouse_middle_down  : bool = false;
@@ -725,7 +762,7 @@ pub fn editorFrame() !void {
         // incredibly jank
         //
         es.mouse_state.click_and_hold_timer += 1;
-        if (es.mouse_state.click_and_hold_timer >= 10) {
+        if (es.mouse_state.click_and_hold_timer >= 10 and es.mouse_state.hover_over_scene) {
             es.mouse_state.cursor = .box_select;
             if (!es.mouse_state.select_box_start_grabed) {
                 es.mouse_state.select_box.min = es.mouse_state.mouse_position_v2;
@@ -863,16 +900,16 @@ pub fn editorEvent(ev: [*c]const app.Event) !void {
         const key_pressed = ev.*.type == .KEY_DOWN;
         switch (ev.*.key_code) {
             .LEFT => {
-                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * -10, .y = zoom_factor * 0, .z = 0 }));
-            },
-            .RIGHT => {
                 es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 10, .y = zoom_factor * 0, .z = 0 }));
             },
+            .RIGHT => {
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * -10, .y = zoom_factor * 0, .z = 0 }));
+            },
             .UP => {
-                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * 10, .z = 0 }));
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * -10, .z = 0 }));
             },
             .DOWN => {
-                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * -10, .z = 0 }));
+                es.view = math.Mat4.mul(es.view, math.Mat4.translate(.{ .x = zoom_factor * 0, .y = zoom_factor * 10, .z = 0 }));
             },
             .W => input.forward = key_pressed,
             .S => input.backwards = key_pressed,
@@ -1011,15 +1048,14 @@ fn left_window() !void {
         @intCast(es.frame_count.items.len),
         0,
         " ",
-        0.0,
-        0.033,
+        0.006,
+        0.012,
         .{ .x = 200, .y = 80 },
         4,
     );
     }
     if (ig.igCollapsingHeader("Mouse Data", ig.ImGuiTreeNodeFlags_DefaultOpen)) {
         ig.igBeginGroup();
-        ig.igTextColored(predefined_colors[1], "Stats");
         ig.igText(
             "Mouse Cursor State:",
         );

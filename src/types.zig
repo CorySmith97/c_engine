@@ -15,7 +15,9 @@ pub const RendererTypes = @import("types/renderer.zig");
 const math = @import("util/math.zig");
 pub const Editor = @import("types/editor.zig");
 
-
+pub const GlobalConstants = struct {
+    pub var grid_size: f32 = 16.0;
+};
 
 
 pub const AABB = struct {

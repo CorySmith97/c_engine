@@ -91,15 +91,15 @@ pub fn drawEntityEditor(
         ig.igText(selected.ptr);
 
         if (ig.igInputFloatEx("Sprite ID:", &entity.sprite_id, 1.0, 5.0, " ", ig.ImGuiInputTextFlags_None)) {
-            editor_state.state.loaded_scene.?.entities.set(s, entity);
-            try editor_state.updateSpriteRenderable(&entity.toSpriteRenderable(), s);
         }
+
+        try colorPickerEntity(&entity, editor_state);
         if (ig.igButton("Move Default Location")) {
             editor_state.mouse_state.cursor = .moving_entity;
         }
         switch (editor_state.mouse_state.cursor) {
             .moving_entity => {
-                entity.pos = editor_state.mouse_state.mouse_position_v2;
+                entity.pos = editor_state.mouse_state.mouse_position_clamped_v2;
                 editor_state.state.loaded_scene.?.entities.set(s, entity);
 
                 if (editor_state.mouse_state.mouse_clicked_left) {
@@ -109,6 +109,8 @@ pub fn drawEntityEditor(
             },
             else => {},
         }
+        editor_state.state.loaded_scene.?.entities.set(s, entity);
+        try editor_state.updateSpriteRenderable(&entity.toSpriteRenderable(), s);
     }
 }
 
@@ -151,13 +153,18 @@ pub fn drawTileEditor(
             defer editor_state.allocator.free(selected);
             ig.igText(selected.ptr);
 
-            try colorPicker(&model_tile, editor_state);
+            try colorPickerTile(&model_tile, editor_state);
 
             _ = ig.igInputFloatEx("Sprite ID:", &model_tile.sprite_renderable.sprite_id, 1.0, 5.0, "%.0f", ig.ImGuiInputTextFlags_None);
 
             _ = ig.igCheckbox("Spawner", &model_tile.spawner);
             _ = ig.igCheckbox("Traversable", &model_tile.traversable);
 
+
+            //
+            // @todo this needs to be not written until the user asks, or there
+            // needs to be an undo button.
+            //
             for (editor_state.al_tile_group_selected.items) |*gt| {
 
                 //
@@ -198,7 +205,7 @@ pub fn drawTileEditor(
             defer editor_state.allocator.free(selected);
             ig.igText(selected.ptr);
 
-            try colorPicker(&tile, editor_state);
+            try colorPickerTile(&tile, editor_state);
 
             _ = ig.igInputFloatEx("Sprite ID:", &tile.sprite_renderable.sprite_id, 1.0, 5.0, "%.0f", ig.ImGuiInputTextFlags_None);
 
@@ -213,7 +220,40 @@ pub fn drawTileEditor(
 }
 
 
-fn colorPicker(
+
+fn colorPickerEntity(
+    entity: *Entity,
+    editor_state: *EditorState,
+) !void {
+    var color_array = entity.color.toArray();
+
+    _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
+    _ = ig.igText("Preset Colors:");
+
+    ig.igNewLine();
+
+    for (predefined_colors, 0..) |preset, i| {
+        ig.igSameLine();
+
+        const str = try std.fmt.allocPrintZ(editor_state.allocator, "##c{}", .{i});
+        defer editor_state.allocator.free(str);
+
+        if (ig.igColorButton(
+            str.ptr,
+            preset,
+            ig.ImGuiColorEditFlags_None,
+        )) {
+            color_array = [4]f32{ preset.x, preset.y, preset.z, preset.w };
+        }
+
+        if (@mod(i + 1, 5) == 0) {
+            ig.igNewLine();
+        }
+    }
+    entity.*.color = math.Vec4.fromArray(color_array);
+}
+
+fn colorPickerTile(
     tile: *Tile,
     editor_state: *EditorState,
 ) !void {

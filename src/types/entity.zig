@@ -67,6 +67,7 @@ z_index        : f32 = 0,
 entity_type    : EntityTag = .default,
 pos            : math.Vec2 = .{},
 size           : math.Vec2 = .{},
+color          : math.Vec4 = .{.w = 1},
 sprite_id      : f32 = 0,
 aabb           : AABB = default_aabb,
 lua_script     : []const u8 = "",
@@ -119,7 +120,7 @@ pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
             .z = self.z_index,
         },
         .sprite_id = self.sprite_id,
-        .color = .{ .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 },
+        .color = self.color,
     };
 }
 

@@ -15,9 +15,11 @@ in 2d, but I want to bump that to 3d for a mixed experience.
 - StoryDB: storydb-zig
 - Serde: serde-zig
 - Imgui: cimgui
+- Editor: editor.zig 
 
 
 # IMPORTANT
 
 dont run zig fmt. I have some custom formatting things that I much prefer
 over the defaults zig formatting.
+
