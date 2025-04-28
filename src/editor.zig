@@ -171,16 +171,18 @@ pub const MouseState = struct {
             const texture_x = mouse_rel_x / 700.0;
             const texture_y = mouse_rel_y / 440.0;
 
-            const ndc_x = texture_x * 2.0 - 1.0;
 
             //
             // Adjust for texture coordinates for different
             // graphics apis
             //
+            var ndc_x: f32 = 0;
             var ndc_y: f32 = 0;
             if (builtin.os.tag == .linux) {
+                ndc_x = 1.0 - texture_x * 2.0;
                 ndc_y = texture_y * 2.0 - 1.0;
             } else {
+                ndc_x = texture_x * 2.0 - 1.0;
                 ndc_y = 1.0 - texture_y * 2.0;
             }
 
