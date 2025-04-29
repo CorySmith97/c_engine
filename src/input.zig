@@ -20,6 +20,8 @@ const util = @import("util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
 const State = @import("state.zig");
+const log = std.log.scoped(.input);
+const RenderPassIds = @import("types.zig").RendererTypes.RenderPassIds;
 
 
 pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
@@ -29,11 +31,15 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
         .z = 0,
     });
 
-    const step      = 16;  // how much your cursor moves per press
+    //
+    // how much your cursor moves per press
+    //
+    const step      = 16;
     const w2        = app.widthf()  / 2 * state.camera.zoom;
     const h2        = app.heightf() / 2 * state.camera.zoom;
-    const marginX   = w2 * 2 * state.camera.zoom;    // same 0.25 factor you had
+    const marginX   = w2 * 2 * state.camera.zoom;
     const marginY   = h2 * 2 * state.camera.zoom;
+
     if (ev.*.type == .KEY_DOWN) {
         const key_pressed = ev.*.type == .KEY_DOWN;
         switch (ev.*.key_code) {
@@ -71,9 +77,22 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                 if (state.loaded_scene) |s| {
                     for (0.., s.entities.items(.pos))|i, pos| {
                         if (pos.x == state.game_cursor.x and pos.y == state.game_cursor.y) {
+                            log.info("Grabbing entity", .{});
                             state.selected_entity = i;
                         }
                     }
+                }
+            },
+            .B => {
+              if (state.loaded_scene) |*s| {
+                  if (state.selected_entity) |e| {
+                      log.info("PLacing entity", .{});
+                      var ent = s.entities.get(e);
+                      ent.pos = state.game_cursor;
+
+                      s.entities.set(e, ent);
+                      try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].updateSpriteRenderables(e, ent.toSpriteRenderable());
+                  }
                 }
             },
             .ESCAPE => app.quit(),
