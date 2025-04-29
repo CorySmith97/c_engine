@@ -20,6 +20,10 @@ const Scene = @import("../types.zig").Scene;
 
 var console_buf: [8192]u8 = undefined;
 
+//
+// @todo this needs to have access to the file in order to write
+// out any data that may result from the tool
+//
 const cli_fn = *const fn (*State, [][]const u8) anyerror!void;
 
 pub fn cliLevel(
@@ -40,7 +44,9 @@ pub fn cliLevel(
 }
 
 // @todo cli tools?
-pub const cli_tools = std.StaticStringMap(cli_fn).initComptime((.{}));
+pub const cli_tools = std.StaticStringMap(cli_fn).initComptime((.{
+    .{"level", cliLevel},
+}));
 
 const Console = @This();
 history_buf: std.ArrayList([]const u8),

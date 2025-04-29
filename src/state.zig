@@ -12,14 +12,17 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
+
 const Console = @import("editor/console.zig");
-const Renderer = @import("render_system.zig");
+const RenderSystem = @import("render_system.zig");
+const AudioSystem = @import("audio_system.zig");
 const RenderPass = @import("render_system.zig").RenderPass;
 const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
 const RenderTypes = types.RendererTypes;
+const SpriteRenderable = RenderTypes.SpriteRenderable;
 const math = @import("util/math.zig");
 const Camera = types.Camera;
 
@@ -27,14 +30,11 @@ pub const pass_count: u32 = 4;
 
 
 //
-// @todo State needs a camera that is seperate from the editor camera
-// that can be tracked to follow the player cursor.
-//
 // @todo Audio subsystem needs to be in here
 //
 const Self = @This();
 allocator             : std.mem.Allocator,
-renderer              : Renderer,
+renderer              : RenderSystem,
 passes                : []RenderPass,
 console               : Console,
 loaded_scene          : ?Scene,
@@ -45,6 +45,7 @@ selected_tile_click   : bool = false,
 selected_entity       : ?usize,
 selected_entity_click : bool = false,
 view                  : math.Mat4,
+//proj                  : math.Mat4,
 camera                : Camera = .{},
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
@@ -117,5 +118,19 @@ pub fn collision(self: *Self, world_space: math.Vec4) void {
                 self.selected_tile = i;
             }
         }
+    }
+}
+
+
+//
+// @copypasta Editor state has this duplicated
+//
+pub fn updateSpriteRenderable(
+    self: *Self,
+    sprite_ren: *const SpriteRenderable,
+    s: usize,
+) !void {
+    if (self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.ENTITY_1)].batch.items.len > s) {
+        try self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.ENTITY_1)].updateSpriteRenderables(s, sprite_ren.*);
     }
 }

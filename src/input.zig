@@ -75,8 +75,8 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
             },
             .A => {
                 if (state.loaded_scene) |s| {
-                    for (0.., s.entities.items(.pos))|i, pos| {
-                        if (pos.x == state.game_cursor.x and pos.y == state.game_cursor.y) {
+                    for (0.., s.entities.items(.sprite))|i, sprite| {
+                        if (sprite.pos.x == state.game_cursor.x and sprite.pos.y == state.game_cursor.y) {
                             log.info("Grabbing entity", .{});
                             state.selected_entity = i;
                         }
@@ -88,10 +88,9 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                   if (state.selected_entity) |e| {
                       log.info("PLacing entity", .{});
                       var ent = s.entities.get(e);
-                      ent.pos = state.game_cursor;
+                      ent.sprite.pos = .{.x = state.game_cursor.x, .y = state.game_cursor.y } ;
 
                       s.entities.set(e, ent);
-                      try state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].updateSpriteRenderables(e, ent.toSpriteRenderable());
                   }
                 }
             },

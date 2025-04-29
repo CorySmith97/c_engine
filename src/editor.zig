@@ -20,6 +20,9 @@ const sg = sokol.gfx;
 const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
+const sdtx = sokol.debugtext;
+
+const RenderSystem = @import("render_system.zig");
 
 const Console = @import("editor/console.zig");
 const TypeEditors = @import("editor/entity_editor.zig");
@@ -220,7 +223,7 @@ pub const MouseState = struct {
                                 const ent = s.entities.get(i);
                                 if (util.aabbIG(
                                     .{.x = mouse_world_space.x, .y = mouse_world_space.y},
-                                    .{.x = ent.pos.x, .y = ent.pos.y} ,
+                                    .{.x = ent.sprite.pos.x, .y = ent.sprite.pos.y} ,
                                     .{.x = GlobalConstants.grid_size, .y = GlobalConstants.grid_size},)
                                  ) {
                                     es.state.selected_entity = i;
@@ -734,9 +737,13 @@ pub fn editorFrame() !void {
     // @cleanup I hate the way this is currently working. Scene should hold this logic
     //
     if (es.state.loaded_scene) |s| {
-        for (0.., s.entities.items(.sprite_id), s.entities.items(.animation), s.entities.items(.pos), s.entities.items(.color)) |i, *id, *animation, p,c| {
-            id.* = Entity.updateAnimation(animation);
-            try es.updateSpriteRenderable(&.{.pos = .{.x = p.x, .y = p.y, .z = 0}, .color = c, .sprite_id = id.*}, i);
+        for (0.., s.entities.items(.sprite)) |i, *sprite|{
+            try es.updateSpriteRenderable(sprite, i);
+        }
+    }
+    if (es.state.loaded_scene) |s| {
+        for ( s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
+            sprite.sprite_id = Entity.updateAnimation(animation);
         }
     }
     es.selected_layer = store;
@@ -854,9 +861,20 @@ pub fn editorFrame() !void {
     if (!es.state.selected_tile_click) {
         es.state.collision(mouse_world_space);
     }
-    sg.endPass();
 
-    //Quad.drawQuad2dSpace(.{ .x = 10, .y = 10 }, .{ .x = 1, .y = 0, .z = 0 }, .{ .mvp = vs_params.mvp });
+    //
+    // This is a temporary Text system for the game. Its ascii only. Which
+    // limits language to english primarily.
+    //
+    sdtx.canvas(app.widthf() * 0.5, app.heightf() * 0.5);
+    sdtx.origin(0.0, 10.0);
+    sdtx.home();
+
+    sdtx.puts("Test string");
+    //RenderSystem.printFont(0, "Hello", 255, 255, 255);
+
+    sdtx.draw();
+    sg.endPass();
 
     //
     // Render IMGUI windows
@@ -1090,7 +1108,7 @@ fn left_window() !void {
         ig.igText(@tagName(es.selected_layer));
         ig.igNewLine();
         for (std.meta.tags(RenderPassIds)) |id| {
-            ig.igPushIDInt(@intFromEnum(id));
+            ig.igPushIDInt(@intCast(@intFromEnum(id)));
             if (ig.igButton(@tagName(id).ptr)) {
                 es.selected_layer = id;
             }

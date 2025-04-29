@@ -129,7 +129,7 @@ pub fn loadScene(self: *Self, renderer: *Renderer) !void {
     }
     for (0..self.entities.len) |i| {
         const ent = self.entities.get(i);
-        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.ENTITY_1)].appendSpriteToBatch(ent.toSpriteRenderable());
+        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.ENTITY_1)].appendSpriteToBatch(ent.sprite);
     }
 }
 

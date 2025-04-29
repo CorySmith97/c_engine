@@ -18,5 +18,5 @@ const vec2 = math.Vec2;
 
 pub const Camera = struct {
     pos  : vec2 = .{},
-    zoom : f32 = 0.26,
+    zoom : f32 = 1.0,
 };

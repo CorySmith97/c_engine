@@ -15,6 +15,7 @@
 
 
 const std = @import("std");
+const log = std.log.scoped(.entity);
 const Renderer = @import("render_system.zig");
 const SpriteRenderable = Renderer.SpriteRenderable;
 const RenderPassIds = Renderer.RenderPassIds;
@@ -61,16 +62,20 @@ const Flags = packed struct {
 
 
 
+//
+// @todo I want to just add sprite renderable instead of the pieces.
+// SpriteRenderable is already 4 byte aligned and all the data is always needed
+// together. position can be stored twice.
+//
+// @todo we should update these sprite renderables every frame regardless
+//
 // @incorrect_rendering We have to manually change serde formatting as we go.
 const Self                     = @This();
 id             : u32           = 10,
 spritesheet_id : RenderPassIds = .ENTITY_1,
 z_index        : f32           = 0,
 entity_type    : EntityTag     = .default,
-pos            : math.Vec2     = .{},
-size           : math.Vec2     = .{},
-color          : math.Vec4     = .{.w = 1},
-sprite_id      : f32           = 0,
+sprite         : SpriteRenderable = .{},
 aabb           : AABB          = default_aabb,
 lua_script     : []const u8    = "",
 flags          : Flags         = .{},
@@ -124,7 +129,6 @@ pub fn render(
 pub fn updateAnimation(
     animation: *Animation,
 ) f32 {
-    std.log.info("Frame Coutn: {}", .{animation.frame_count});
     animation.*.frame_count += 1;
 
     if (animation.*.frame_count >= animation.speed) {
@@ -134,18 +138,6 @@ pub fn updateAnimation(
 
     return animation.indicies[@intCast(animation.cur_frame)];
 
-}
-
-pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
-    return .{
-        .pos = .{
-            .x = self.pos.x,
-            .y = self.pos.y,
-            .z = self.z_index,
-        },
-        .sprite_id = self.sprite_id,
-        .color = self.color,
-    };
 }
 
 

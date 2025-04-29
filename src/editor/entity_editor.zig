@@ -44,7 +44,7 @@ const predefined_colors = [_]ig.ImVec4_t{
     .{ .x = 1.0, .y = 1.0, .z = 0.5, .w = 1.0 },         // Light Yellow (31, 31, 15)
     .{ .x = 1.0, .y = 0.5, .z = 1.0, .w = 1.0 },         // Light Magenta (31, 15, 31)
     .{ .x = 0.5, .y = 1.0, .z = 1.0, .w = 1.0 },         // Light Cyan (15, 31, 31)
-    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 },   // Brown (matches your earlier brown!)
+    .{ .x = 0.824, .y = 0.706, .z = 0.549, .w = 1.0 },   // Brown ()
 };
 
 pub fn drawEntityEditor(
@@ -55,7 +55,7 @@ pub fn drawEntityEditor(
             const new_entity = Entity.EntityList.get("sage").?;
             try scene.entities.append(editor_state.allocator, new_entity);
             editor_state.state.selected_entity = scene.entities.len - 1;
-            try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.toSpriteRenderable());
+            try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.sprite);
         }
     }
     if (editor_state.state.selected_entity) |s| {
@@ -65,7 +65,6 @@ pub fn drawEntityEditor(
             \\ENTID: {d}
             \\Sprite id: {d}
             \\Pos: {d:.1}, {d:.1}
-            \\Size: {d:.1}, {d:.1}
             \\Spritesheet id: {s}
             \\AABB:
             \\   min: {d:.1} {d:.1}
@@ -75,11 +74,9 @@ pub fn drawEntityEditor(
         ,
             .{
                 s,
-                entity.sprite_id,
-                entity.pos.x,
-                entity.pos.y,
-                entity.size.x,
-                entity.size.y,
+                entity.sprite.sprite_id,
+                entity.sprite.pos.x,
+                entity.sprite.pos.y,
                 @tagName(entity.spritesheet_id),
                 entity.aabb.min.x,
                 entity.aabb.min.y,
@@ -92,7 +89,7 @@ pub fn drawEntityEditor(
         defer editor_state.allocator.free(selected);
         ig.igText(selected.ptr);
 
-        if (ig.igInputFloatEx("Sprite ID:", &entity.sprite_id, 1.0, 5.0, " ", ig.ImGuiInputTextFlags_None)) {
+        if (ig.igInputFloatEx("Sprite ID:", &entity.sprite.sprite_id, 1.0, 5.0, " ", ig.ImGuiInputTextFlags_None)) {
         }
 
         try colorPickerEntity(&entity, editor_state);
@@ -101,18 +98,20 @@ pub fn drawEntityEditor(
         }
         switch (editor_state.mouse_state.cursor) {
             .moving_entity => {
-                entity.pos = editor_state.mouse_state.mouse_position_clamped_v2;
+                entity.sprite.pos = .{.x = editor_state.mouse_state.mouse_position_clamped_v2.x,
+                                      .y = editor_state.mouse_state.mouse_position_clamped_v2.y,
+                                      };
                 editor_state.state.loaded_scene.?.entities.set(s, entity);
 
                 if (editor_state.mouse_state.mouse_clicked_left) {
-                    try editor_state.updateSpriteRenderable(&entity.toSpriteRenderable(), s);
+                    try editor_state.updateSpriteRenderable(&entity.sprite, s);
                     editor_state.mouse_state.cursor = .inactive;
                 }
             },
             else => {},
         }
         editor_state.state.loaded_scene.?.entities.set(s, entity);
-        try editor_state.updateSpriteRenderable(&entity.toSpriteRenderable(), s);
+        try editor_state.updateSpriteRenderable(&entity.sprite, s);
     }
 }
 
@@ -227,7 +226,7 @@ fn colorPickerEntity(
     entity: *Entity,
     editor_state: *EditorState,
 ) !void {
-    var color_array = entity.color.toArray();
+    var color_array = entity.sprite.color.toArray();
 
     _ = ig.igColorPicker4("Color", &color_array, ig.ImGuiColorEditFlags_None, null);
     _ = ig.igText("Preset Colors:");
@@ -252,7 +251,7 @@ fn colorPickerEntity(
             ig.igNewLine();
         }
     }
-    entity.*.color = math.Vec4.fromArray(color_array);
+    entity.*.sprite.color = math.Vec4.fromArray(color_array);
 }
 
 fn colorPickerTile(

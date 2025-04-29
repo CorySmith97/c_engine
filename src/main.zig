@@ -16,6 +16,7 @@
 
 
 const std = @import("std");
+
 const ig = @import("cimgui");
 const sokol = @import("sokol");
 const app = sokol.app;
@@ -23,20 +24,25 @@ const sg = sokol.gfx;
 const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
+const sdtx = sokol.debugtext;
+
 const shd = @import("shaders/basic.glsl.zig");
 const util = @import("util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
+
 const RenderPass = @import("render_system.zig").RenderPass;
+
 const types = @import("types.zig");
 const Scene = types.Scene;
 const Entity = types.Entity;
+const RenderPassIds = types.RendererTypes.RenderPassIds;
+
 const State = @import("state.zig");
 const Serde = @import("util/serde.zig");
 const AudioDriver = @import("audio_system.zig");
 const Console = @import("editor/console.zig");
 const Input = @import("input.zig");
-const RenderPassIds = types.RendererTypes.RenderPassIds;
 
 pub const std_options: std.Options = .{
     .log_level = .info,
@@ -85,7 +91,7 @@ pub fn gameinit() !void {
 
     try global_state.init(std.heap.page_allocator);
     var scene: Scene = .{};
-    try Serde.loadSceneFromJson(&scene, "t1.json", global_state.allocator);
+    try Serde.loadSceneFromJson(&scene, "t4.json", global_state.allocator);
     global_state.loaded_scene = scene;
     try global_state.loaded_scene.?.loadScene(&global_state.renderer);
     std.log.info("{}", .{global_state.loaded_scene.?.tiles.len});
@@ -94,16 +100,26 @@ pub fn gameinit() !void {
         .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
     };
     proj = mat4.ortho(
-        -app.widthf() / 2 * zoom_factor,
-        app.widthf() / 2 * zoom_factor,
-        -app.heightf() / 2 * zoom_factor,
-        app.heightf() / 2 * zoom_factor,
+        -app.widthf() / 2 * global_state.camera.zoom,
+        app.widthf() / 2 * global_state.camera.zoom,
+        -app.heightf() / 2 * global_state.camera.zoom,
+        app.heightf() / 2 * global_state.camera.zoom,
         -1,
         1,
     );
 }
 
 pub fn gameframe() !void {
+    if (global_state.loaded_scene) |s| {
+        for (0.., s.entities.items(.sprite)) |i, *sprite|{
+            try global_state.updateSpriteRenderable(sprite, i);
+        }
+    }
+    if (global_state.loaded_scene) |s| {
+        for ( s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
+            sprite.sprite_id = Entity.updateAnimation(animation);
+        }
+    }
     imgui.newFrame(.{
         .width = app.width(),
         .height = app.height(),
@@ -167,6 +183,26 @@ pub fn gameframe() !void {
     global_state.updateBuffers();
     sg.beginPass(.{ .action = passaction, .swapchain = swapchain });
     global_state.render(util.computeVsParams(proj, global_state.view));
+
+
+    sdtx.canvas(app.widthf(), app.heightf());
+    if (global_state.loaded_scene) |s| {
+        if (global_state.selected_entity) |sprite| {
+            const ent = s.entities.get(sprite);
+            sdtx.origin(ent.sprite.pos.x / 16, ent.sprite.pos.y / 16);
+            sdtx.home();
+
+            const ent_info = try std.fmt.allocPrintZ(
+                global_state.allocator,
+                "HP: {}", .{ent.stats.health});
+
+            defer global_state.allocator.free(ent_info);
+            sdtx.puts(ent_info);
+            //RenderSystem.printFont(0, "Hello", 255, 255, 255);
+
+        }
+    }
+    sdtx.draw();
     imgui.render();
     sg.endPass();
     sg.commit();

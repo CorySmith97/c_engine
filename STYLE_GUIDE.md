@@ -40,8 +40,7 @@ Comments should generally follow the following format:
 ```{zig}
 //
 // ACTUAL COMMENT CODE
-/
-/
+//
 ```
 
 I prefer it to be this way as it makes life so much easier. Adding a lot of space to 
@@ -87,5 +86,7 @@ Current tags are:
 // @cleanup This chunk could be more concise
 
 // @incorrect_rendering This one is temporary for explaining why rendering may be not working.
+
+// @memory High memory usage
 
 ```
