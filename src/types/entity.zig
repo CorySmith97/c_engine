@@ -15,7 +15,7 @@
 
 
 const std = @import("std");
-const Renderer = @import("renderer.zig");
+const Renderer = @import("render_system.zig");
 const SpriteRenderable = Renderer.SpriteRenderable;
 const RenderPassIds = Renderer.RenderPassIds;
 const util = @import("../util.zig");

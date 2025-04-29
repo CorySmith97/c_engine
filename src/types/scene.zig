@@ -15,8 +15,8 @@ const testing = std.testing;
 
 const State = @import("../state.zig");
 const Entity = @import("entity.zig");
-const Renderer = @import("../renderer.zig");
-const RendererTypes = @import("renderer.zig");
+const Renderer = @import("../render_system.zig");
+const RendererTypes = @import("render_system.zig");
 const Tile = @import("tile.zig");
 const log = std.log.scoped(.scene);
 

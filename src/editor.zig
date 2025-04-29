@@ -23,8 +23,7 @@ const imgui = sokol.imgui;
 
 const Console = @import("editor/console.zig");
 const TypeEditors = @import("editor/entity_editor.zig");
-const Quad = @import("renderer/RenderQuad.zig");
-const Lua = @import("scripting/lua.zig");
+const Quad = @import("render_system/Quad.zig");
 const Serde = @import("serde.zig");
 const State = @import("state.zig");
 const types = @import("types.zig");

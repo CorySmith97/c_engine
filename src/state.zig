@@ -13,8 +13,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 
 const Console = @import("editor/console.zig");
-const Renderer = @import("renderer.zig");
-const RenderPass = @import("renderer.zig").RenderPass;
+const Renderer = @import("render_system.zig");
+const RenderPass = @import("render_system.zig").RenderPass;
 const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");
 const Scene = types.Scene;

@@ -19,7 +19,7 @@ const Entity = types.Entity;
 const Tile = types.Tile;
 const std = @import("std");
 const assert = std.debug.assert;
-const Renderer = @import("renderer.zig");
+const Renderer = @import("render_system.zig");
 const log = std.log.scoped(.serde);
 
 fn multiArrayListToArray(

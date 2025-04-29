@@ -22,4 +22,11 @@ in 2d, but I want to bump that to 3d for a mixed experience.
 dont run zig fmt. I have some custom formatting things that I much prefer
 over the defaults zig formatting.
 
+## Editor Settings (config_editor.json)
 
+``` json
+{
+    "mode": This is the default serialization mode. Generally should be JSON,
+    "starting_level": Name of level you want to default load when you run the program
+}
+```

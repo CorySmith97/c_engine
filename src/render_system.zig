@@ -18,8 +18,8 @@ const sg = sokol.gfx;
 const types = @import("types.zig");
 const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
-pub const RenderPass = @import("renderer/RenderPass.zig");
-const RenderConfigs = @import("renderer/RenderConfigs.zig");
+pub const RenderPass = @import("render_system/Pass.zig");
+const RenderConfigs = @import("render_system/Configs.zig");
 const log = std.log.scoped(.renderer);
 
 // @todo add capability to filter on what passes are enabled
