@@ -24,7 +24,7 @@ const imgui = sokol.imgui;
 const Console = @import("editor/console.zig");
 const TypeEditors = @import("editor/entity_editor.zig");
 const Quad = @import("render_system/Quad.zig");
-const Serde = @import("serde.zig");
+const Serde = @import("util/serde.zig");
 const State = @import("state.zig");
 const types = @import("types.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
@@ -51,48 +51,11 @@ pub const Input = struct {
     backwards : bool = false,
 };
 
-pub const WindowDropdowns = struct {
-    frame_data: bool = false,
-    mouse_data: bool = false,
-    layer_data: bool = false,
-};
-
-pub const Rect = struct {
-    x      : f32,
-    y      : f32,
-    width  : f32,
-    height : f32,
-
-    pub fn rectFromAABB(aabb: AABB) Rect {
-        return .{
-            .x = aabb.min.x,
-            .y = aabb.min.y,
-            .width = aabb.max.x - aabb.min.x,
-            .height = aabb.max.y - aabb.min.y,
-        };
-    }
-
-    //
-    // Assumption that point 2 is further.
-    // IE start drag from left to right
-    //
-    pub fn rectFromPoints(
-        p1: math.Vec2,
-        p2: math.Vec2,
-    ) Rect {
-        return .{
-            .x = p1.x,
-            .y = p1.y,
-            .width = p2.x - p1.x,
-            .height = p2.y - p1.y,
-        };
-    }
-};
 
 //
 // All the possible states that the cursor can be.
 //
-pub const Cursor = enum {
+pub const CursorTag = enum {
     inactive,
     editing_tile,
     moving_entity,
@@ -106,7 +69,7 @@ pub const Cursor = enum {
 // many different files.
 //
 pub const MouseState = struct {
-    cursor                    : Cursor = .inactive,
+    cursor                    : CursorTag = .inactive,
     mouse_position_ig         : ig.ImVec2_t = .{},
     mouse_position_v2         : math.Vec2 = .{},
     mouse_position_clamped_v2 : math.Vec2 = .{},
@@ -400,7 +363,7 @@ const SPRITE_CENTER = 11;
 //
 pub const EditorConfig = struct {
     mode: SerdeMode = .JSON,
-    starting_level: []const u8 = "t1.json",
+    starting_level: []const u8 = "",
 
     pub fn loadConfig(
         self: *EditorConfig,
@@ -453,7 +416,6 @@ pub const EditorState = struct {
     al_tile_group_selected   : std.ArrayList(GroupTile) = undefined,
     al_lasso_tool_buffer     : std.ArrayList(SpriteRenderable) = undefined,
 
-    window_dropdowns         : WindowDropdowns = .{},
 
     pub fn init(
         self: *EditorState,
@@ -517,13 +479,17 @@ pub const EditorState = struct {
         //
         // Load the scene from disk Switch Depending on the mode we are in.
         //
-        switch (self.editor_config.mode) {
-            .BINARY => try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator),
-            .JSON => try Serde.loadSceneFromJson(&scene, self.editor_config.starting_level, std.heap.page_allocator),
-        }
+        if (!std.mem.eql(u8, self.editor_config.starting_level, "")) {
+            switch (self.editor_config.mode) {
+                .BINARY => try Serde.loadSceneFromBinary(&scene, "t2.txt", std.heap.page_allocator),
+                .JSON => try Serde.loadSceneFromJson(&scene, self.editor_config.starting_level, std.heap.page_allocator),
+            }
 
-        self.state.loaded_scene = scene;
-        try self.state.loaded_scene.?.loadScene(&self.state.renderer);
+            self.state.loaded_scene = scene;
+            try self.state.loaded_scene.?.loadScene(&self.state.renderer);
+        } else {
+            self.state.loaded_scene = null;
+        }
     }
 
     pub fn drawLassoFromAABB(
@@ -757,6 +723,23 @@ pub fn editorInit() !void {
 // wrapped for error handling
 //
 pub fn editorFrame() !void {
+
+    //
+    // Update Logic
+    //
+
+    const store = es.selected_layer;
+    es.selected_layer = .ENTITY_1;
+    //
+    // @cleanup I hate the way this is currently working. Scene should hold this logic
+    //
+    if (es.state.loaded_scene) |s| {
+        for (0.., s.entities.items(.sprite_id), s.entities.items(.animation), s.entities.items(.pos), s.entities.items(.color)) |i, *id, *animation, p,c| {
+            id.* = Entity.updateAnimation(animation);
+            try es.updateSpriteRenderable(&.{.pos = .{.x = p.x, .y = p.y, .z = 0}, .color = c, .sprite_id = id.*}, i);
+        }
+    }
+    es.selected_layer = store;
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();
     if (es.mouse_state.mouse_clicked_left) {
@@ -776,7 +759,13 @@ pub fn editorFrame() !void {
         }
     }
 
+    //
+    // Render System
+    //
+
+    //
     // Imgui Frame setup
+    //
     imgui.newFrame(.{
         .width = app.width(),
         .height = app.height(),
@@ -1004,7 +993,9 @@ fn main_menu() !void {
             _ = ig.igInputFloat("Width", &new_temp_scene.width);
             _ = ig.igInputFloat("Height", &new_temp_scene.height);
             if (ig.igButton("New Scene")) {
-                es.state.loaded_scene.?.deloadScene(es.allocator, &es.state);
+                if (es.state.loaded_scene) |*s| {
+                    s.deloadScene(es.allocator, &es.state);
+                }
                 try new_temp_scene.tiles.setCapacity(es.allocator, @as(usize, @intFromFloat(new_temp_scene.width * new_temp_scene.height)));
                 for (0..new_temp_scene.tiles.capacity) |i| {
                     const f: f32 = @floatFromInt(i);

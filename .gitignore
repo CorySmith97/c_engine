@@ -1,7 +1,6 @@
 zig-out/
 .vscode/
 .zig-cache/
-sokol-shdc
 .DS_Store
 libs/lua/doc/
 libs/lua/src/

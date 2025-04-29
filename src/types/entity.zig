@@ -34,6 +34,7 @@ const default_aabb: AABB = .{
 };
 
 const Stats = struct {
+    level      : u16 = 1,
     health     : u16 = 10,
     strength   : u16 = 10,
     magic      : u16 = 10,
@@ -47,9 +48,10 @@ const Stats = struct {
 };
 
 const Animation = struct {
-    indicies  : []u32 = &.{},
-    cur_frame : u32 = 0,
-    speed     : u32 = 0,
+    frame_count : u32 = 0,
+    indicies    : []f32 = &.{},
+    cur_frame   : u32 = 0,
+    speed       : u32 = 0,
 };
 
 const Flags = packed struct {
@@ -60,29 +62,36 @@ const Flags = packed struct {
 
 
 // @incorrect_rendering We have to manually change serde formatting as we go.
-const Self = @This();
-id             : u32 = 10,
+const Self                     = @This();
+id             : u32           = 10,
 spritesheet_id : RenderPassIds = .ENTITY_1,
-z_index        : f32 = 0,
-entity_type    : EntityTag = .default,
-pos            : math.Vec2 = .{},
-size           : math.Vec2 = .{},
-color          : math.Vec4 = .{.w = 1},
-sprite_id      : f32 = 0,
-aabb           : AABB = default_aabb,
-lua_script     : []const u8 = "",
-flags          : Flags = .{},
-weapon         : Weapon = .{},
-stats          : Stats = .{},
-animation      : ?Animation = .{},
+z_index        : f32           = 0,
+entity_type    : EntityTag     = .default,
+pos            : math.Vec2     = .{},
+size           : math.Vec2     = .{},
+color          : math.Vec4     = .{.w = 1},
+sprite_id      : f32           = 0,
+aabb           : AABB          = default_aabb,
+lua_script     : []const u8    = "",
+flags          : Flags         = .{},
+weapon         : Weapon        = .{},
+stats          : Stats         = .{},
+animation      : Animation    = .{},
 
 
+//
+// This grabs a preset entity from the global hashmap.
+// The static_stats flag is meant to give randomness to
+// massively reused entities.
+//
 pub fn init(
     self: *Self,
     e_type: []const u8,
+    static_stats: bool,
 ) void {
     _ = self;
     _ = e_type;
+    _ = static_stats;
 }
 
 //
@@ -112,6 +121,21 @@ pub fn render(
     _ = self;
 }
 
+pub fn updateAnimation(
+    animation: *Animation,
+) f32 {
+    std.log.info("Frame Coutn: {}", .{animation.frame_count});
+    animation.*.frame_count += 1;
+
+    if (animation.*.frame_count >= animation.speed) {
+        animation.*.frame_count = 0;
+        animation.*.cur_frame = (animation.*.cur_frame + 1) % @as(u32,@intCast(animation.indicies.len));
+    }
+
+    return animation.indicies[@intCast(animation.cur_frame)];
+
+}
+
 pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
     return .{
         .pos = .{
@@ -129,5 +153,13 @@ pub fn toSpriteRenderable(self: *const Self) SpriteRenderable {
 // Global Entity list with all the default types for enemies/reusable entities.
 //
 pub const EntityList = std.StaticStringMap(Self).initComptime(.{
-    .{"default", .{}},
+    .{"default", Self{}},
+    .{"sage", Self{
+        .animation = .{
+            .frame_count = 0,
+            .indicies  = @constCast(&[_]f32{0,1,2}),
+            .cur_frame = 0,
+            .speed = 42,
+        }
+    }},
 });

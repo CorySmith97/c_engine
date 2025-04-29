@@ -30,3 +30,35 @@ pub const GroupTile = struct {
     id   : usize,
     tile : Tile,
 };
+
+pub const Rect = struct {
+    x      : f32,
+    y      : f32,
+    width  : f32,
+    height : f32,
+
+    pub fn rectFromAABB(aabb: AABB) Rect {
+        return .{
+            .x = aabb.min.x,
+            .y = aabb.min.y,
+            .width = aabb.max.x - aabb.min.x,
+            .height = aabb.max.y - aabb.min.y,
+        };
+    }
+
+    //
+    // Assumption that point 2 is further.
+    // IE start drag from left to right
+    //
+    pub fn rectFromPoints(
+        p1: math.Vec2,
+        p2: math.Vec2,
+    ) Rect {
+        return .{
+            .x = p1.x,
+            .y = p1.y,
+            .width = p2.x - p1.x,
+            .height = p2.y - p1.y,
+        };
+    }
+};

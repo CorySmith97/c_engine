@@ -52,7 +52,7 @@ pub fn drawEntityEditor(
 ) !void {
     if (ig.igButton("Add entity")) {
         if (editor_state.state.loaded_scene) |*scene| {
-            const new_entity: Entity = .{};
+            const new_entity = Entity.EntityList.get("sage").?;
             try scene.entities.append(editor_state.allocator, new_entity);
             editor_state.state.selected_entity = scene.entities.len - 1;
             try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.toSpriteRenderable());
@@ -71,7 +71,7 @@ pub fn drawEntityEditor(
             \\   min: {d:.1} {d:.1}
             \\   max: {d:.1} {d:.1}
             \\Selected: {}
-            \\This is just a test for incremental compilation
+            \\Animation Frame: {}
         ,
             .{
                 s,
@@ -86,6 +86,7 @@ pub fn drawEntityEditor(
                 entity.aabb.max.x,
                 entity.aabb.max.y,
                 entity.flags.selected,
+                entity.animation.cur_frame,
             },
         );
         defer editor_state.allocator.free(selected);

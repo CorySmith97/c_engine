@@ -15,7 +15,7 @@ const State = @import("../state.zig");
 const EditorState = @import("../editor.zig").EditorState;
 const ig = @import("cimgui");
 const log = std.log.scoped(.console);
-const Serde = @import("../serde.zig");
+const Serde = @import("../util/serde.zig");
 const Scene = @import("../types.zig").Scene;
 
 var console_buf: [8192]u8 = undefined;
