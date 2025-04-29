@@ -21,6 +21,7 @@ const Scene = types.Scene;
 const Entity = types.Entity;
 const RenderTypes = types.RendererTypes;
 const math = @import("util/math.zig");
+const Camera = types.Camera;
 
 pub const pass_count: u32 = 4;
 
@@ -43,10 +44,14 @@ selected_tile         : ?usize,
 selected_tile_click   : bool = false,
 selected_entity       : ?usize,
 selected_entity_click : bool = false,
+view                  : math.Mat4,
+camera                : Camera = .{},
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     var console: Console = undefined;
     try console.init(allocator);
+
+    const view = math.Mat4.translate(.{.x = -self.camera.pos.x, .y = -self.camera.pos.y, .z = 0});
     self.* = .{
         .allocator = allocator,
         .renderer = undefined,
@@ -57,7 +62,8 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         // @cleanup I dont think these should be in here? These are more editor specific. outside of the cell
         .selected_entity = null,
         .selected_tile = null,
-        .selected_cell =   null,
+        .selected_cell = null,
+        .view = view,
     };
 
     try self.renderer.init(allocator);

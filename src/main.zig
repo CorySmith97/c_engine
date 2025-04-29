@@ -39,10 +39,7 @@ const Input = @import("input.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 
 pub const std_options: std.Options = .{
-    // Set the log level to info
     .log_level = .info,
-
-    // Define logFn to override the std implementation
     .logFn = customLogFn,
 };
 
@@ -88,7 +85,7 @@ pub fn gameinit() !void {
 
     try global_state.init(std.heap.page_allocator);
     var scene: Scene = .{};
-    try Serde.loadSceneFromBinary(&scene, "t2.txt", global_state.allocator);
+    try Serde.loadSceneFromJson(&scene, "t1.json", global_state.allocator);
     global_state.loaded_scene = scene;
     try global_state.loaded_scene.?.loadScene(&global_state.renderer);
     std.log.info("{}", .{global_state.loaded_scene.?.tiles.len});
@@ -97,14 +94,13 @@ pub fn gameinit() !void {
         .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
     };
     proj = mat4.ortho(
-        -app.widthf() / 2 * zoom_factor + 50,
-        app.widthf() / 2 * zoom_factor + 50,
-        -app.heightf() / 2 * zoom_factor - 50,
-        app.heightf() / 2 * zoom_factor - 50,
+        -app.widthf() / 2 * zoom_factor,
+        app.widthf() / 2 * zoom_factor,
+        -app.heightf() / 2 * zoom_factor,
+        app.heightf() / 2 * zoom_factor,
         -1,
         1,
     );
-    view = math.Mat4.identity();
 }
 
 pub fn gameframe() !void {
@@ -120,6 +116,34 @@ pub fn gameframe() !void {
     ig.igSetNextWindowPos(viewport.*.WorkPos, ig.ImGuiCond_Always);
     ig.igSetNextWindowSize(viewport.*.WorkSize, ig.ImGuiCond_Always);
     ig.igSetNextWindowViewport(viewport.*.ID);
+
+    //_ = ig.igBegin("View", null, ig.ImGuiWindowFlags_None);
+    //ig.igText(\\View:
+    //              \\%.1f %.1f %.1f %.1f
+    //              \\%.1f %.1f %.1f %.1f
+    //              \\%.1f %.1f %.1f %.1f
+    //              \\%.1f %.1f %.1f %.1f
+    //              \\
+    //              ,global_state.view.m[0][0]
+    //              ,global_state.view.m[0][1]
+    //              ,global_state.view.m[0][2]
+    //              ,global_state.view.m[0][3]
+    //              ,global_state.view.m[1][0]
+    //              ,global_state.view.m[1][1]
+    //              ,global_state.view.m[1][2]
+    //              ,global_state.view.m[1][3]
+    //              ,global_state.view.m[2][0]
+    //              ,global_state.view.m[2][1]
+    //              ,global_state.view.m[2][2]
+    //              ,global_state.view.m[2][3]
+    //              ,global_state.view.m[3][0]
+    //              ,global_state.view.m[3][1]
+    //              ,global_state.view.m[3][2]
+    //              ,global_state.view.m[3][3]
+    //          );
+
+    //ig.igText("Cursor: %.1f %.1f", global_state.game_cursor.x, global_state.game_cursor.y);
+    //ig.igEnd();
 
     if (global_state.console.open) {
         ig.igSetNextWindowPos(.{ .x = 10, .y = 10 }, ig.ImGuiCond_Once);
@@ -142,7 +166,7 @@ pub fn gameframe() !void {
     swapchain.color_format = .RGBA8;
     global_state.updateBuffers();
     sg.beginPass(.{ .action = passaction, .swapchain = swapchain });
-    global_state.render(util.computeVsParams(proj, view));
+    global_state.render(util.computeVsParams(proj, global_state.view));
     imgui.render();
     sg.endPass();
     sg.commit();

@@ -675,6 +675,10 @@ pub const EditorState = struct {
 //
 var es                 : EditorState = undefined;
 var mouse_middle_down  : bool = false;
+//
+// mat[3][0] camera x pos
+// mat[3][1] camera y pos
+//
 var view               : math.Mat4 = undefined;
 var passaction         : sg.PassAction = .{};
 var offscreen          : sg.PassAction = .{};

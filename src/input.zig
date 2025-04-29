@@ -23,16 +23,63 @@ const State = @import("state.zig");
 
 
 pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
+    state.view = math.Mat4.translate(.{
+        .x = -state.camera.pos.x,
+        .y = -state.camera.pos.y,
+        .z = 0,
+    });
+
+    const step      = 16;  // how much your cursor moves per press
+    const w2        = app.widthf()  / 2 * state.camera.zoom;
+    const h2        = app.heightf() / 2 * state.camera.zoom;
+    const marginX   = w2 * 2 * state.camera.zoom;    // same 0.25 factor you had
+    const marginY   = h2 * 2 * state.camera.zoom;
     if (ev.*.type == .KEY_DOWN) {
         const key_pressed = ev.*.type == .KEY_DOWN;
         switch (ev.*.key_code) {
-            .A => state.console.open = key_pressed,
-            .LEFT => state.game_cursor.x -= 16,
-            .RIGHT => state.game_cursor.x += 16,
-            .UP => state.game_cursor.y += 16,
-            .DOWN => state.game_cursor.y -= 16,
+            .L     => state.console.open = key_pressed,
+            .LEFT  => {
+                if (state.game_cursor.x - step < state.camera.pos.x - marginX) {
+                    state.camera.pos.x -= step;
+                } else {
+                    state.game_cursor.x -= 16;
+                }
+            },
+            .RIGHT => {
+                if (state.game_cursor.x + step > state.camera.pos.x + marginX) {
+                    state.camera.pos.x += step;
+                } else {
+                    state.game_cursor.x += 16;
+                }
+            },
+            .UP    => {
+                if (state.game_cursor.y + step > state.camera.pos.y + marginY) {
+                    state.camera.pos.y += step;
+                } else {
+                    state.game_cursor.y += 16;
+                }
+            },
+            .DOWN  => {
+                if (state.game_cursor.y - step < state.camera.pos.y - marginY) {
+                    state.camera.pos.y -= step;
+                } else {
+
+                    state.game_cursor.y -= 16;
+                }
+            },
+            .A => {
+                if (state.loaded_scene) |s| {
+                    for (0.., s.entities.items(.pos))|i, pos| {
+                        if (pos.x == state.game_cursor.x and pos.y == state.game_cursor.y) {
+                            state.selected_entity = i;
+                        }
+                    }
+                }
+            },
             .ESCAPE => app.quit(),
             else => {},
         }
     }
+
+
 }

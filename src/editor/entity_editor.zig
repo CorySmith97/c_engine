@@ -71,6 +71,7 @@ pub fn drawEntityEditor(
             \\   min: {d:.1} {d:.1}
             \\   max: {d:.1} {d:.1}
             \\Selected: {}
+            \\This is just a test for incremental compilation
         ,
             .{
                 s,
