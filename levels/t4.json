@@ -9,21 +9,20 @@
    "spritesheet_id": "ENTITY_1",
    "z_index": 0e0,
    "entity_type": "default",
-   "pos": {
-    "x": 0e0,
-    "y": 0e0
+   "sprite": {
+    "pos": {
+     "x": 1.12e2,
+     "y": 8e1,
+     "z": 0e0
+    },
+    "sprite_id": 2e0,
+    "color": {
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
+     "w": 0e0
+    }
    },
-   "size": {
-    "x": 0e0,
-    "y": 0e0
-   },
-   "color": {
-    "x": 0e0,
-    "y": 0e0,
-    "z": 0e0,
-    "w": 1e0
-   },
-   "sprite_id": 0e0,
    "aabb": {
     "min": {
      "x": 0e0,
@@ -59,14 +58,78 @@
     "move_speed": 5
    },
    "animation": {
-    "frame_count": 0,
+    "frame_count": 7,
     "indicies": [
      0e0,
      1e0,
      2e0
     ],
-    "cur_frame": 0,
+    "cur_frame": 2,
     "speed": 22
+   }
+  },
+  {
+   "id": 10,
+   "spritesheet_id": "ENTITY_1",
+   "z_index": 0e0,
+   "entity_type": "default",
+   "sprite": {
+    "pos": {
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0
+    },
+    "sprite_id": 1.5e1,
+    "color": {
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
+     "w": 0e0
+    }
+   },
+   "aabb": {
+    "min": {
+     "x": 0e0,
+     "y": 0e0
+    },
+    "max": {
+     "x": 1.6e1,
+     "y": 1.6e1
+    }
+   },
+   "lua_script": "",
+   "flags": {
+    "selected": false,
+    "player_team": false
+   },
+   "weapon": {
+    "tag": "fist",
+    "subtype": "physical_str",
+    "weight": 0,
+    "damage": 1
+   },
+   "stats": {
+    "level": 1,
+    "health": 10,
+    "strength": 10,
+    "magic": 10,
+    "dexterity": 10,
+    "wisdom": 10,
+    "charisma": 10,
+    "speed": 10,
+    "defense": 10,
+    "resistence": 10,
+    "move_speed": 5
+   },
+   "animation": {
+    "frame_count": 30,
+    "indicies": [
+     1.6e1,
+     1.7e1,
+     1.8e1
+    ],
+    "cur_frame": 0,
+    "speed": 42
    }
   }
  ],

@@ -15,8 +15,12 @@ const assert = std.debug.assert;
 
 const Console = @import("editor/console.zig");
 const RenderSystem = @import("render_system.zig");
+const RenderPass = RenderSystem.RenderPass;
+
 const AudioSystem = @import("audio_system.zig");
-const RenderPass = @import("render_system.zig").RenderPass;
+
+const LogSystem = @import("log_system.zig").LogSystem;
+
 const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");
 const Scene = types.Scene;
@@ -31,6 +35,7 @@ pub const pass_count: u32 = 4;
 
 //
 // @todo Audio subsystem needs to be in here
+// @todo Log subsystem needs to be in here
 //
 const Self = @This();
 allocator             : std.mem.Allocator,
@@ -47,10 +52,16 @@ selected_entity_click : bool = false,
 view                  : math.Mat4,
 //proj                  : math.Mat4,
 camera                : Camera = .{},
+logger                : LogSystem,
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     var console: Console = undefined;
     try console.init(allocator);
+
+    var logger: LogSystem  = undefined;
+    try logger.init(allocator);
+
+    try logger.appendToCombatLog("HELLO, FROM THE COMABT LOG");
 
     const view = math.Mat4.translate(.{.x = -self.camera.pos.x, .y = -self.camera.pos.y, .z = 0});
     self.* = .{
@@ -65,6 +76,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .selected_tile = null,
         .selected_cell = null,
         .view = view,
+        .logger = logger,
     };
 
     try self.renderer.init(allocator);

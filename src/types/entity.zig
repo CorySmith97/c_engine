@@ -154,4 +154,12 @@ pub const EntityList = std.StaticStringMap(Self).initComptime(.{
             .speed = 42,
         }
     }},
+    .{"thief", Self{
+        .animation = .{
+            .frame_count = 0,
+            .indicies  = @constCast(&[_]f32{16,17,18}),
+            .cur_frame = 0,
+            .speed = 42,
+        }
+    }},
 });

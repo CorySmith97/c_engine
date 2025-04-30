@@ -10,15 +10,33 @@
 const std = @import("std");
 
 
+// @cleanup Possibly use a queue for no memory allocations after setup?
+
 pub const LogSystem = struct {
-    logs: std.ArrayList(Log),
+    allocator: std.mem.Allocator,
+    combat_logs: std.ArrayList([:0]const u8),
+
+
+    pub fn init(
+        self: *LogSystem,
+        allocator: std.mem.Allocator,
+    ) !void {
+        self.allocator  = allocator;
+        self.combat_logs = std.ArrayList([:0]const u8).init(allocator);
+    }
+
+    pub fn appendToCombatLog(
+        self: *LogSystem,
+        string: []const u8,
+    ) !void {
+        const new_log = try std.fmt.allocPrintZ(self.allocator, "{s}" , .{string});
+        try self.combat_logs.append(new_log);
+    }
+
+    pub fn deinit(
+        self: *LogSystem,
+    ) void {
+        self.combat_logs.deinit();
+    }
 };
 
-pub const Log = struct {
-    tag  : LogTag,
-    file : std.fs.File,
-
-    const LogTag = enum {
-        combat,
-    };
-};

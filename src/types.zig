@@ -16,6 +16,11 @@ const math = @import("util/math.zig");
 pub const Editor = @import("types/editor.zig");
 pub const Camera = @import("types/camera.zig").Camera;
 
+pub const mac_Color_Blue   = "\x1b[34m";
+pub const mac_Color_Green  = "\x1b[32m";
+pub const mac_Color_Red    = "\x1b[31m";
+pub const mac_Color_Orange = "\x1b[35m";
+
 pub const GlobalConstants = struct {
     pub var grid_size: f32 = 16.0;
 };

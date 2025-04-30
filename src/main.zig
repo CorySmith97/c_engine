@@ -16,6 +16,7 @@
 
 
 const std = @import("std");
+const builtin = @import("builtin");
 
 const ig = @import("cimgui");
 const sokol = @import("sokol");
@@ -55,13 +56,29 @@ pub fn customLogFn(
     comptime format: []const u8,
     args: anytype,
 ) void {
-    const prefix = "[" ++ comptime level.asText() ++ "] " ++ "(" ++ @tagName(scope) ++ "):\t";
+    if (builtin.os.tag == .macos) {
+        const color: []const u8 =  switch (level) {
+            .info =>  types.mac_Color_Blue,
+            .debug =>  types.mac_Color_Green,
+            .err =>  types.mac_Color_Red,
+            .warn =>  types.mac_Color_Orange,
+        };
+        const prefix =  color ++ "[" ++ @tagName(scope) ++ "]\x1b[0m:\t";
 
-    // Print the message to stderr, silently ignoring any errors
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
-    const stderr = std.io.getStdErr().writer();
-    nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+        // print the message to stderr, silently ignoring any errors
+        std.debug.lockStdErr();
+        defer std.debug.unlockStdErr();
+        const stderr = std.io.getStdErr().writer();
+        nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+    } else {
+        const prefix = "[" ++ comptime level.asText() ++ "] " ++ "[" ++ @tagName(scope) ++ "]\x1b[0m:\t";
+
+        // Print the message to stderr, silently ignoring any errors
+        std.debug.lockStdErr();
+        defer std.debug.unlockStdErr();
+        const stderr = std.io.getStdErr().writer();
+        nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+    }
 }
 
 var global_state: State = undefined;
@@ -73,9 +90,17 @@ var depth_image: sg.Image = .{};
 //var ad: AudioDriver = undefined;
 
 pub fn gameinit() !void {
+    std.log.err("This is a sample error", .{});
+    std.log.debug("This is a sample debug", .{});
+    std.log.warn("This is a sample warn", .{});
+
+    //
+    // Custom environment items for uniform color formats across systems.
+    //
     var env = glue.environment();
     env.defaults.color_format = .RGBA8;
     env.defaults.depth_format = .DEPTH_STENCIL;
+
     sg.setup(.{
         .environment = env,
         .logger = .{ .func = slog.func },
@@ -92,9 +117,12 @@ pub fn gameinit() !void {
     try global_state.init(std.heap.page_allocator);
     var scene: Scene = .{};
     try Serde.loadSceneFromJson(&scene, "t4.json", global_state.allocator);
+
+
     global_state.loaded_scene = scene;
     try global_state.loaded_scene.?.loadScene(&global_state.renderer);
-    std.log.info("{}", .{global_state.loaded_scene.?.tiles.len});
+
+
     passaction.colors[0] = .{
         .load_action = .CLEAR,
         .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 0 },
@@ -112,6 +140,11 @@ pub fn gameinit() !void {
 pub fn gameframe() !void {
     if (global_state.loaded_scene) |s| {
         for (0.., s.entities.items(.sprite)) |i, *sprite|{
+            if (sprite.pos.x == global_state.game_cursor.x and sprite.pos.y == global_state.game_cursor.y) {
+                global_state.selected_cell = i;
+            } else {
+                global_state.selected_cell = null;
+            }
             try global_state.updateSpriteRenderable(sprite, i);
         }
     }
@@ -120,12 +153,14 @@ pub fn gameframe() !void {
             sprite.sprite_id = Entity.updateAnimation(animation);
         }
     }
+
     imgui.newFrame(.{
         .width = app.width(),
         .height = app.height(),
         .delta_time = app.frameDuration(),
         .dpi_scale = app.dpiScale(),
     });
+
     const viewport = ig.igGetMainViewport();
     viewport.*.Flags |= ig.ImGuiViewportFlags_NoRendererClear;
 
@@ -178,28 +213,48 @@ pub fn gameframe() !void {
             .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
         },
     );
+
+
+    //
+    // Again custom swap chain to have uniform color formats across systems.
+    //
     var swapchain = glue.swapchain();
     swapchain.color_format = .RGBA8;
     global_state.updateBuffers();
+
+
     sg.beginPass(.{ .action = passaction, .swapchain = swapchain });
     global_state.render(util.computeVsParams(proj, global_state.view));
 
 
-    sdtx.canvas(app.widthf(), app.heightf());
+    sdtx.canvas(app.widthf() * 0.5, app.heightf() * 0.5);
+    sdtx.origin(0, 2);
+    sdtx.home();
+    sdtx.print("game cursor: {d:.1} {d:.1}", .{global_state.game_cursor.x, global_state.game_cursor.y});
     if (global_state.loaded_scene) |s| {
         if (global_state.selected_entity) |sprite| {
             const ent = s.entities.get(sprite);
-            sdtx.origin(ent.sprite.pos.x / 16, ent.sprite.pos.y / 16);
+            sdtx.origin(0, 5);
             sdtx.home();
 
             const ent_info = try std.fmt.allocPrintZ(
                 global_state.allocator,
-                "HP: {}", .{ent.stats.health});
+                \\HP: {}
+                \\Str: {}
+                \\Dex: {}
+                    , .{ent.stats.health, ent.stats.strength, ent.stats.dexterity});
 
             defer global_state.allocator.free(ent_info);
             sdtx.puts(ent_info);
             //RenderSystem.printFont(0, "Hello", 255, 255, 255);
 
+        }
+
+        for (global_state.logger.combat_logs.items) |log| {
+            sdtx.origin(0, 40);
+            sdtx.home();
+
+            sdtx.puts(log);
         }
     }
     sdtx.draw();

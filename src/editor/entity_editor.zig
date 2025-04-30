@@ -52,7 +52,7 @@ pub fn drawEntityEditor(
 ) !void {
     if (ig.igButton("Add entity")) {
         if (editor_state.state.loaded_scene) |*scene| {
-            const new_entity = Entity.EntityList.get("sage").?;
+            const new_entity = Entity.EntityList.get("thief").?;
             try scene.entities.append(editor_state.allocator, new_entity);
             editor_state.state.selected_entity = scene.entities.len - 1;
             try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.sprite);

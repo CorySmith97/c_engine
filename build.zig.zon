@@ -28,6 +28,9 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        "assets",
+        "assets/fonts",
+        "assets/fonts/High_Birth.ttf",
         // For example...
         //"LICENSE",
         //"README.md",

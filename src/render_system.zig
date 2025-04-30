@@ -27,13 +27,13 @@ const RenderConfigs = @import("render_system/Configs.zig");
 
 const log = std.log.scoped(.renderer);
 
-// font indices
 const KC853 = 0;
 const KC854 = 1;
 const Z1013 = 2;
 const CPC = 3;
 const C64 = 4;
 const ORIC = 5;
+// font indices
 
 const Self = @This();
 allocator: std.mem.Allocator,
@@ -45,6 +45,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     log.info("Initializing Renderer", .{});
     self.allocator = allocator;
     self.render_passes = std.ArrayList(RenderPass).init(self.allocator);
+
 
     sdtx.setup(.{
         .context = .{ .color_format = .RGBA8 },
@@ -84,6 +85,11 @@ pub fn deinit(self: *Self) !void {
     self.render_passes.deinit();
 }
 
+
+//
+// @todo Render UI stats for entity. Have it be in the corners at static locations
+// that swap between different corners depnding on where the cursor currently is
+//
 pub fn printFont(font_index: u32, title: [:0]const u8, r: u8, g: u8, b: u8) void {
     sdtx.font(font_index);
     sdtx.color3b(r, g, b);

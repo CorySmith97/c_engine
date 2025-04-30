@@ -20,8 +20,8 @@ pub const pass_count: u32 = 4;
 
 //
 // @todo Rename these for prefixes. IE
-// m_ for map sprite
-// c_ for combat sprite
+// map_ for map sprite
+// combat_ for combat sprite
 //
 // Also move to lower case
 //
