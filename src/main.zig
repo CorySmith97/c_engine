@@ -45,6 +45,8 @@ const AudioDriver = @import("audio_system.zig");
 const Console = @import("editor/console.zig");
 const Input = @import("input.zig");
 
+//const dikstra = @import("algorithms/dijkstras.zig");
+
 pub const std_options: std.Options = .{
     .log_level = .info,
     .logFn = customLogFn,
@@ -122,6 +124,7 @@ pub fn gameinit() !void {
     global_state.loaded_scene = scene;
     try global_state.loaded_scene.?.loadScene(&global_state.renderer);
 
+    //try dikstra.findAllPaths(10, global_state.loaded_scene.?, 5, global_state.loaded_scene.?.tiles);
 
     passaction.colors[0] = .{
         .load_action = .CLEAR,

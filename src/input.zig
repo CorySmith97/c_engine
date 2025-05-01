@@ -86,9 +86,20 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
             .B => {
               if (state.loaded_scene) |*s| {
                   if (state.selected_entity) |e| {
-                      log.info("PLacing entity", .{});
+                      log.info("Placing entity", .{});
                       var ent = s.entities.get(e);
-                      ent.sprite.pos = .{.x = state.game_cursor.x, .y = state.game_cursor.y } ;
+                      var collide: bool = false;
+                      for (s.entities.items(.sprite))|sprite| {
+                          if (sprite.pos.x == ent.sprite.pos.x and sprite.pos.y == ent.sprite.pos.y) {
+                              std.log.info("We hitting?");
+                              collide = true;
+                          }
+                      }
+                      if (!collide) {
+                          ent.sprite.pos = .{.x = state.game_cursor.x, .y = state.game_cursor.y } ;
+                      } else {
+                          ent.sprite.pos = .{.x = state.game_cursor.x - 16, .y = state.game_cursor.y } ;
+                      }
 
                       s.entities.set(e, ent);
                   }
