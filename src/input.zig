@@ -89,9 +89,13 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                       log.info("Placing entity", .{});
                       var ent = s.entities.get(e);
                       var collide: bool = false;
-                      for (s.entities.items(.sprite))|sprite| {
+                      for (0.., s.entities.items(.sprite))|i, sprite| {
+                          if (i == e) {
+                              continue;
+                          }
+
                           if (sprite.pos.x == ent.sprite.pos.x and sprite.pos.y == ent.sprite.pos.y) {
-                              std.log.info("We hitting?");
+                              std.log.info("We hitting?", .{});
                               collide = true;
                           }
                       }
@@ -102,6 +106,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                       }
 
                       s.entities.set(e, ent);
+                      state.selected_entity = null;
                   }
                 }
             },

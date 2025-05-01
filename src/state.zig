@@ -32,6 +32,11 @@ const Camera = types.Camera;
 
 pub const pass_count: u32 = 4;
 
+pub const GameCursorTag = enum {
+    hovering_sprite,
+    hovering_tile,
+};
+
 
 //
 // @todo Audio subsystem needs to be in here

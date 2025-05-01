@@ -15,7 +15,7 @@
      "y": 8e1,
      "z": 0e0
     },
-    "sprite_id": 2e0,
+    "sprite_id": 0e0,
     "color": {
      "x": 0e0,
      "y": 0e0,
@@ -58,13 +58,13 @@
     "move_speed": 5
    },
    "animation": {
-    "frame_count": 7,
+    "frame_count": 10,
     "indicies": [
      0e0,
      1e0,
      2e0
     ],
-    "cur_frame": 2,
+    "cur_frame": 0,
     "speed": 22
    }
   },
@@ -79,7 +79,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 1.5e1,
+    "sprite_id": 1.7e1,
     "color": {
      "x": 0e0,
      "y": 0e0,
@@ -122,13 +122,13 @@
     "move_speed": 5
    },
    "animation": {
-    "frame_count": 30,
+    "frame_count": 1,
     "indicies": [
      1.6e1,
      1.7e1,
      1.8e1
     ],
-    "cur_frame": 0,
+    "cur_frame": 1,
     "speed": 42
    }
   }
@@ -389,14 +389,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -411,14 +411,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -433,14 +433,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -455,14 +455,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -477,14 +477,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -609,14 +609,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -631,14 +631,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -653,14 +653,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -675,14 +675,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -697,14 +697,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -829,14 +829,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -851,14 +851,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -873,14 +873,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -895,14 +895,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {
@@ -917,14 +917,14 @@
     },
     "sprite_id": 0e0,
     "color": {
-     "x": 1e0,
-     "y": 1e0,
-     "z": 1e0,
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
      "w": 1e0
     }
    },
    "spawner": false,
-   "traversable": false
+   "traversable": true
   },
   {
    "pos": {

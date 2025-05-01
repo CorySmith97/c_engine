@@ -45,7 +45,7 @@ const AudioDriver = @import("audio_system.zig");
 const Console = @import("editor/console.zig");
 const Input = @import("input.zig");
 
-//const dikstra = @import("algorithms/dijkstras.zig");
+const dikstra = @import("algorithms/dijkstras.zig");
 
 pub const std_options: std.Options = .{
     .log_level = .info,
@@ -124,7 +124,7 @@ pub fn gameinit() !void {
     global_state.loaded_scene = scene;
     try global_state.loaded_scene.?.loadScene(&global_state.renderer);
 
-    //try dikstra.findAllPaths(10, global_state.loaded_scene.?, 5, global_state.loaded_scene.?.tiles);
+    _ = try dikstra.findAllPaths(10, global_state.loaded_scene.?, 5, global_state.loaded_scene.?.tiles);
 
     passaction.colors[0] = .{
         .load_action = .CLEAR,
@@ -141,12 +141,11 @@ pub fn gameinit() !void {
 }
 
 pub fn gameframe() !void {
+    global_state.selected_cell = null;
     if (global_state.loaded_scene) |s| {
         for (0.., s.entities.items(.sprite)) |i, *sprite|{
             if (sprite.pos.x == global_state.game_cursor.x and sprite.pos.y == global_state.game_cursor.y) {
                 global_state.selected_cell = i;
-            } else {
-                global_state.selected_cell = null;
             }
             try global_state.updateSpriteRenderable(sprite, i);
         }
@@ -233,7 +232,9 @@ pub fn gameframe() !void {
     sdtx.canvas(app.widthf() * 0.5, app.heightf() * 0.5);
     sdtx.origin(0, 2);
     sdtx.home();
-    sdtx.print("game cursor: {d:.1} {d:.1}", .{global_state.game_cursor.x, global_state.game_cursor.y});
+    sdtx.print("game cursor: {d:.1} {d:.1}\n", .{global_state.game_cursor.x, global_state.game_cursor.y});
+    sdtx.print("selected Cell {?}\n", .{global_state.selected_cell});
+    sdtx.print("selected Entity {?}", .{global_state.selected_entity});
     if (global_state.loaded_scene) |s| {
         if (global_state.selected_entity) |sprite| {
             const ent = s.entities.get(sprite);
@@ -242,10 +243,8 @@ pub fn gameframe() !void {
 
             const ent_info = try std.fmt.allocPrintZ(
                 global_state.allocator,
-                \\HP: {}
-                \\Str: {}
-                \\Dex: {}
-                    , .{ent.stats.health, ent.stats.strength, ent.stats.dexterity});
+                \\Pos: {d:.1} {d:.1}
+                    , .{ent.sprite.pos.x, ent.sprite.pos.y});
 
             defer global_state.allocator.free(ent_info);
             sdtx.puts(ent_info);
