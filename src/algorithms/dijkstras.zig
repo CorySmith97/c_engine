@@ -148,7 +148,7 @@ pub fn findAllPaths(
     }
     const path: PathField = .{ .shortest = shortest, .prev = prev };
 
-    debugPrintPathField(path, 10);
+    //debugPrintPathField(path, 10);
 
     return path;
 }

@@ -30,6 +30,7 @@ const dikstra = @import("algorithms/dijkstras.zig");
 
 
 pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
+    _ = imgui.handleEvent(ev.*);
     state.view = math.Mat4.translate(.{
         .x = -state.camera.pos.x,
         .y = -state.camera.pos.y,

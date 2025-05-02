@@ -46,14 +46,13 @@ const mat4 = math.Mat4;
 // EDITOR TYPES
 //
 pub const Input = struct {
-    up        : bool = false,
-    down      : bool = false,
-    left      : bool = false,
-    right     : bool = false,
-    forward   : bool = false,
-    backwards : bool = false,
+    up: bool = false,
+    down: bool = false,
+    left: bool = false,
+    right: bool = false,
+    forward: bool = false,
+    backwards: bool = false,
 };
-
 
 //
 // All the possible states that the cursor can be.
@@ -72,16 +71,16 @@ pub const CursorTag = enum {
 // many different files.
 //
 pub const MouseState = struct {
-    cursor                    : CursorTag = .inactive,
-    mouse_position_ig         : ig.ImVec2_t = .{},
-    mouse_position_v2         : math.Vec2 = .{},
-    mouse_position_clamped_v2 : math.Vec2 = .{},
-    hover_over_scene          : bool = false,
-    moving_entity             : bool = false,
-    mouse_clicked_left        : bool = false,
-    click_and_hold_timer      : u32 = 0,
-    select_box                : AABB = .{},
-    select_box_start_grabed   : bool = false,
+    cursor: CursorTag = .inactive,
+    mouse_position_ig: ig.ImVec2_t = .{},
+    mouse_position_v2: math.Vec2 = .{},
+    mouse_position_clamped_v2: math.Vec2 = .{},
+    hover_over_scene: bool = false,
+    moving_entity: bool = false,
+    mouse_clicked_left: bool = false,
+    click_and_hold_timer: u32 = 0,
+    select_box: AABB = .{},
+    select_box_start_grabed: bool = false,
 
     //
     // Convert float mouse coords to snapped grid coords
@@ -136,7 +135,6 @@ pub const MouseState = struct {
             const texture_x = mouse_rel_x / 700.0;
             const texture_y = mouse_rel_y / 440.0;
 
-
             //
             // Adjust for texture coordinates for different
             // graphics apis
@@ -172,7 +170,6 @@ pub const MouseState = struct {
             }
         }
 
-
         if (ev.*.type == .MOUSE_DOWN or ev.*.type == .MOUSE_UP) {
             const mouse_pressed = ev.*.type == .MOUSE_DOWN;
             switch (ev.*.mouse_button) {
@@ -204,10 +201,7 @@ pub const MouseState = struct {
         }
     }
 
-    fn leftMouseClick(
-        self: *MouseState,
-        mouse_pressed: bool
-    ) !void {
+    fn leftMouseClick(self: *MouseState, mouse_pressed: bool) !void {
         es.mouse_state.click_and_hold_timer = 0;
         es.mouse_state.mouse_clicked_left = mouse_pressed;
 
@@ -225,10 +219,10 @@ pub const MouseState = struct {
                             for (0..s.entities.len) |i| {
                                 const ent = s.entities.get(i);
                                 if (util.aabbIG(
-                                    .{.x = mouse_world_space.x, .y = mouse_world_space.y},
-                                    .{.x = ent.sprite.pos.x, .y = ent.sprite.pos.y} ,
-                                    .{.x = GlobalConstants.grid_size, .y = GlobalConstants.grid_size},)
-                                 ) {
+                                    .{ .x = mouse_world_space.x, .y = mouse_world_space.y },
+                                    .{ .x = ent.sprite.pos.x, .y = ent.sprite.pos.y },
+                                    .{ .x = GlobalConstants.grid_size, .y = GlobalConstants.grid_size },
+                                )) {
                                     es.state.selected_entity = i;
                                 }
                             }
@@ -340,7 +334,7 @@ pub const MouseState = struct {
                 try es.al_tile_group_selected.append(.{ .id = i, .tile = t });
             }
         }
-}
+    }
 };
 
 //
@@ -350,7 +344,6 @@ const SerdeMode = enum {
     JSON,
     BINARY,
 };
-
 
 const SPRITE_TOP_EDGE = 4;
 const SPRITE_BOTTOM_EDGE = 6;
@@ -394,11 +387,11 @@ pub const EditorConfig = struct {
 // I think is fine. It allows for easy iteration speeds.
 //
 pub const EditorState = struct {
-    gpa                      : std.heap.GeneralPurposeAllocator(.{}),
-    allocator                : std.mem.Allocator = undefined,
+    gpa: std.heap.GeneralPurposeAllocator(.{}),
+    allocator: std.mem.Allocator = undefined,
 
     // Global state
-    state                    : State = undefined,
+    state: State = undefined,
 
     //
     // @cleanup move these into a camera class. That allows for swapping
@@ -407,24 +400,23 @@ pub const EditorState = struct {
     // Editor state should have a camera, and game state should also
     // have its own camera.
     //
-    view                     : math.Mat4 = undefined,
-    proj                     : math.Mat4 = undefined,
-    mouse_state              : MouseState = .{},
-    zoom_factor              : f32 = 0.25,
+    view: math.Mat4 = undefined,
+    proj: math.Mat4 = undefined,
+    mouse_state: MouseState = .{},
+    zoom_factor: f32 = 0.25,
 
     // Render Surface
-    editor_scene_image       : sg.Image = .{},
-    editor_scene_image_depth : sg.Image = .{},
-    attachment               : sg.Attachments = .{},
+    editor_scene_image: sg.Image = .{},
+    editor_scene_image_depth: sg.Image = .{},
+    attachment: sg.Attachments = .{},
 
     // Serde info
-    editor_config            : EditorConfig = .{},
-    selected_layer           : RenderPassIds = .TILES_1,
-    frame_count              : std.ArrayList(f32) = undefined,
-    continuous_sprite_mode   : bool = false,
-    al_tile_group_selected   : std.ArrayList(GroupTile) = undefined,
-    al_lasso_tool_buffer     : std.ArrayList(SpriteRenderable) = undefined,
-
+    editor_config: EditorConfig = .{},
+    selected_layer: RenderPassIds = .TILES_1,
+    frame_count: std.ArrayList(f32) = undefined,
+    continuous_sprite_mode: bool = false,
+    al_tile_group_selected: std.ArrayList(GroupTile) = undefined,
+    al_lasso_tool_buffer: std.ArrayList(SpriteRenderable) = undefined,
 
     pub fn init(
         self: *EditorState,
@@ -444,10 +436,10 @@ pub const EditorState = struct {
             .allocator = allocator,
             .view = math.Mat4.translate(.{ .x = -150, .y = -100, .z = 0 }),
             .proj = mat4.ortho(
-                -app.widthf()  / 2 * zoom_factor,
-                app.widthf()   / 2 * zoom_factor,
+                -app.widthf() / 2 * zoom_factor,
+                app.widthf() / 2 * zoom_factor,
                 -app.heightf() / 2 * zoom_factor,
-                app.heightf()  / 2 * zoom_factor,
+                app.heightf() / 2 * zoom_factor,
                 -1,
                 1,
             ),
@@ -513,7 +505,6 @@ pub const EditorState = struct {
     pub fn drawMouseSelectBox(
         self: *EditorState,
     ) !void {
-
         switch (self.mouse_state.cursor) {
             .box_select => {
 
@@ -552,7 +543,7 @@ pub const EditorState = struct {
                                 .sprite_id = 2,
                                 .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
                             };
-                            try occupied.put(.{.x = @intFromFloat(lasso_sprite.pos.x) , .y = @intFromFloat(lasso_sprite.pos.y)}, true);
+                            try occupied.put(.{ .x = @intFromFloat(lasso_sprite.pos.x), .y = @intFromFloat(lasso_sprite.pos.y) }, true);
                             try self.al_lasso_tool_buffer.append(lasso_sprite);
                         }
                     }
@@ -598,9 +589,7 @@ pub const EditorState = struct {
     }
 
     pub fn drawMouseUI(self: *EditorState) !void {
-
         if (self.mouse_state.hover_over_scene) {
-
             const grid_size = 16.0;
             self.mouse_state.mouse_position_clamped_v2 = .{
                 .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
@@ -614,11 +603,7 @@ pub const EditorState = struct {
 
             try self.drawMouseSelectBox();
             for (self.al_lasso_tool_buffer.items) |*item| {
-
-
-                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
-                    item.*
-                );
+                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(item.*);
             }
 
             if (self.mouse_state.cursor != .box_select) {
@@ -633,7 +618,6 @@ pub const EditorState = struct {
                         .color = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
                     },
                 );
-
             }
         }
     }
@@ -647,37 +631,37 @@ pub const EditorState = struct {
 //
 // @refactor many of these things can move to the editor state
 //
-var es                 : EditorState = undefined;
-var mouse_middle_down  : bool = false;
+var es: EditorState = undefined;
+var mouse_middle_down: bool = false;
 //
 // mat[3][0] camera x pos
 // mat[3][1] camera y pos
 //
-var view               : math.Mat4 = undefined;
-var passaction         : sg.PassAction = .{};
-var offscreen          : sg.PassAction = .{};
-var image              : sg.Image = .{};
-var input              : Input = .{};
-var r                  : f32 = 0;
-var proj               : math.Mat4 = undefined;
-var zoom_factor        : f32 = 0.25;
-var settings_docked    : bool = false;
-var attachment         : sg.Attachments = .{};
-var layout_initialized : bool = false;
-var mouse_world_space  : math.Vec4 = .{};
+var view: math.Mat4 = undefined;
+var passaction: sg.PassAction = .{};
+var offscreen: sg.PassAction = .{};
+var image: sg.Image = .{};
+var input: Input = .{};
+var r: f32 = 0;
+var proj: math.Mat4 = undefined;
+var zoom_factor: f32 = 0.25;
+var settings_docked: bool = false;
+var attachment: sg.Attachments = .{};
+var layout_initialized: bool = false;
+var mouse_world_space: math.Vec4 = .{};
 var scene_window_pos = ig.ImVec2_t{};
 var scene_window_size = ig.ImVec2_t{};
-var is_mouse_in_scene  : bool = false;
-var scene              : Scene = undefined;
-var buf                : [8192]u8 = undefined;
-var mouse_state        : MouseState = .{};
-var scene_list_buffer  : std.ArrayList([]const u8) = undefined;
-var new_temp_scene     : Scene = .{};
-var new_scene_open     : bool = false;
-var load_scene_open    : bool = false;
-var editor_config      : EditorConfig = .{};
-var console_buf        : [8192]u8 = undefined;
-var occupied           : std.AutoHashMap(math.Vec2i, bool) = undefined;
+var is_mouse_in_scene: bool = false;
+var scene: Scene = undefined;
+var buf: [8192]u8 = undefined;
+var mouse_state: MouseState = .{};
+var scene_list_buffer: std.ArrayList([]const u8) = undefined;
+var new_temp_scene: Scene = .{};
+var new_scene_open: bool = false;
+var load_scene_open: bool = false;
+var editor_config: EditorConfig = .{};
+var console_buf: [8192]u8 = undefined;
+var occupied: std.AutoHashMap(math.Vec2i, bool) = undefined;
 
 //
 // ===========================================================================
@@ -743,12 +727,12 @@ pub fn editorFrame() !void {
     // @cleanup I hate the way this is currently working. Scene should hold this logic
     //
     if (es.state.loaded_scene) |s| {
-        for (0.., s.entities.items(.sprite)) |i, *sprite|{
+        for (0.., s.entities.items(.sprite)) |i, *sprite| {
             try es.updateSpriteRenderable(sprite, i);
         }
     }
     if (es.state.loaded_scene) |s| {
-        for ( s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
+        for (s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
             sprite.sprite_id = Entity.updateAnimation(animation);
         }
     }
@@ -846,7 +830,6 @@ pub fn editorFrame() !void {
         es.allocator,
         &es.state,
     );
-
 
     try es.drawMouseUI();
     try left_window();
@@ -1061,18 +1044,18 @@ fn left_window() !void {
     }
 
     if (ig.igCollapsingHeader("Frame Data", ig.ImGuiTreeNodeFlags_DefaultOpen)) {
-    ig.igText("Frame info");
-    ig.igPlotLinesEx(
-        " ",
-        es.frame_count.items.ptr,
-        @intCast(es.frame_count.items.len),
-        0,
-        " ",
-        0.006,
-        0.012,
-        .{ .x = 200, .y = 80 },
-        4,
-    );
+        ig.igText("Frame info");
+        ig.igPlotLinesEx(
+            " ",
+            es.frame_count.items.ptr,
+            @intCast(es.frame_count.items.len),
+            0,
+            " ",
+            0.006,
+            0.012,
+            .{ .x = 200, .y = 80 },
+            4,
+        );
     }
     if (ig.igCollapsingHeader("Mouse Data", ig.ImGuiTreeNodeFlags_DefaultOpen)) {
         ig.igBeginGroup();
@@ -1082,15 +1065,15 @@ fn left_window() !void {
         ig.igText(@tagName(es.mouse_state.cursor));
         ig.igText(
             \\MouseFlags:
-                \\
-                \\Mouse Over Scene: %d
-                \\Mouse Clicked Left: %d
-                \\Mouse Click Timer: %d
-                \\Mouse Position: %.1f, %.1f
-                \\Mouse Select min: %.1f, %.1f
-                \\Mouse Select max: %.1f, %.1f
-                \\
-                ,
+            \\
+            \\Mouse Over Scene: %d
+            \\Mouse Clicked Left: %d
+            \\Mouse Click Timer: %d
+            \\Mouse Position: %.1f, %.1f
+            \\Mouse Select min: %.1f, %.1f
+            \\Mouse Select max: %.1f, %.1f
+            \\
+        ,
             es.mouse_state.hover_over_scene,
             es.mouse_state.mouse_clicked_left,
             es.mouse_state.click_and_hold_timer,
@@ -1122,7 +1105,6 @@ fn left_window() !void {
             _ = ig.igCheckbox("Enable ##c", &es.state.renderer.render_passes.items[@intFromEnum(id)].enabled);
             ig.igPopID();
         }
-
     }
     ig.igEnd();
 }
