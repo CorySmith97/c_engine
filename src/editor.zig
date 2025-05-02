@@ -370,7 +370,7 @@ pub const EditorConfig = struct {
     ) !void {
         var cwd = std.fs.cwd();
 
-        var config_file = try cwd.openFile("config_editor.json", .{});
+        var config_file = try cwd.openFile("config_editor.json", .{ .mode = .read_write });
         defer config_file.close();
 
         const config_buf = try config_file.readToEndAlloc(allo, 1000);
