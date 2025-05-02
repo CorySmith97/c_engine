@@ -30,6 +30,14 @@ const SpriteRenderable = RenderTypes.SpriteRenderable;
 const math = @import("util/math.zig");
 const Camera = types.Camera;
 
+const Algorithms = @import("algorithms.zig");
+const PathField = Algorithms.PathField;
+
+//
+// Location in grid space, and the fields of available move locations
+//
+const Paths: std.AutoHashMap(u32, PathField) = undefined;
+
 pub const pass_count: u32 = 4;
 
 pub const GameCursorTag = enum {
@@ -40,7 +48,6 @@ pub const GameCursorTag = enum {
 
 //
 // @todo Audio subsystem needs to be in here
-// @todo Log subsystem needs to be in here
 //
 const Self = @This();
 allocator             : std.mem.Allocator,
@@ -54,6 +61,7 @@ selected_tile         : ?usize,
 selected_tile_click   : bool = false,
 selected_entity       : ?usize,
 selected_entity_click : bool = false,
+selected_entity_path  : PathField,
 view                  : math.Mat4,
 //proj                  : math.Mat4,
 camera                : Camera = .{},
@@ -82,6 +90,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .selected_cell = null,
         .view = view,
         .logger = logger,
+        .selected_entity_path = undefined,
     };
 
     try self.renderer.init(allocator);

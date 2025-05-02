@@ -45,8 +45,6 @@ const AudioDriver = @import("audio_system.zig");
 const Console = @import("editor/console.zig");
 const Input = @import("input.zig");
 
-const dikstra = @import("algorithms/dijkstras.zig");
-
 pub const std_options: std.Options = .{
     .log_level = .info,
     .logFn = customLogFn,
@@ -124,7 +122,6 @@ pub fn gameinit() !void {
     global_state.loaded_scene = scene;
     try global_state.loaded_scene.?.loadScene(&global_state.renderer);
 
-    _ = try dikstra.findAllPaths(10, global_state.loaded_scene.?, 5, global_state.loaded_scene.?.tiles);
 
     passaction.colors[0] = .{
         .load_action = .CLEAR,
@@ -143,7 +140,8 @@ pub fn gameinit() !void {
 pub fn gameframe() !void {
     global_state.selected_cell = null;
     if (global_state.loaded_scene) |s| {
-        for (0.., s.entities.items(.sprite)) |i, *sprite|{
+        for (0.., s.entities.items(.sprite), s.entities.items(.world_index)) |i, *sprite, *w|{
+            w.* = @as(u32, @intFromFloat((sprite.pos.x / 16.0) + ( sprite.pos.y / 16.0 ) * s.width ));
             if (sprite.pos.x == global_state.game_cursor.x and sprite.pos.y == global_state.game_cursor.y) {
                 global_state.selected_cell = i;
             }
@@ -244,7 +242,8 @@ pub fn gameframe() !void {
             const ent_info = try std.fmt.allocPrintZ(
                 global_state.allocator,
                 \\Pos: {d:.1} {d:.1}
-                    , .{ent.sprite.pos.x, ent.sprite.pos.y});
+                \\Index: {}
+                    , .{ent.sprite.pos.x, ent.sprite.pos.y, ent.world_index});
 
             defer global_state.allocator.free(ent_info);
             sdtx.puts(ent_info);

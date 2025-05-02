@@ -73,77 +73,106 @@ pub fn findAllPaths(
     tiles: std.MultiArrayList(Tile),
 ) !PathField {
     const allocator = std.heap.page_allocator;
-    var shortest =  try allocator.alloc(f32, tiles.len);
-    defer allocator.free(shortest);
+    var shortest = try allocator.alloc(f32, tiles.len);
     var prev = try allocator.alloc(Node, tiles.len);
-    defer allocator.free(prev);
-
     var queue = std.PriorityQueue(Node, void, lessThan).init(allocator, {});
-
+    var visited = try allocator.alloc(bool, tiles.len);
+    defer queue.deinit(); // Clean up the queue
 
     const dirs = [_]isize{
-        @intFromFloat(scene.width),
-        @intFromFloat(-scene.width),
-        1,
-        -1,
+        @intFromFloat(scene.width),  // Down
+        @intFromFloat(-scene.width), // Up
+        1,                           // Right
+        -1,                          // Left
     };
 
-
-    for (0.., tiles.items(.traversable)) |i, b| {
-        _ = b;
-        prev[i] = .{.index = i, .weight = std.math.inf(f32)};
+    // Initialize distances and previous nodes
+    for (0..tiles.len) |i| {
         shortest[i] = std.math.inf(f32);
-        //if (!b) {
-        //    try queue.add(.{.index = i, .weight = 1.0});
-        //} else {
-        //    try queue.add(.{.index = i, .weight = std.math.inf(f32)});
-        //}
+        prev[i] = .{ .index = i, .weight = std.math.inf(f32) };
+        visited[i] = false;
     }
 
-    _ = max_dist;
+    // Set start node
     shortest[start] = 0;
-    prev[start] = .{.index = start, .weight = 0};
-    try queue.add(.{.index = start, .weight = 0});
+    prev[start] = .{ .index = start, .weight = 0 };  // Set proper initial value
+    try queue.add(.{ .index = start, .weight = 0 });
 
+    // BFS/Dijkstra search
     while (queue.count() > 0) {
         const u = queue.remove();
 
+        // Skip if we're beyond max distance or already found a shorter path
+        if (shortest[u.index] < u.weight) continue;  // Skip outdated entries
+        //if (shortest[u.index] > @as(f32, @floatFromInt(max_dist))) continue;
+        if (visited[u.index]) continue;
+
+        _ = max_dist;
         const ux = u.index % @as(usize, @intFromFloat(scene.width));
 
+        visited[u.index] = true;
+
         for (dirs) |d| {
-            const vi: isize = d + @as(isize,@intCast(u.index));
-            if (vi < 0) continue;
-            if (vi >= tiles.len) continue;
+            const vi: isize = d + @as(isize, @intCast(u.index));
+
+            // Boundary checks
+            if (vi < 0 or vi >= @as(isize, @intCast(tiles.len))) continue;
+
+            // Edge wrapping checks
             if (d == -1 and ux == 0) continue;
-            if (d == 1 and ux == @as(usize,@intFromFloat(scene.width - 1))) continue;
+            if (d == 1 and ux == @as(usize, @intFromFloat(scene.width - 1))) continue;
+
 
             const v: usize = @intCast(vi);
-            const trav = tiles.get(v);
-            //std.log.info("trav {any}", .{trav});
-            var weight: f32 = 0;
 
-            if (!trav.traversable) {
-                weight = 1;
-            } else {
-                weight = std.math.inf(f32);
+            if (v == u.index) continue;
+
+            if (visited[v]) continue;
+            const trav = tiles.get(v);
+
+            // Check if the tile is traversable (skip non-traversable tiles)
+            if (trav.traversable) {
+                continue;
             }
 
-            if (shortest[u.index] != std.math.inf(f32) and (shortest[u.index] + weight < shortest[v])) {
-                //std.log.info("Weight: {}", .{weight});
-                shortest[v] = shortest[u.index] + weight;
-                prev[v] = u;
+            // Optional: Check if tile is occupied by another unit
+            // if (isOccupied(v)) continue;
 
-                try queue.add( .{.index = v, .weight = shortest[v]});
+            const new_dist = shortest[u.index] + 1.0;
+            if (new_dist < shortest[v]) {
+                shortest[v] = new_dist;
+                prev[v] = .{ .index = u.index, .weight = new_dist };
+                try queue.add(.{ .index = v, .weight = new_dist });
             }
         }
     }
+    const path: PathField = .{ .shortest = shortest, .prev = prev };
 
-    for (0.., prev) |i, p| {
-        if (i % 10 == 0) std.debug.print("\n", .{});
-        std.debug.print("{}: {}, ", .{p.index, p.weight});
+    debugPrintPathField(path, 10);
+
+    return path;
+}
+
+// Helper function for debugging the path field
+pub fn debugPrintPathField(field: PathField, width: usize) void {
+    std.debug.print("\nPath distances:\n", .{});
+
+    for (0..field.shortest.len) |i| {
+        if (i % width == 0) std.debug.print("\n", .{});
+
+        if (field.shortest[i] == std.math.inf(f32)) {
+            std.debug.print("  X  ", .{});
+        } else {
+            std.debug.print("{d:4.0} ", .{field.shortest[i]});
+        }
     }
-    //std.log.info("Shortest {any}, prev{any}", .{shortest, prev});
-    //
-    return .{.shortest = shortest, .prev = prev};
 
+    std.debug.print("\n\nPrevious nodes:\n", .{});
+
+    for (0..field.prev.len) |i| {
+        if (i % width == 0) std.debug.print("\n", .{});
+        std.debug.print("{d:4} ", .{field.prev[i].index});
+    }
+
+    std.debug.print("\n", .{});
 }

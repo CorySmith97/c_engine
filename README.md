@@ -8,14 +8,19 @@ in 2d, but I want to bump that to 3d for a mixed experience.
 
 ## Main subsystems
 
+- Windowing: Sokol-App
 - Renderer: Sokol-GFX
 - Audio: Sokol-audio
 - Networking: steam_flat.h
-- Scripting: lua-zig
 - StoryDB: storydb-zig
 - Serde: serde-zig
 - Imgui: cimgui
 - Editor: editor.zig 
+
+/*
+this may not happen.
+- Scripting: lua-zig
+*/
 
 # IMPORTANT
 

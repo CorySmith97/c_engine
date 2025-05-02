@@ -204,7 +204,10 @@ pub const MouseState = struct {
         }
     }
 
-    fn leftMouseClick(self: *MouseState, mouse_pressed: bool) !void {
+    fn leftMouseClick(
+        self: *MouseState,
+        mouse_pressed: bool
+    ) !void {
         es.mouse_state.click_and_hold_timer = 0;
         es.mouse_state.mouse_clicked_left = mouse_pressed;
 
@@ -401,6 +404,9 @@ pub const EditorState = struct {
     // @cleanup move these into a camera class. That allows for swapping
     // from orthographic to perspective if we move to 3d.
     //
+    // Editor state should have a camera, and game state should also
+    // have its own camera.
+    //
     view                     : math.Mat4 = undefined,
     proj                     : math.Mat4 = undefined,
     mouse_state              : MouseState = .{},
@@ -438,10 +444,10 @@ pub const EditorState = struct {
             .allocator = allocator,
             .view = math.Mat4.translate(.{ .x = -150, .y = -100, .z = 0 }),
             .proj = mat4.ortho(
-                -app.widthf() / 2 * zoom_factor,
-                app.widthf() / 2 * zoom_factor,
+                -app.widthf()  / 2 * zoom_factor,
+                app.widthf()   / 2 * zoom_factor,
                 -app.heightf() / 2 * zoom_factor,
-                app.heightf() / 2 * zoom_factor,
+                app.heightf()  / 2 * zoom_factor,
                 -1,
                 1,
             ),

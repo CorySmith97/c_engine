@@ -63,18 +63,32 @@ const Flags = packed struct {
 
 
 //
-// @todo I want to just add sprite renderable instead of the pieces.
-// SpriteRenderable is already 4 byte aligned and all the data is always needed
-// together. position can be stored twice.
-//
-// @todo we should update these sprite renderables every frame regardless
-//
 // @incorrect_rendering We have to manually change serde formatting as we go.
+//
+// Need to store world location as a usize/u32.
+//
 const Self                     = @This();
 id             : u32           = 10,
+
+//
+// This is the index of the entity for the corresponding location in the tiles
+// array. Used for pathfinding as well as collisions. Havent decided which
+// I will keep at the moment. The differences come from the byte difference.
+// Zig does not guarentee the structure of a struct. IE if it can optimize for
+// alignment, itll change the shape in memory for better packing.
+//
+world_index    : u32           = 0, // 4 bytes
+grid_pos       : usize         = 0, // 4 bytes on 32 bit machines
+                                    // 8 bytes on 64 bit machines
+
 spritesheet_id : RenderPassIds = .ENTITY_1,
+
+//
+// Completely unused at the moment.
+//
 z_index        : f32           = 0,
 entity_type    : EntityTag     = .default,
+
 sprite         : SpriteRenderable = .{},
 aabb           : AABB          = default_aabb,
 lua_script     : []const u8    = "",
