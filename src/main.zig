@@ -212,6 +212,10 @@ pub fn gameframe() !void {
         try global_state.console.console(global_state.allocator, &global_state);
     }
 
+    if (global_state.game_cursor_mode == .selecting_action) {
+        try global_state.drawMenu();
+    }
+
     try global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].appendSpriteToBatch(
         .{
             .pos = .{

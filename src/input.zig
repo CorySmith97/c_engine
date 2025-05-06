@@ -82,7 +82,14 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                     }
                 },
                 .UP    => {
-                    if (state.game_cursor_mode == .selecting_action) return;
+                    if (state.game_cursor_mode == .selecting_action) {
+                        state.selected_action = @enumFromInt(
+                            if ((@intFromEnum(state.selected_action)) == 0) 0 else
+                                @intFromEnum(state.selected_action) - 1
+                        );
+                        return;
+                    }
+
                     if (state.game_cursor.y + step > state.camera.pos.y + marginY) {
                         state.camera.pos.y += step;
                     } else {
@@ -90,7 +97,13 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                     }
                 },
                 .DOWN  => {
-                    if (state.game_cursor_mode == .selecting_action) return;
+                    if (state.game_cursor_mode == .selecting_action) {
+                        state.selected_action = @enumFromInt(
+                            if ((@intFromEnum(state.selected_action)) == 3) 3 else
+                                @intFromEnum(state.selected_action) + 1
+                        );
+                        return;
+                    }
                     if (state.game_cursor.y - step < state.camera.pos.y - marginY) {
                         state.camera.pos.y -= step;
                     } else {
@@ -107,9 +120,36 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                             try placeEntity(s, state);
                         },
                         .selecting_action => {
-                            inline for (std.meta.fields(types.Menus.ActionMenu)) |a| {
-                                std.log.info("{s}", .{a.name});
+                            switch (state.selected_action) {
+                                .Attack => {
+                                    const ent = s.entities.get(state.selected_entity.?);
+                                    const dirs = [_]math.Vec3{
+                                        .{ .x = 0, .y = -16, .z = 0},
+                                        .{ .x = 0, .y = 16, .z = 0},
+                                        .{ .x = 16, .y = 0, .z = 0},
+                                        .{ .x = -16, .y = 0, .z = 0},
+                                    };
+                                    for (dirs) |d| {
+
+                                        const sr: SpriteRenderable = .{
+                                            .pos = math.Vec3.add(ent.sprite.pos, d),
+                                            .sprite_id = 1,
+                                            .color     = .{ .x = 0, .y = 0, .z = 0, .w = 1 },
+                                        };
+                                        try state
+                                            .renderer
+                                            .render_passes
+                                            .items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)]
+                                            .appendSpriteToBatch(sr);
+                                    }
+                                },
+                                .Wait => {
+                                    state.selected_entity = null;
+                                    state.game_cursor_mode = .default;
+                                },
+                                else => {},
                             }
+
                         },
                         else => {},
                     }
@@ -155,7 +195,7 @@ fn placeEntity(
     if (state.selected_entity_path.shortest[gc_to_index] <= @as(f32, @floatFromInt(ent.stats.move_speed))) {
         try state.logger.appendToCombatLog("Combat has happened or something");
         s.entities.set(e, ent);
-        state.selected_entity = null;
+        //state.selected_entity = null;
         state.allocator.free(state.selected_entity_path.prev);
         state.allocator.free(state.selected_entity_path.shortest);
         state.selected_entity_path = undefined;
@@ -192,7 +232,7 @@ fn selectEntity(
                             const sr: SpriteRenderable = .{
                                 .pos       = .{ .x = x, .y = y, .z = 0 },
                                 .sprite_id = 0,
-                                .color     = .{ .x = 0, .y = 0, .z = 0, .w = 1 },
+                                .color     = .{ .x = 0, .y = 0, .z = 0, .w = 0.5 },
                             };
                             try state
                                 .renderer

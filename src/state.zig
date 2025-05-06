@@ -12,6 +12,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
+const sokol = @import("sokol");
+const sdtx = sokol.debugtext;
 
 const Console = @import("editor/console.zig");
 const RenderSystem = @import("render_system.zig");
@@ -23,6 +25,7 @@ const LogSystem = @import("log_system.zig").LogSystem;
 
 const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");
+const Menu = types.Menus;
 const Scene = types.Scene;
 const Entity = types.Entity;
 const RenderTypes = types.RendererTypes;
@@ -67,6 +70,7 @@ selected_entity       : ?usize,
 selected_entity_click : bool = false,
 selected_entity_path  : PathField,
 view                  : math.Mat4,
+selected_action       : Menu.ActionMenu = .Attack,
 //proj                  : math.Mat4,
 camera                : Camera = .{},
 logger                : LogSystem,
@@ -165,5 +169,20 @@ pub fn updateSpriteRenderable(
 ) !void {
     if (self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.map_entity_1)].batch.items.len > s) {
         try self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.map_entity_1)].updateSpriteRenderables(s, sprite_ren.*);
+    }
+}
+
+pub fn drawMenu(
+    self: *Self,
+) !void {
+    sdtx.origin(60, 2);
+    sdtx.home();
+    inline for (std.meta.fields(Menu.ActionMenu)) |i| {
+        if (i.value == @intFromEnum(self.selected_action)) {
+            sdtx.color3f(1, 1, 1);
+        } else {
+            sdtx.color3f(0, 1, 1);
+        }
+        sdtx.print("{s}\n", .{i.name});
     }
 }
