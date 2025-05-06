@@ -37,6 +37,7 @@ const default_aabb: AABB = .{
 const Stats = struct {
     level      : u16 = 1,
     health     : u16 = 10,
+    cur_health : u16 = 10,
     strength   : u16 = 10,
     magic      : u16 = 10,
     dexterity  : u16 = 10,
@@ -67,36 +68,45 @@ const Flags = packed struct {
 //
 // Need to store world location as a usize/u32.
 //
-const Self                     = @This();
-id             : u32           = 10,
+pub const Entity = struct {
+    id             : u32           = 10,
+
+    //
+    // This is the index of the entity for the corresponding location in the tiles
+    // array. Used for pathfinding as well as collisions. Havent decided which
+    // I will keep at the moment. The differences come from the byte difference.
+    // Zig does not guarentee the structure of a struct. IE if it can optimize for
+    // alignment, itll change the shape in memory for better packing.
+    //
+    world_index    : u32           = 0, // 4 bytes
+    grid_pos       : usize         = 0, // 4 bytes on 32 bit machines
+    // 8 bytes on 64 bit machines
+
+    spritesheet_id : RenderPassIds = .map_entity_1,
+
+    //
+    // Completely unused at the moment.
+    //
+    z_index        : f32           = 0,
+    entity_type    : EntityTag     = .default,
+
+    sprite         : SpriteRenderable = .{},
+    aabb           : AABB          = default_aabb,
+    flags          : Flags         = .{},
+    weapon         : Weapon        = .{},
+    stats          : Stats         = .{},
+    animation      : Animation    = .{},
+    // Removing scripting for the meantime. I dont want to deal with the headache.
+    //lua_script     : []const u8    = "",
+};
 
 //
-// This is the index of the entity for the corresponding location in the tiles
-// array. Used for pathfinding as well as collisions. Havent decided which
-// I will keep at the moment. The differences come from the byte difference.
-// Zig does not guarentee the structure of a struct. IE if it can optimize for
-// alignment, itll change the shape in memory for better packing.
+// Ideally we dont use methods that are attached to the struct
+// as a v-table. We want to have functions that take aspects of an
+// entity and process data on those smaller subsets. IE combat,
+// which is passes that stats and weapons of two seperate
+// entities in order to calculate the outcome of a fight.
 //
-world_index    : u32           = 0, // 4 bytes
-grid_pos       : usize         = 0, // 4 bytes on 32 bit machines
-                                    // 8 bytes on 64 bit machines
-
-spritesheet_id : RenderPassIds = .ENTITY_1,
-
-//
-// Completely unused at the moment.
-//
-z_index        : f32           = 0,
-entity_type    : EntityTag     = .default,
-
-sprite         : SpriteRenderable = .{},
-aabb           : AABB          = default_aabb,
-lua_script     : []const u8    = "",
-flags          : Flags         = .{},
-weapon         : Weapon        = .{},
-stats          : Stats         = .{},
-animation      : Animation    = .{},
-
 
 //
 // This grabs a preset entity from the global hashmap.
@@ -104,7 +114,7 @@ animation      : Animation    = .{},
 // massively reused entities.
 //
 pub fn init(
-    self: *Self,
+    self: *Entity,
     e_type: []const u8,
     static_stats: bool,
 ) void {
@@ -113,14 +123,6 @@ pub fn init(
     _ = static_stats;
 }
 
-//
-// Frame based update
-//
-pub fn update(
-    self: *Self,
-) void {
-    _ = self;
-}
 
 pub fn combat(
     e1_stats: Stats,
@@ -132,12 +134,6 @@ pub fn combat(
     _ = e1_weapon ;
     _ = e2_stats  ;
     _ = e2_weapon ;
-}
-
-pub fn render(
-    self: *Self,
-) !void {
-    _ = self;
 }
 
 pub fn updateAnimation(
@@ -158,9 +154,9 @@ pub fn updateAnimation(
 //
 // Global Entity list with all the default types for enemies/reusable entities.
 //
-pub const EntityList = std.StaticStringMap(Self).initComptime(.{
-    .{"default", Self{}},
-    .{"sage", Self{
+pub const EntityList = std.StaticStringMap(Entity).initComptime(.{
+    .{"default", Entity{}},
+    .{"sage", Entity{
         .animation = .{
             .frame_count = 0,
             .indicies  = @constCast(&[_]f32{0,1,2}),
@@ -168,10 +164,18 @@ pub const EntityList = std.StaticStringMap(Self).initComptime(.{
             .speed = 42,
         }
     }},
-    .{"thief", Self{
+    .{"thief", Entity{
         .animation = .{
             .frame_count = 0,
             .indicies  = @constCast(&[_]f32{16,17,18}),
+            .cur_frame = 0,
+            .speed = 42,
+        }
+    }},
+    .{"mage", Entity{
+        .animation = .{
+            .frame_count = 0,
+            .indicies  = @constCast(&[_]f32{32,33,34}),
             .cur_frame = 0,
             .speed = 42,
         }

@@ -212,10 +212,10 @@ pub const MouseState = struct {
 
                 if (es.state.loaded_scene) |s| {
                     switch (es.selected_layer) {
-                        .TILES_1 => {
+                        .map_tiles_1 => {
                             try self.leftMouseClickTile1(&s);
                         },
-                        .ENTITY_1 => {
+                        .map_entity_1 => {
                             for (0..s.entities.len) |i| {
                                 const ent = s.entities.get(i);
                                 if (util.aabbIG(
@@ -237,7 +237,7 @@ pub const MouseState = struct {
             .inactive => {
                 if (self.hover_over_scene) {
                     switch (es.selected_layer) {
-                        .ENTITY_1 => {
+                        .map_entity_1 => {
                             if (es.state.loaded_scene) |s| {
                                 for (0.., s.entities.items(.aabb)) |i, aabb| {
                                     if (util.aabbRec(es.mouse_state.mouse_position_v2, aabb)) {
@@ -262,7 +262,7 @@ pub const MouseState = struct {
                     es.al_tile_group_selected.clearAndFree();
                     if (es.state.loaded_scene) |s| {
                         switch (es.selected_layer) {
-                            .TILES_1 => {
+                            .map_tiles_1 => {
                                 try self.boxselectTile1(&s);
                             },
                             else => {},
@@ -412,7 +412,7 @@ pub const EditorState = struct {
 
     // Serde info
     editor_config: EditorConfig = .{},
-    selected_layer: RenderPassIds = .TILES_1,
+    selected_layer: RenderPassIds = .map_tiles_1,
     frame_count: std.ArrayList(f32) = undefined,
     continuous_sprite_mode: bool = false,
     al_tile_group_selected: std.ArrayList(GroupTile) = undefined,
@@ -444,7 +444,7 @@ pub const EditorState = struct {
                 1,
             ),
             .state = s,
-            .selected_layer = .TILES_1,
+            .selected_layer = .map_tiles_1,
             .frame_count = std.ArrayList(f32).init(allocator),
             .al_tile_group_selected = std.ArrayList(GroupTile).init(allocator),
             .al_lasso_tool_buffer = std.ArrayList(SpriteRenderable).init(allocator),
@@ -584,8 +584,8 @@ pub const EditorState = struct {
         // change the buffers and recalc that every frame as it changes
         // often. This is called Immediate mode ui
         //
-        self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
-        self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
+        self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].batch.clearRetainingCapacity();
+        self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].cur_num_of_sprite = 0;
     }
 
     pub fn drawMouseUI(self: *EditorState) !void {
@@ -603,11 +603,11 @@ pub const EditorState = struct {
 
             try self.drawMouseSelectBox();
             for (self.al_lasso_tool_buffer.items) |*item| {
-                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(item.*);
+                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].appendSpriteToBatch(item.*);
             }
 
             if (self.mouse_state.cursor != .box_select) {
-                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+                try self.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].appendSpriteToBatch(
                     .{
                         .pos = .{
                             .x = @floor((mouse_world_space.x) / grid_size) * grid_size,
@@ -722,7 +722,7 @@ pub fn editorFrame() !void {
     //
 
     const store = es.selected_layer;
-    es.selected_layer = .ENTITY_1;
+    es.selected_layer = .map_entity_1;
     //
     // @cleanup I hate the way this is currently working. Scene should hold this logic
     //
@@ -815,7 +815,7 @@ pub fn editorFrame() !void {
     // Editor for Entity
     //
     _ = ig.igBegin("Entity Editor", 0, ig.ImGuiWindowFlags_None);
-    if (es.selected_layer == .TILES_1 or es.selected_layer == .TILES_2) {
+    if (es.selected_layer == .map_tiles_1 or es.selected_layer == .map_tiles_2) {
         try TypeEditors.drawTileEditor(&es);
     } else {
         try TypeEditors.drawEntityEditor(&es);

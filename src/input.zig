@@ -23,11 +23,18 @@ const State = @import("state.zig");
 const log = std.log.scoped(.input);
 const RenderPassIds = @import("types.zig").RendererTypes.RenderPassIds;
 const types = @import("types.zig");
+const Scene = types.Scene;
 const RendererTypes = types.RendererTypes;
 const SpriteRenderable = RendererTypes.SpriteRenderable;
 
-const dikstra = @import("algorithms/dijkstras.zig");
+const dijkstra = @import("algorithms/dijkstras.zig");
+const PathField = dijkstra.PathField;
 
+//
+// @todo:cs I need to make simple combat loop.
+// Place info about combat in logs for the meantime.
+// Goal: 05/05/2025 eod.
+//
 
 pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
     _ = imgui.handleEvent(ev.*);
@@ -48,10 +55,18 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
 
     if (ev.*.type == .KEY_DOWN) {
         const key_pressed = ev.*.type == .KEY_DOWN;
+        //
+        // Universal keybinding
+        //
+        switch (ev.*.key_code) {
+            .F1     => state.console.open = key_pressed,
+            .F2     => state.console.open = false,
+            else => {},
+        }
         if (state.loaded_scene) |*s| {
             switch (ev.*.key_code) {
-                .L     => state.console.open = key_pressed,
                 .LEFT  => {
+                    if (state.game_cursor_mode == .selecting_action) return;
                     if (state.game_cursor.x - step < state.camera.pos.x - marginX) {
                         state.camera.pos.x -= step;
                     } else {
@@ -59,6 +74,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                     }
                 },
                 .RIGHT => {
+                    if (state.game_cursor_mode == .selecting_action) return;
                     if (state.game_cursor.x + step > state.camera.pos.x + marginX) {
                         state.camera.pos.x += step;
                     } else {
@@ -66,6 +82,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                     }
                 },
                 .UP    => {
+                    if (state.game_cursor_mode == .selecting_action) return;
                     if (state.game_cursor.y + step > state.camera.pos.y + marginY) {
                         state.camera.pos.y += step;
                     } else {
@@ -73,6 +90,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                     }
                 },
                 .DOWN  => {
+                    if (state.game_cursor_mode == .selecting_action) return;
                     if (state.game_cursor.y - step < state.camera.pos.y - marginY) {
                         state.camera.pos.y -= step;
                     } else {
@@ -81,74 +99,25 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                     }
                 },
                 .A => {
-                    for (0.., s.entities.items(.sprite), s.entities.items(.world_index), s.entities.items(.stats))
-                        |i, sprite, idx, stats|
-                        {
-                            if (sprite.pos.x == state.game_cursor.x
-                                    and sprite.pos.y == state.game_cursor.y)
-                                {
-                                    state.selected_entity = i;
-                                    const pf = try dikstra.findAllPaths(idx, s.*, 5, s.tiles);
-
-                                    const tileSize = 16.0;
-                                    const maxCost = @as(f32, @floatFromInt(stats.move_speed));
-
-                                    for (pf.shortest, 0..) |dist, f| {
-                                        const v: f32 = @floatFromInt(f);
-
-                                        if (dist <= maxCost) {
-                                            const ix = @mod(v, s.width);
-                                            const iy = @floor(v / s.width);
-                                            const x  = @as(f32, ix) * tileSize;
-                                            const y  = @as(f32, iy) * tileSize;
-                                            const sr: SpriteRenderable = .{
-                                                .pos       = .{ .x = x, .y = y, .z = 0 },
-                                                .sprite_id = 0,
-                                                .color     = .{ .x = 0, .y = 0, .z = 0, .w = 1 },
-                                            };
-                                            try state
-                                                .renderer
-                                                .render_passes
-                                                .items[@intFromEnum(RendererTypes.RenderPassIds.TILES_2)]
-                                                .appendSpriteToBatch(sr);
-                                        }
-                                    }
-
-                                    state.selected_entity_path = pf;
+                    switch (state.game_cursor_mode) {
+                        .default => {
+                            try selectEntity(s, state);
+                        },
+                        .selected_entity => {
+                            try placeEntity(s, state);
+                        },
+                        .selecting_action => {
+                            inline for (std.meta.fields(types.Menus.ActionMenu)) |a| {
+                                std.log.info("{s}", .{a.name});
                             }
+                        },
+                        else => {},
                     }
+
                 },
 
 
                 .B => {
-                    if (state.selected_entity) |e| {
-                        log.info("Placing entity", .{});
-                        var ent = s.entities.get(e);
-                        var collide: bool = false;
-                        for (0.., s.entities.items(.sprite))|i, sprite| {
-                            if (i == e) {
-                                continue;
-                            }
-
-                            if (sprite.pos.x == ent.sprite.pos.x and sprite.pos.y == ent.sprite.pos.y) {
-                                std.log.info("We hitting?", .{});
-                                collide = true;
-                            }
-                        }
-                        if (!collide) {
-                            ent.sprite.pos = .{.x = state.game_cursor.x, .y = state.game_cursor.y } ;
-                        } else {
-                            ent.sprite.pos = .{.x = state.game_cursor.x - 16, .y = state.game_cursor.y } ;
-                        }
-
-                        s.entities.set(e, ent);
-                        state.selected_entity = null;
-                        state.allocator.free(state.selected_entity_path.prev);
-                        state.allocator.free(state.selected_entity_path.shortest);
-                        state.selected_entity_path = undefined;
-                        state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_2)].batch.clearRetainingCapacity();
-                        state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_2)].cur_num_of_sprite = 0;
-                    }
                 },
                 .ESCAPE => app.quit(),
                 else => {},
@@ -157,4 +126,83 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
     }
 
 
+}
+
+fn placeEntity(
+    s: *Scene,
+    state: *State,
+) !void {
+    //
+    // if we dont have a selected entity simply break out early;
+    //
+    const e = state.selected_entity orelse return;
+
+    log.info("Placing entity", .{});
+    var ent = s.entities.get(e);
+    for (0.., s.entities.items(.sprite))|i, sprite| {
+        if (i == e) {
+            continue;
+        }
+
+        if (sprite.pos.x == state.game_cursor.x and sprite.pos.y == state.game_cursor.y) {
+            return;
+        }
+    }
+
+    ent.sprite.pos = .{.x = state.game_cursor.x, .y = state.game_cursor.y } ;
+
+    const gc_to_index: usize = @intFromFloat((state.game_cursor.y / 16.0 * s.width) + state.game_cursor.x / 16.0);
+    if (state.selected_entity_path.shortest[gc_to_index] <= @as(f32, @floatFromInt(ent.stats.move_speed))) {
+        try state.logger.appendToCombatLog("Combat has happened or something");
+        s.entities.set(e, ent);
+        state.selected_entity = null;
+        state.allocator.free(state.selected_entity_path.prev);
+        state.allocator.free(state.selected_entity_path.shortest);
+        state.selected_entity_path = undefined;
+        state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)].batch.clearRetainingCapacity();
+        state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)].cur_num_of_sprite = 0;
+    }
+    state.game_cursor_mode = .selecting_action;
+}
+
+fn selectEntity(
+    s: *Scene,
+    state: *State,
+) !void {
+    for (0.., s.entities.items(.sprite), s.entities.items(.world_index), s.entities.items(.stats))
+        |i, sprite, idx, stats|
+        {
+            if (sprite.pos.x == state.game_cursor.x
+                    and sprite.pos.y == state.game_cursor.y)
+                {
+                    state.selected_entity = i;
+                    const pf = try dijkstra.findAllPaths(idx, s.*, 5, s.tiles);
+
+                    const tileSize = 16.0;
+                    const maxCost = @as(f32, @floatFromInt(stats.move_speed));
+
+                    for (pf.shortest, 0..) |dist, f| {
+                        const v: f32 = @floatFromInt(f);
+
+                        if (dist <= maxCost) {
+                            const ix = @mod(v, s.width);
+                            const iy = @floor(v / s.width);
+                            const x  = @as(f32, ix) * tileSize;
+                            const y  = @as(f32, iy) * tileSize;
+                            const sr: SpriteRenderable = .{
+                                .pos       = .{ .x = x, .y = y, .z = 0 },
+                                .sprite_id = 0,
+                                .color     = .{ .x = 0, .y = 0, .z = 0, .w = 1 },
+                            };
+                            try state
+                                .renderer
+                                .render_passes
+                                .items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)]
+                                .appendSpriteToBatch(sr);
+                        }
+                    }
+                    state.selected_entity_path = pf;
+                    state.game_cursor_mode = .selected_entity;
+            }
+    }
 }

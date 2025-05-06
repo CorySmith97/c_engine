@@ -50,14 +50,22 @@ const predefined_colors = [_]ig.ImVec4_t{
 pub fn drawEntityEditor(
     editor_state: *EditorState,
 ) !void {
-    if (ig.igButton("Add entity")) {
+
+    const child_size = ig.ImVec2{ .x = 0, .y = 200 };
+
+    if (ig.igBeginChild("Adding Entity", child_size, 0, ig.ImGuiWindowFlags_None)) {
         if (editor_state.state.loaded_scene) |*scene| {
-            const new_entity = Entity.EntityList.get("thief").?;
-            try scene.entities.append(editor_state.allocator, new_entity);
-            editor_state.state.selected_entity = scene.entities.len - 1;
-            try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.ENTITY_1)].appendSpriteToBatch(new_entity.sprite);
+            for (Entity.EntityList.keys()) |key|{
+                if (ig.igButton(key.ptr)) {
+                    const new_entity = Entity.EntityList.get(key).?;
+                    try scene.entities.append(editor_state.allocator, new_entity);
+                    editor_state.state.selected_entity = scene.entities.len - 1;
+                    try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_entity_1)].appendSpriteToBatch(new_entity.sprite);
+                }
+            }
         }
     }
+    ig.igEndChild();
     if (editor_state.state.selected_entity) |s| {
         var entity = editor_state.state.loaded_scene.?.entities.get(s);
         const selected = try std.fmt.allocPrint(

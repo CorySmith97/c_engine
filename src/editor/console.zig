@@ -31,6 +31,7 @@ pub fn cliLevel(
     args: [][]const u8,
 ) !void {
     assert(args.len > 1);
+    var failed: bool = false;
 
     if (state.loaded_scene) |*s| {
         s.deloadScene(state.allocator, state);
@@ -38,9 +39,19 @@ pub fn cliLevel(
 
     var scene: Scene = undefined;
     log.info("{s}, {s}", .{args[0], args[1]});
-    try Serde.loadSceneFromJson(&scene, args[1], state.allocator);
-    state.loaded_scene = scene;
-    try state.loaded_scene.?.loadScene(&state.renderer);
+
+    Serde.loadSceneFromJson(&scene, args[1], state.allocator) catch |e| {
+        state.errors += 1;
+        log.err("{s}", .{@errorName(e)});
+        failed = true;
+    };
+
+    if (!failed) {
+        state.loaded_scene = scene;
+        try state.loaded_scene.?.loadScene(&state.renderer);
+    } else {
+        state.loaded_scene = null;
+    }
 }
 
 // @todo cli tools?

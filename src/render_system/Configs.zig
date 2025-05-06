@@ -26,25 +26,25 @@ pub const RenderPassConfig = struct {
 // incorrect
 pub var Defaults = &[_]RenderPassConfig{
     .{
-        .id = .TILES_1,
+        .id = .map_tiles_1,
         .path = "assets/tiles_1.png",
         .sprite_size = .{ 16, 16 },
         .atlas_size = .{ 256, 256 },
     },
     .{
-        .id = .TILES_2,
+        .id = .map_tiles_2,
         .path = "assets/tiles_2.png",
         .sprite_size = .{ 16, 16 },
         .atlas_size = .{ 256, 256 },
     },
     .{
-        .id = .ENTITY_1,
+        .id = .map_entity_1,
         .path = "assets/entity_1.png",
         .sprite_size = .{ 16, 16 },
         .atlas_size = .{ 256, 256 },
     },
     .{
-        .id = .UI_1,
+        .id = .map_ui_1,
         .path = "assets/ui_1.png",
         .sprite_size = .{ 16, 16 },
         .atlas_size = .{ 256, 256 },

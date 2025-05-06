@@ -36,7 +36,8 @@ const RenderPass = @import("render_system.zig").RenderPass;
 
 const types = @import("types.zig");
 const Scene = types.Scene;
-const Entity = types.Entity;
+const EntityNs = types.EntityNs;
+const Entity = EntityNs.Entity;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 
 const State = @import("state.zig");
@@ -116,7 +117,10 @@ pub fn gameinit() !void {
 
     try global_state.init(std.heap.page_allocator);
     var scene: Scene = .{};
-    try Serde.loadSceneFromJson(&scene, "t4.json", global_state.allocator);
+    Serde.loadSceneFromJson(&scene, "test1", global_state.allocator) catch |e| {
+        global_state.errors += 1;
+        std.log.warn("{s}", .{@errorName(e)});
+    };
 
 
     global_state.loaded_scene = scene;
@@ -138,6 +142,12 @@ pub fn gameinit() !void {
 }
 
 pub fn gameframe() !void {
+    global_state.error_timer += 1;
+    if (global_state.error_timer >= 180) {
+        global_state.error_timer = 0;
+        global_state.errors = 0;
+
+    }
     global_state.selected_cell = null;
     if (global_state.loaded_scene) |s| {
         for (0.., s.entities.items(.sprite), s.entities.items(.world_index)) |i, *sprite, *w|{
@@ -150,7 +160,7 @@ pub fn gameframe() !void {
     }
     if (global_state.loaded_scene) |s| {
         for ( s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
-            sprite.sprite_id = Entity.updateAnimation(animation);
+            sprite.sprite_id = EntityNs.updateAnimation(animation);
         }
     }
 
@@ -202,7 +212,7 @@ pub fn gameframe() !void {
         try global_state.console.console(global_state.allocator, &global_state);
     }
 
-    try global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].appendSpriteToBatch(
+    try global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].appendSpriteToBatch(
         .{
             .pos = .{
                 .x = (global_state.game_cursor.x),
@@ -224,10 +234,19 @@ pub fn gameframe() !void {
 
 
     sg.beginPass(.{ .action = passaction, .swapchain = swapchain });
-    global_state.render(util.computeVsParams(proj, global_state.view));
+    if (global_state.loaded_scene) |_| {
+        global_state.render(util.computeVsParams(proj, global_state.view));
+    }
 
 
-    sdtx.canvas(app.widthf() * 0.5, app.heightf() * 0.5);
+    const canvas_w = app.widthf() * 0.5;
+    const canvas_h = app.heightf() * 0.5;
+
+    sdtx.canvas(canvas_w, canvas_h);
+    sdtx.color3f(1, 1, 1);
+    sdtx.origin(0, 1);
+    sdtx.home();
+    sdtx.print("{}, {}\n", .{canvas_w, canvas_h});
     sdtx.origin(0, 2);
     sdtx.home();
     sdtx.print("game cursor: {d:.1} {d:.1}\n", .{global_state.game_cursor.x, global_state.game_cursor.y});
@@ -251,19 +270,22 @@ pub fn gameframe() !void {
 
         }
 
+        sdtx.origin(0, 40);
+        sdtx.home();
         for (global_state.logger.combat_logs.items) |log| {
-            sdtx.origin(0, 40);
-            sdtx.home();
-
-            sdtx.puts(log);
+            sdtx.print("{s}\n", .{log});
         }
+        sdtx.origin(canvas_w - 10, canvas_h - 20);
+        sdtx.home();
+        sdtx.color3f(1, 0, 0);
+        sdtx.puts("Error Added");
     }
     sdtx.draw();
     imgui.render();
     sg.endPass();
     sg.commit();
-    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].batch.clearRetainingCapacity();
-    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.UI_1)].cur_num_of_sprite = 0;
+    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].batch.clearRetainingCapacity();
+    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].cur_num_of_sprite = 0;
 }
 pub fn gamecleanup() !void {}
 export fn init() void {

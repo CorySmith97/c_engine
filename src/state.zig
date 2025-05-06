@@ -41,7 +41,10 @@ const Paths: std.AutoHashMap(u32, PathField) = undefined;
 pub const pass_count: u32 = 4;
 
 pub const GameCursorTag = enum {
-    hovering_sprite,
+    default,
+    selected_entity,
+    selecting_action,
+    hovering_entity,
     hovering_tile,
 };
 
@@ -56,6 +59,7 @@ passes                : []RenderPass,
 console               : Console,
 loaded_scene          : ?Scene,
 game_cursor           : math.Vec2,
+game_cursor_mode      : GameCursorTag,
 selected_cell         : ?usize,
 selected_tile         : ?usize,
 selected_tile_click   : bool = false,
@@ -66,6 +70,8 @@ view                  : math.Mat4,
 //proj                  : math.Mat4,
 camera                : Camera = .{},
 logger                : LogSystem,
+errors                : u32 = 0,
+error_timer           : u32 = 0,
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     var console: Console = undefined;
@@ -83,6 +89,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .passes = try allocator.alloc(RenderPass, pass_count),
         .console = console,
         .game_cursor = .{},
+        .game_cursor_mode = .default,
         .loaded_scene = null,
         // @cleanup I dont think these should be in here? These are more editor specific. outside of the cell
         .selected_entity = null,
@@ -122,14 +129,14 @@ pub fn updateBuffers(self: *Self) void {
 pub fn render(self: *Self, vs_params: shd.VsParams) void {
     assert(self.loaded_scene != null);
     for (self.renderer.render_passes.items) |*pass| {
-        if (pass.id != .UI_1) {
+        if (pass.id != .map_ui_1) {
             if (pass.enabled) {
                 pass.render(vs_params);
             }
         }
     }
     //std.log.info("render ui: {}", .{self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.UI_1)].batch.items.len});
-    self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.UI_1)].render(vs_params);
+    self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.map_ui_1)].render(vs_params);
 }
 
 
@@ -156,7 +163,7 @@ pub fn updateSpriteRenderable(
     sprite_ren: *const SpriteRenderable,
     s: usize,
 ) !void {
-    if (self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.ENTITY_1)].batch.items.len > s) {
-        try self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.ENTITY_1)].updateSpriteRenderables(s, sprite_ren.*);
+    if (self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.map_entity_1)].batch.items.len > s) {
+        try self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.map_entity_1)].updateSpriteRenderables(s, sprite_ren.*);
     }
 }

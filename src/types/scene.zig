@@ -14,7 +14,8 @@ const assert = std.debug.assert;
 const testing = std.testing;
 
 const State = @import("../state.zig");
-const Entity = @import("entity.zig");
+const EntityNs = @import("entity.zig");
+const Entity = EntityNs.Entity;
 const Renderer = @import("../render_system.zig");
 const RendererTypes = @import("render_system.zig");
 const Tile = @import("tile.zig");
@@ -125,11 +126,11 @@ pub fn reloadScene(self: *Self, allocator: std.mem.Allocator) !void {
 
 pub fn loadScene(self: *Self, renderer: *Renderer) !void {
     for (self.tiles.items(.sprite_renderable)) |i| {
-        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.TILES_1)].appendSpriteToBatch(i);
+        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_1)].appendSpriteToBatch(i);
     }
     for (0..self.entities.len) |i| {
         const ent = self.entities.get(i);
-        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.ENTITY_1)].appendSpriteToBatch(ent.sprite);
+        try renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_entity_1)].appendSpriteToBatch(ent.sprite);
     }
 }
 

@@ -26,8 +26,8 @@ pub const pass_count: u32 = 4;
 // Also move to lower case
 //
 pub const RenderPassIds = enum(usize) {
-    TILES_1,
-    TILES_2,
-    ENTITY_1,
-    UI_1,
+    map_tiles_1,
+    map_tiles_2,
+    map_entity_1,
+    map_ui_1,
 };
