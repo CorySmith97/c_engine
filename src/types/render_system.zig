@@ -29,5 +29,6 @@ pub const RenderPassIds = enum(usize) {
     map_tiles_1,
     map_tiles_2,
     map_entity_1,
+    //battle_entity_1,
     map_ui_1,
 };

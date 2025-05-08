@@ -47,6 +47,7 @@ pub const GameCursorTag = enum {
     default,
     selected_entity,
     selecting_action,
+    selecting_target,
     hovering_entity,
     hovering_tile,
 };
@@ -69,6 +70,8 @@ selected_tile_click   : bool = false,
 selected_entity       : ?usize,
 selected_entity_click : bool = false,
 selected_entity_path  : PathField,
+potential_targets     : std.ArrayList(usize),
+displayed_menu        : Menu.DisplayedMenu = .none,
 view                  : math.Mat4,
 selected_action       : Menu.ActionMenu = .Attack,
 //proj                  : math.Mat4,
@@ -102,6 +105,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         .view = view,
         .logger = logger,
         .selected_entity_path = undefined,
+        .potential_targets = std.ArrayList(usize).init(allocator),
     };
 
     try self.renderer.init(allocator);
@@ -172,17 +176,35 @@ pub fn updateSpriteRenderable(
     }
 }
 
+pub fn drawTextLayer(
+    self: *Self
+) !void  {
+    _ = self;
+}
+
 pub fn drawMenu(
     self: *Self,
 ) !void {
     sdtx.origin(60, 2);
     sdtx.home();
-    inline for (std.meta.fields(Menu.ActionMenu)) |i| {
-        if (i.value == @intFromEnum(self.selected_action)) {
+    switch (self.displayed_menu) {
+        .action => {
+            inline for (std.meta.fields(Menu.ActionMenu)) |i| {
+                if (i.value == @intFromEnum(self.selected_action)) {
+                    sdtx.color3f(1, 1, 1);
+                } else {
+                    sdtx.color3f(0, 1, 1);
+                }
+                sdtx.print("{s}\n", .{i.name});
+            }
+        },
+        .item => {
             sdtx.color3f(1, 1, 1);
-        } else {
-            sdtx.color3f(0, 1, 1);
-        }
-        sdtx.print("{s}\n", .{i.name});
+            sdtx.print("Here are sample items:\n", .{});
+            sdtx.print("Cheese\n", .{});
+            sdtx.print("Heal Pot\n", .{});
+            sdtx.print("Tomahawk\n", .{});
+        },
+        else => {},
     }
 }

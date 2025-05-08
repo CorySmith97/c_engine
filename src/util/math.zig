@@ -14,6 +14,14 @@
 const assert = @import("std").debug.assert;
 const math = @import("std").math;
 
+///
+/// REWRITING THIS WITH SIMD
+///
+
+//pub const Vec4 = @Vector(f32, 4);
+//pub const Vec3 = @Vector(f32, 3);
+//pub const Vec2 = @Vector(f32, 2);
+
 fn radians(deg: f32) f32 {
     return deg * (math.pi / 180.0);
 }
@@ -112,6 +120,12 @@ pub const Vec3 = extern struct {
 
     pub fn dot(v0: Vec3, v1: Vec3) f32 {
         return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;
+    }
+
+    pub fn scale(v0: Vec3, scalar: f32) Vec3 {
+        return Vec3{ .x = v0.x * scalar,
+                    .y = v0.y * scalar,
+                    .z = v0.z * scalar};
     }
 };
 

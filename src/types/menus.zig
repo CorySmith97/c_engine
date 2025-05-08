@@ -14,9 +14,18 @@ pub const MainMenu = enum {
     @"Exit",
 };
 
+pub const DisplayedMenu = enum {
+    none,
+    main,
+    pause,
+    action,
+    item,
+    ability,
+};
+
 pub const ActionMenu = enum {
     Attack,
     Items,
-    Actions,
+    Ability,
     Wait,
 };

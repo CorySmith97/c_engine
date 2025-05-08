@@ -8,6 +8,8 @@
 /// ===========================================================================
 
 const std = @import("std");
+const log = std.log.scoped(.input);
+
 const ig = @import("cimgui");
 const sokol = @import("sokol");
 const app = sokol.app;
@@ -15,13 +17,15 @@ const sg = sokol.gfx;
 const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
+
 const shd = @import("shaders/basic.glsl.zig");
 const util = @import("util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
+
 const State = @import("state.zig");
-const log = std.log.scoped(.input);
 const RenderPassIds = @import("types.zig").RendererTypes.RenderPassIds;
+
 const types = @import("types.zig");
 const Scene = types.Scene;
 const RendererTypes = types.RendererTypes;
@@ -35,6 +39,13 @@ const PathField = dijkstra.PathField;
 // Place info about combat in logs for the meantime.
 // Goal: 05/05/2025 eod.
 //
+
+const dirs = [_]math.Vec3{
+    .{ .x = 0, .y = -16, .z = 0},
+    .{ .x = 0, .y = 16, .z = 0},
+    .{ .x = 16, .y = 0, .z = 0},
+    .{ .x = -16, .y = 0, .z = 0},
+};
 
 pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
     _ = imgui.handleEvent(ev.*);
@@ -66,6 +77,17 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
         if (state.loaded_scene) |*s| {
             switch (ev.*.key_code) {
                 .LEFT  => {
+                    if (state.game_cursor_mode == .selecting_target) {
+                        for (state.potential_targets.items) |t| {
+                            for (s.entities.items(.sprite)) |sprite| {
+                            const grid_space = util.vec3ToGridSpace(sprite.pos, 16, s.width);
+                                if (grid_space == t) {
+                                    state.game_cursor.x -= 16;
+                                }
+                            }
+                        }
+                        return;
+                    }
                     if (state.game_cursor_mode == .selecting_action) return;
                     if (state.game_cursor.x - step < state.camera.pos.x - marginX) {
                         state.camera.pos.x -= step;
@@ -84,7 +106,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                 .UP    => {
                     if (state.game_cursor_mode == .selecting_action) {
                         state.selected_action = @enumFromInt(
-                            if ((@intFromEnum(state.selected_action)) == 0) 0 else
+                            if ((@intFromEnum(state.selected_action)) == 0) 3 else
                                 @intFromEnum(state.selected_action) - 1
                         );
                         return;
@@ -99,7 +121,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                 .DOWN  => {
                     if (state.game_cursor_mode == .selecting_action) {
                         state.selected_action = @enumFromInt(
-                            if ((@intFromEnum(state.selected_action)) == 3) 3 else
+                            if ((@intFromEnum(state.selected_action)) == 3) 0 else
                                 @intFromEnum(state.selected_action) + 1
                         );
                         return;
@@ -111,6 +133,12 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                         state.game_cursor.y -= 16;
                     }
                 },
+                .S => {
+                    switch (state.game_cursor_mode) {
+                        .selecting_target => state.game_cursor_mode = .selecting_action,
+                        else => {},
+                    }
+                },
                 .A => {
                     switch (state.game_cursor_mode) {
                         .default => {
@@ -119,33 +147,43 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                         .selected_entity => {
                             try placeEntity(s, state);
                         },
+                        .selecting_target => {
+                        },
                         .selecting_action => {
                             switch (state.selected_action) {
                                 .Attack => {
                                     const ent = s.entities.get(state.selected_entity.?);
-                                    const dirs = [_]math.Vec3{
-                                        .{ .x = 0, .y = -16, .z = 0},
-                                        .{ .x = 0, .y = 16, .z = 0},
-                                        .{ .x = 16, .y = 0, .z = 0},
-                                        .{ .x = -16, .y = 0, .z = 0},
-                                    };
                                     for (dirs) |d| {
 
                                         const sr: SpriteRenderable = .{
                                             .pos = math.Vec3.add(ent.sprite.pos, d),
-                                            .sprite_id = 1,
-                                            .color     = .{ .x = 0, .y = 0, .z = 0, .w = 1 },
+                                            .sprite_id = 100,
+                                            .color     = .{ .x = 1, .y = 0, .z = 0, .w = 0.4 },
                                         };
+                                        if (sr.pos.x < 0 or sr.pos.y < 0) {
+                                            continue;
+                                        }
                                         try state
                                             .renderer
                                             .render_passes
                                             .items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)]
                                             .appendSpriteToBatch(sr);
+
+                                        const target = util.vec3ToGridSpace(sr.pos, 16, s.width);
+                                        log.info("{any}", .{target});
+                                        try state.potential_targets.append(target);
                                     }
+                                    state.game_cursor_mode = .selecting_target;
+                                },
+                                .Items => {
+                                    state.displayed_menu =  .item;
                                 },
                                 .Wait => {
+                                    state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)].batch.clearRetainingCapacity();
+                                    state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)].cur_num_of_sprite = 0;
                                     state.selected_entity = null;
                                     state.game_cursor_mode = .default;
+                                    state.selected_action = .Attack;
                                 },
                                 else => {},
                             }
@@ -203,6 +241,7 @@ fn placeEntity(
         state.renderer.render_passes.items[@intFromEnum(RendererTypes.RenderPassIds.map_tiles_2)].cur_num_of_sprite = 0;
     }
     state.game_cursor_mode = .selecting_action;
+    state.displayed_menu = .action;
 }
 
 fn selectEntity(
@@ -231,8 +270,8 @@ fn selectEntity(
                             const y  = @as(f32, iy) * tileSize;
                             const sr: SpriteRenderable = .{
                                 .pos       = .{ .x = x, .y = y, .z = 0 },
-                                .sprite_id = 0,
-                                .color     = .{ .x = 0, .y = 0, .z = 0, .w = 0.5 },
+                                .sprite_id = 100,
+                                .color     = .{ .x = 0, .y = 1, .z = 0, .w = 0.4 },
                             };
                             try state
                                 .renderer

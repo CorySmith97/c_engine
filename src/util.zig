@@ -24,6 +24,15 @@ pub fn computeVsParams(proj: mat4, view: mat4) shd.VsParams {
     return shd.VsParams{ .mvp = mat4.mul(mat4.mul(proj, view), model) };
 }
 
+pub fn vec3ToGridSpace(
+    v: math.Vec3,
+    grid_size: f32,
+    width: f32,
+) usize {
+    const scaled = math.Vec3.scale(v, 1/grid_size);
+    return @intFromFloat((scaled.y * width) + scaled.x);
+}
+
 pub fn aabbColl(a: AABB, b: AABB) bool {
     return (a.min.x <= b.max.x and a.max.x >= b.min.x and a.min.y <= b.max.y and a.max.y >= b.min.y);
 }

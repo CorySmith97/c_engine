@@ -21,7 +21,8 @@ const State = @import("../state.zig");
 const types = @import("../types.zig");
 const Tile = types.Tile;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
-const Entity = types.Entity;
+const EntityNs = types.EntityNs;
+const Entity = EntityNs.Entity;
 const util = @import("../util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
@@ -55,9 +56,9 @@ pub fn drawEntityEditor(
 
     if (ig.igBeginChild("Adding Entity", child_size, 0, ig.ImGuiWindowFlags_None)) {
         if (editor_state.state.loaded_scene) |*scene| {
-            for (Entity.EntityList.keys()) |key|{
+            for (EntityNs.EntityList.keys()) |key|{
                 if (ig.igButton(key.ptr)) {
-                    const new_entity = Entity.EntityList.get(key).?;
+                    const new_entity = EntityNs.EntityList.get(key).?;
                     try scene.entities.append(editor_state.allocator, new_entity);
                     editor_state.state.selected_entity = scene.entities.len - 1;
                     try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_entity_1)].appendSpriteToBatch(new_entity.sprite);

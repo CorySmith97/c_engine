@@ -32,7 +32,8 @@ const State = @import("state.zig");
 const types = @import("types.zig");
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 const Scene = types.Scene;
-const Entity = types.Entity;
+const EntityNs = types.EntityNs;
+const Entity = EntityNs.Entity;
 const GroupTile = types.GroupTile;
 const Tile = types.Tile;
 const GlobalConstants = types.GlobalConstants;
@@ -733,7 +734,7 @@ pub fn editorFrame() !void {
     }
     if (es.state.loaded_scene) |s| {
         for (s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
-            sprite.sprite_id = Entity.updateAnimation(animation);
+            sprite.sprite_id = EntityNs.updateAnimation(animation);
         }
     }
     es.selected_layer = store;

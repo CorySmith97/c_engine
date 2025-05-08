@@ -82,6 +82,20 @@ pub fn customLogFn(
     }
 }
 
+//
+// @cleanup just move this to another file.
+//
+pub fn customSwapchain(
+) sg.Swapchain {
+    //
+    // Again custom swap chain to have uniform color formats across systems.
+    //
+    var swapchain = glue.swapchain();
+    swapchain.color_format = .RGBA8;
+    return swapchain;
+}
+
+
 var global_state: State = undefined;
 var passaction: sg.PassAction = .{};
 var proj: math.Mat4 = undefined;
@@ -171,41 +185,6 @@ pub fn gameframe() !void {
         .dpi_scale = app.dpiScale(),
     });
 
-    const viewport = ig.igGetMainViewport();
-    viewport.*.Flags |= ig.ImGuiViewportFlags_NoRendererClear;
-
-    ig.igSetNextWindowPos(viewport.*.WorkPos, ig.ImGuiCond_Always);
-    ig.igSetNextWindowSize(viewport.*.WorkSize, ig.ImGuiCond_Always);
-    ig.igSetNextWindowViewport(viewport.*.ID);
-
-    //_ = ig.igBegin("View", null, ig.ImGuiWindowFlags_None);
-    //ig.igText(\\View:
-    //              \\%.1f %.1f %.1f %.1f
-    //              \\%.1f %.1f %.1f %.1f
-    //              \\%.1f %.1f %.1f %.1f
-    //              \\%.1f %.1f %.1f %.1f
-    //              \\
-    //              ,global_state.view.m[0][0]
-    //              ,global_state.view.m[0][1]
-    //              ,global_state.view.m[0][2]
-    //              ,global_state.view.m[0][3]
-    //              ,global_state.view.m[1][0]
-    //              ,global_state.view.m[1][1]
-    //              ,global_state.view.m[1][2]
-    //              ,global_state.view.m[1][3]
-    //              ,global_state.view.m[2][0]
-    //              ,global_state.view.m[2][1]
-    //              ,global_state.view.m[2][2]
-    //              ,global_state.view.m[2][3]
-    //              ,global_state.view.m[3][0]
-    //              ,global_state.view.m[3][1]
-    //              ,global_state.view.m[3][2]
-    //              ,global_state.view.m[3][3]
-    //          );
-
-    //ig.igText("Cursor: %.1f %.1f", global_state.game_cursor.x, global_state.game_cursor.y);
-    //ig.igEnd();
-
     if (global_state.console.open) {
         ig.igSetNextWindowPos(.{ .x = 10, .y = 10 }, ig.ImGuiCond_Once);
         ig.igSetNextWindowSize(.{ .x = 400, .y = 100 }, ig.ImGuiCond_Once);
@@ -229,11 +208,7 @@ pub fn gameframe() !void {
     );
 
 
-    //
-    // Again custom swap chain to have uniform color formats across systems.
-    //
-    var swapchain = glue.swapchain();
-    swapchain.color_format = .RGBA8;
+    const swapchain = customSwapchain();
     global_state.updateBuffers();
 
 

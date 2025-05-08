@@ -17,7 +17,7 @@
      "y": 1.28e2,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 2e0,
     "color": {
      "x": 0e0,
      "y": 0e0,
@@ -35,7 +35,6 @@
      "y": 1.6e1
     }
    },
-   "lua_script": "",
    "flags": {
     "selected": false,
     "player_team": false
@@ -49,6 +48,7 @@
    "stats": {
     "level": 1,
     "health": 10,
+    "cur_health": 10,
     "strength": 10,
     "magic": 10,
     "dexterity": 10,
@@ -60,13 +60,13 @@
     "move_speed": 5
    },
    "animation": {
-    "frame_count": 26,
+    "frame_count": 24,
     "indicies": [
      0e0,
      1e0,
      2e0
     ],
-    "cur_frame": 0,
+    "cur_frame": 2,
     "speed": 42
    }
   },
@@ -83,7 +83,7 @@
      "y": 1.28e2,
      "z": 0e0
     },
-    "sprite_id": 3.3e1,
+    "sprite_id": 3.2e1,
     "color": {
      "x": 0e0,
      "y": 0e0,
@@ -101,7 +101,6 @@
      "y": 1.6e1
     }
    },
-   "lua_script": "",
    "flags": {
     "selected": false,
     "player_team": false
@@ -115,6 +114,7 @@
    "stats": {
     "level": 1,
     "health": 10,
+    "cur_health": 10,
     "strength": 10,
     "magic": 10,
     "dexterity": 10,
@@ -126,13 +126,13 @@
     "move_speed": 5
    },
    "animation": {
-    "frame_count": 3,
+    "frame_count": 1,
     "indicies": [
      3.2e1,
      3.3e1,
      3.4e1
     ],
-    "cur_frame": 1,
+    "cur_frame": 0,
     "speed": 42
    }
   },
@@ -149,7 +149,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 1.7e1,
+    "sprite_id": 1.6e1,
     "color": {
      "x": 0e0,
      "y": 0e0,
@@ -167,7 +167,6 @@
      "y": 1.6e1
     }
    },
-   "lua_script": "",
    "flags": {
     "selected": false,
     "player_team": false
@@ -181,6 +180,7 @@
    "stats": {
     "level": 1,
     "health": 10,
+    "cur_health": 10,
     "strength": 10,
     "magic": 10,
     "dexterity": 10,
@@ -192,13 +192,13 @@
     "move_speed": 5
    },
    "animation": {
-    "frame_count": 36,
+    "frame_count": 34,
     "indicies": [
      1.6e1,
      1.7e1,
      1.8e1
     ],
-    "cur_frame": 1,
+    "cur_frame": 0,
     "speed": 42
    }
   }
@@ -237,7 +237,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -259,7 +259,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -281,7 +281,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -303,7 +303,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -325,7 +325,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -347,7 +347,7 @@
      "y": 0e0,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -457,7 +457,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -479,7 +479,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -501,7 +501,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -523,7 +523,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -545,7 +545,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -567,7 +567,7 @@
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -677,7 +677,7 @@
      "y": 3.2e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -699,7 +699,7 @@
      "y": 3.2e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -721,7 +721,7 @@
      "y": 3.2e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -743,7 +743,7 @@
      "y": 3.2e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -765,7 +765,7 @@
      "y": 3.2e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,
@@ -787,7 +787,7 @@
      "y": 3.2e1,
      "z": 0e0
     },
-    "sprite_id": 0e0,
+    "sprite_id": 5.4e1,
     "color": {
      "x": 6.5625e-1,
      "y": 1e0,

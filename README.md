@@ -27,6 +27,12 @@ this may not happen.
 dont run zig fmt. I have some custom formatting things that I much prefer
 over the defaults zig formatting.
 
+## Thoughts
+
+I like the idea of very procedural code. Think heavy c style for everything. Im not perfect at doing this
+as I still make heavy use of namespaces and methods attached to a struct. However I think it is better to 
+generally have  data types and functions that change that data. 
+
 ## Editor Settings (config_editor.json)
 
 ``` json
