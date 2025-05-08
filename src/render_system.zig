@@ -85,6 +85,25 @@ pub fn deinit(self: *Self) !void {
     self.render_passes.deinit();
 }
 
+pub fn resetPass(
+    self: *Self,
+    id: RenderPassIds,
+) void {
+    self.render_passes.items[@intFromEnum(id)].batch.clearRetainingCapacity();
+    self.render_passes.items[@intFromEnum(id)].cur_num_of_sprite = 0;
+}
+
+pub fn addSpriteToBatch(
+    self: *Self,
+    id: RenderPassIds,
+    sr: SpriteRenderable,
+) !void {
+    try self
+        .render_passes
+        .items[@intFromEnum(id)]
+        .appendSpriteToBatch(sr);
+}
+
 
 //
 // @todo Render UI stats for entity. Have it be in the corners at static locations

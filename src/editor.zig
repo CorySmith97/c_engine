@@ -58,6 +58,8 @@ pub const Input = struct {
 //
 // All the possible states that the cursor can be.
 //
+// @todo add brush mode
+//
 pub const CursorTag = enum {
     inactive,
     editing_tile,

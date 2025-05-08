@@ -21,6 +21,7 @@ const Entity = types.Entity;
 const RendererTypes = types.RendererTypes;
 const SpriteRenderable = RendererTypes.SpriteRenderable;
 const log = std.log.scoped(.render_pass);
+const Global = @import("../globals.zig");
 
 fn xorshift32() u32 {
     const static = struct {
@@ -38,9 +39,15 @@ fn rand(min_val: f32, max_val: f32) f32 {
     return (@as(f32, @floatFromInt(xorshift32() & 0xFFFF)) / 0x10000) * (max_val - min_val) + min_val;
 }
 
+// @todo there needs to be a split here. There needs to be a choice for selection
+// mode on the editor. I want to have tiles flashing.
+
 // @todo This should possibly be split up. Or perhaps there needs to just be a
 // a seperate pass type for post processing/3d passes.
 // Maybe rename and refactor to Pass2d
+//
+// @todo Pipelines need to have more passes.
+//
 const Self = @This();
 id                    : RendererTypes.RenderPassIds,
 pass_action           : sg.PassAction,
@@ -169,6 +176,7 @@ pub fn appendSpriteSliceToBatch(
     try self.batch.appendSliceAssumeCapacity(sprite);
     self.cur_num_of_sprite = sprite.len;
 }
+
 pub fn appendSpriteToBatch(
     self: *Self,
     sprite: SpriteRenderable,

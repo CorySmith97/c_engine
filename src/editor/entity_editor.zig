@@ -61,7 +61,7 @@ pub fn drawEntityEditor(
                     const new_entity = EntityNs.EntityList.get(key).?;
                     try scene.entities.append(editor_state.allocator, new_entity);
                     editor_state.state.selected_entity = scene.entities.len - 1;
-                    try editor_state.state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_entity_1)].appendSpriteToBatch(new_entity.sprite);
+                    try editor_state.state.renderer.addSpriteToBatch(.map_entity_1, new_entity.sprite);
                 }
             }
         }

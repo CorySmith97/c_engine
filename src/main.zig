@@ -195,7 +195,7 @@ pub fn gameframe() !void {
         try global_state.drawMenu();
     }
 
-    try global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].appendSpriteToBatch(
+    try global_state.renderer.addSpriteToBatch(.map_ui_1,
         .{
             .pos = .{
                 .x = (global_state.game_cursor.x),
@@ -263,8 +263,7 @@ pub fn gameframe() !void {
     imgui.render();
     sg.endPass();
     sg.commit();
-    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].batch.clearRetainingCapacity();
-    global_state.renderer.render_passes.items[@intFromEnum(RenderPassIds.map_ui_1)].cur_num_of_sprite = 0;
+    global_state.renderer.resetPass(.map_ui_1);
 }
 pub fn gamecleanup() !void {}
 export fn init() void {

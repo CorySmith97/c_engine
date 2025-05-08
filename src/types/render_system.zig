@@ -10,6 +10,10 @@
 
 const math = @import("../util.zig").math;
 
+
+//
+// Flag for if render should shimmer
+//
 pub const SpriteRenderable = extern struct {
     pos       : math.Vec3 = .{},
     sprite_id : f32 = 0,
@@ -19,11 +23,8 @@ pub const SpriteRenderable = extern struct {
 pub const pass_count: u32 = 4;
 
 //
-// @todo Rename these for prefixes. IE
 // map_ for map sprite
 // combat_ for combat sprite
-//
-// Also move to lower case
 //
 pub const RenderPassIds = enum(usize) {
     map_tiles_1,
