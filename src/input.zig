@@ -30,6 +30,7 @@ const types = @import("types.zig");
 const Scene = types.Scene;
 const RendererTypes = types.RendererTypes;
 const SpriteRenderable = RendererTypes.SpriteRenderable;
+const EntityNs = types.EntityNs;
 
 const dijkstra = @import("algorithms/dijkstras.zig");
 const PathField = dijkstra.PathField;
@@ -119,6 +120,15 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                 }
             },
             .DOWN  => {
+                if (state.game_cursor_mode == .selecting_target) {
+                    const gc = util.vec2ToGridSpace(state.game_cursor, 16, s.width);
+                    for (0.., s.entities.items(.sprite)) |i, sprite| {
+                        const target = util.vec3ToGridSpace(sprite.pos, 16, s.width);
+                        if (gc == target) {
+                            state.selected_target = i;
+                        }
+                    }
+                }
                 if (state.game_cursor_mode == .selecting_action) {
                     state.selected_action = @enumFromInt(
                         if ((@intFromEnum(state.selected_action)) == 3) 0 else
@@ -157,6 +167,29 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
                         try placeEntity(s, state);
                     },
                     .selecting_target => {
+                        if (state.selected_target) |target| {
+                            const selected = state.selected_entity orelse return;
+                            var ent1 = s.entities.get(selected);
+                            const ent2 = s.entities.get(target);
+
+                            const res = try EntityNs.combat(ent1.stats, ent1.weapon, ent2.stats, ent2.weapon);
+                            const results = try std.fmt.allocPrint(state.allocator, "Ent1 did {} damage to Ent2", .{res});
+                            defer state.allocator.free(results);
+
+
+                            try state.logger.appendToCombatLog(results);
+                            ent1.flags.turn_over = true;
+
+                            try state.updateSpriteRenderable(&ent1.sprite, selected);
+                            s.entities.set(selected, ent1);
+
+                            state.game_cursor_mode = .default;
+
+                            state.selected_entity = null;
+                            state.selected_target = null;
+
+
+                        }
                     },
                     .selecting_action => {
                         try selectingAction(s, state);

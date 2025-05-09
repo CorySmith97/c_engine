@@ -26,7 +26,7 @@ const RenderSystem = @import("render_system.zig");
 
 const Console = @import("editor/console.zig");
 const TypeEditors = @import("editor/entity_editor.zig");
-const Quad = @import("render_system/Quad.zig");
+const Quad = @import("render_system/DrawCall.zig");
 const Serde = @import("util/serde.zig");
 const State = @import("state.zig");
 const types = @import("types.zig");
@@ -952,9 +952,8 @@ fn main_menu() !void {
             var level_dir = try std.fs.cwd().openDir("levels", .{ .iterate = true });
             var level_walker = try level_dir.walk(es.allocator);
             while (try level_walker.next()) |entry| {
-                if (es.editor_config.mode == .JSON and std.mem.containsAtLeast(u8, entry.basename, 1, ".json")) {
-                    try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
-                } else if (es.editor_config.mode == .BINARY and std.mem.containsAtLeast(u8, entry.basename, 1, ".txt")) {
+                try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
+                if (es.editor_config.mode == .BINARY and std.mem.containsAtLeast(u8, entry.basename, 1, ".txt")) {
                     try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
                 }
             }

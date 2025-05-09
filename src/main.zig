@@ -173,8 +173,10 @@ pub fn gameframe() !void {
         }
     }
     if (global_state.loaded_scene) |s| {
-        for ( s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
-            sprite.sprite_id = EntityNs.updateAnimation(animation);
+        for ( s.entities.items(.sprite), s.entities.items(.animation), s.entities.items(.flags)) |*sprite, *animation, flags| {
+            if (!flags.turn_over) {
+                sprite.sprite_id = EntityNs.updateAnimation(animation);
+            }
         }
     }
 
@@ -221,6 +223,7 @@ pub fn gameframe() !void {
     const canvas_w = app.widthf() * 0.5;
     const canvas_h = app.heightf() * 0.5;
 
+    sdtx.font(2);
     sdtx.canvas(canvas_w, canvas_h);
     sdtx.color3f(1, 1, 1);
     sdtx.origin(0, 1);

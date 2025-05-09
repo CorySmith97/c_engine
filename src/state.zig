@@ -43,6 +43,13 @@ const Paths: std.AutoHashMap(u32, PathField) = undefined;
 
 pub const pass_count: u32 = 4;
 
+pub const GameState = enum {
+    main_menu,
+    pause_menu,
+    world_map,
+    chapter_map,
+};
+
 pub const GameCursorTag = enum {
     default,
     selected_entity,
@@ -50,6 +57,12 @@ pub const GameCursorTag = enum {
     selecting_target,
     hovering_entity,
     hovering_tile,
+};
+
+pub const TurnTag = enum {
+    player,
+    enemy,
+    neutral,
 };
 
 
@@ -71,6 +84,7 @@ selected_entity       : ?usize,
 selected_entity_click : bool = false,
 selected_entity_path  : PathField,
 potential_targets     : std.ArrayList(usize),
+selected_target       : ?usize = null,
 displayed_menu        : Menu.DisplayedMenu = .none,
 view                  : math.Mat4,
 selected_action       : Menu.ActionMenu = .Attack,
@@ -185,6 +199,7 @@ pub fn drawTextLayer(
 pub fn drawMenu(
     self: *Self,
 ) !void {
+    sdtx.font(2);
     sdtx.origin(60, 2);
     sdtx.home();
     switch (self.displayed_menu) {

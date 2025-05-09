@@ -11,6 +11,17 @@
    "spritesheet_id": "map_entity_1",
    "z_index": 0e0,
    "entity_type": "default",
+   "selected_animation": "map",
+   "animation": {
+    "frame_count": 35,
+    "indicies": [
+     0e0,
+     1e0,
+     2e0
+    ],
+    "cur_frame": 2,
+    "speed": 42
+   },
    "sprite": {
     "pos": {
      "x": 1.28e2,
@@ -37,7 +48,8 @@
    },
    "flags": {
     "selected": false,
-    "player_team": false
+    "player_team": false,
+    "turn_over": false
    },
    "weapon": {
     "tag": "fist",
@@ -59,16 +71,7 @@
     "resistence": 10,
     "move_speed": 5
    },
-   "animation": {
-    "frame_count": 24,
-    "indicies": [
-     0e0,
-     1e0,
-     2e0
-    ],
-    "cur_frame": 2,
-    "speed": 42
-   }
+   "team": "player"
   },
   {
    "id": 10,
@@ -77,6 +80,17 @@
    "spritesheet_id": "map_entity_1",
    "z_index": 0e0,
    "entity_type": "default",
+   "selected_animation": "map",
+   "animation": {
+    "frame_count": 12,
+    "indicies": [
+     3.2e1,
+     3.3e1,
+     3.4e1
+    ],
+    "cur_frame": 0,
+    "speed": 42
+   },
    "sprite": {
     "pos": {
      "x": 1.6e1,
@@ -103,7 +117,8 @@
    },
    "flags": {
     "selected": false,
-    "player_team": false
+    "player_team": false,
+    "turn_over": false
    },
    "weapon": {
     "tag": "fist",
@@ -125,16 +140,7 @@
     "resistence": 10,
     "move_speed": 5
    },
-   "animation": {
-    "frame_count": 1,
-    "indicies": [
-     3.2e1,
-     3.3e1,
-     3.4e1
-    ],
-    "cur_frame": 0,
-    "speed": 42
-   }
+   "team": "player"
   },
   {
    "id": 10,
@@ -143,13 +149,24 @@
    "spritesheet_id": "map_entity_1",
    "z_index": 0e0,
    "entity_type": "default",
+   "selected_animation": "map",
+   "animation": {
+    "frame_count": 3,
+    "indicies": [
+     1.6e1,
+     1.7e1,
+     1.8e1
+    ],
+    "cur_frame": 1,
+    "speed": 42
+   },
    "sprite": {
     "pos": {
      "x": 6.4e1,
      "y": 1.6e1,
      "z": 0e0
     },
-    "sprite_id": 1.6e1,
+    "sprite_id": 1.7e1,
     "color": {
      "x": 0e0,
      "y": 0e0,
@@ -169,7 +186,8 @@
    },
    "flags": {
     "selected": false,
-    "player_team": false
+    "player_team": false,
+    "turn_over": false
    },
    "weapon": {
     "tag": "fist",
@@ -191,16 +209,76 @@
     "resistence": 10,
     "move_speed": 5
    },
+   "team": "player"
+  },
+  {
+   "id": 10,
+   "world_index": 0,
+   "grid_pos": 0,
+   "spritesheet_id": "map_entity_1",
+   "z_index": 0e0,
+   "entity_type": "default",
+   "selected_animation": "map",
    "animation": {
-    "frame_count": 34,
+    "frame_count": 25,
     "indicies": [
-     1.6e1,
-     1.7e1,
-     1.8e1
+     3.2e1,
+     3.3e1,
+     3.4e1
     ],
-    "cur_frame": 0,
+    "cur_frame": 1,
     "speed": 42
-   }
+   },
+   "sprite": {
+    "pos": {
+     "x": 6.4e1,
+     "y": 3.2e1,
+     "z": 0e0
+    },
+    "sprite_id": 3.3e1,
+    "color": {
+     "x": 0e0,
+     "y": 0e0,
+     "z": 0e0,
+     "w": 0e0
+    }
+   },
+   "aabb": {
+    "min": {
+     "x": 0e0,
+     "y": 0e0
+    },
+    "max": {
+     "x": 1.6e1,
+     "y": 1.6e1
+    }
+   },
+   "flags": {
+    "selected": false,
+    "player_team": false,
+    "turn_over": false
+   },
+   "weapon": {
+    "tag": "fist",
+    "subtype": "physical_str",
+    "weight": 0,
+    "damage": 1
+   },
+   "stats": {
+    "level": 1,
+    "health": 1,
+    "cur_health": 1,
+    "strength": 1,
+    "magic": 1,
+    "dexterity": 1,
+    "wisdom": 1,
+    "charisma": 1,
+    "speed": 1,
+    "defense": 1,
+    "resistence": 1,
+    "move_speed": 5
+   },
+   "team": "player"
   }
  ],
  "tiles": [

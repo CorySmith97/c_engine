@@ -33,6 +33,15 @@ pub fn vec3ToGridSpace(
     return @intFromFloat((scaled.y * width) + scaled.x);
 }
 
+pub fn vec2ToGridSpace(
+    v: math.Vec2,
+    grid_size: f32,
+    width: f32,
+) usize {
+    const scaled = math.Vec2.scale(v, 1/grid_size);
+    return @intFromFloat((scaled.y * width) + scaled.x);
+}
+
 pub fn aabbColl(a: AABB, b: AABB) bool {
     return (a.min.x <= b.max.x and a.max.x >= b.min.x and a.min.y <= b.max.y and a.max.y >= b.min.y);
 }

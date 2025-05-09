@@ -53,7 +53,7 @@ id                    : RendererTypes.RenderPassIds,
 pass_action           : sg.PassAction,
 bindings              : sg.Bindings,
 image                 : sg.Image,
-pipeline              : sg.Pipeline,
+pipelines             : std.ArrayList(sg.Pipeline),
 batch                 : std.ArrayList(SpriteRenderable),
 cur_num_of_sprite     : u32 = 0,
 max_sprites_per_batch : u32,
@@ -75,6 +75,7 @@ pub fn init(
     self.cur_num_of_sprite = 0;
     self.max_sprites_per_batch = 10000;
     self.batch = try std.ArrayList(SpriteRenderable).initCapacity(allocator, 100);
+    self.pipelines = std.ArrayList(sg.Pipeline).init(allocator);
     self.sprite_size = sprite_size;
     self.atlas_size = atlas_size;
     self.path = spritesheet_path;
@@ -110,7 +111,7 @@ pub fn init(
         .data = sg.asRange(&indices),
     });
 
-    self.pipeline = sg.makePipeline(.{
+    try self.pipelines.append(sg.makePipeline(.{
         .shader = sg.makeShader(shd.basicShaderDesc(sg.queryBackend())),
         .layout = init: {
             var l = sg.VertexLayoutState{};
@@ -141,7 +142,7 @@ pub fn init(
             };
             break :init c;
         },
-    });
+    }));
     var x: c_int = 0;
     var y: c_int = 0;
     var chan: c_int = 0;
@@ -208,7 +209,9 @@ pub fn render(
         .atlas_size = self.atlas_size,
         .sprite_size = self.sprite_size,
     };
-    sg.applyPipeline(self.pipeline);
+    for (self.pipelines.items) |pipe| {
+        sg.applyPipeline(pipe);
+    }
     sg.applyBindings(self.bindings);
     sg.applyUniforms(shd.UB_vs_params, sg.asRange(&vs_params));
     sg.applyUniforms(shd.UB_fs_params, sg.asRange(&fs_params));

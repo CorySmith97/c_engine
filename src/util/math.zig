@@ -70,6 +70,11 @@ pub const Vec2 = extern struct {
     pub fn new(x: f32, y: f32) Vec2 {
         return Vec2{ .x = x, .y = y };
     }
+
+    pub fn scale(v0: Vec2, scalar: f32) Vec3 {
+        return Vec3{ .x = v0.x * scalar,
+                    .y = v0.y * scalar};
+    }
 };
 
 pub const Vec3 = extern struct {

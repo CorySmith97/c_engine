@@ -67,6 +67,7 @@ const Animation = struct {
 const Flags = packed struct {
     selected       : bool = false,
     player_team    : bool = false,
+    turn_over      : bool = false,
 };
 
 const Team = enum {
@@ -152,25 +153,13 @@ pub fn combat(
     e1_weapon: Weapon,
     e2_stats: Stats,
     e2_weapon: Weapon,
-) !void {
+) !u32 {
 
-    const e1_base_attack = switch (e1_weapon.subtype) {
-        .magical      => {
-            e1_stats.magic + e1_weapon.damage;
-        },
-        .physical_str => {},
-        .physical_dex => {},
-    };
-    const e2_base_attack = switch (e2_weapon.subtype) {
-        .magical      => {
-            e2_stats.magic + e2_weapon.damage;
-        },
-        .physical_str => {},
-        .physical_dex => {},
-    };
+    const e1_base_attack = e1_stats.strength + e1_weapon.damage;
+    const e2_base_attack = e2_stats.strength + e2_weapon.damage;
 
-    _ = e1_base_attack;
     _ = e2_base_attack;
+    return e2_stats.cur_health - (e1_base_attack - e2_stats.defense);
 }
 
 

@@ -23,14 +23,50 @@ const Vao = &[_][]f32{
     [_]f32{},
 };
 
-const Self = @This();
-pass_action: sg.PassAction = .{},
-bindings: sg.Bindings = .{},
-pipeline: sg.Pipeline = .{},
+pub const GeneralPurposeRender = struct {
+    draw_calls: std.ArrayList(DrawCall),
+};
 
-pub fn drawQuad2dSpace(pos: math.Vec2, color: math.Vec3, vs_params: shd.VsParams) void {
-    var self = Self{};
+pub const DrawCall = struct {
+    const Self = @This();
+    pass_action: sg.PassAction = .{},
+    pipeline: sg.Pipeline = .{},
+    bindings: sg.Bindings = .{},
+};
 
+pub const ModelVertex = packed struct {
+    pos: math.Vec3,
+    normal: math.Vec3,
+    uv: math.Vec2,
+};
+
+pub const Mesh = struct {
+    vertices: std.ArrayList(ModelVertex),
+    indices: std.ArrayList(u16),
+};
+
+//pub fn loadMeshObj(
+//    path: []const u8,
+//    mesh: *Mesh,
+//) !void {
+//    var file = try std.fs.cwd().openFile(path, .{});
+//    defer file.close();
+//
+//    var reader = file.reader();
+//
+//
+// 
+//
+//}
+
+
+
+//
+// Create Vertex bindings per frame for items such as quads.
+//
+pub fn drawQuad2dSpace(pos: math.Vec2, color: math.Vec3, mvp: math.Mat4) void {
+
+    var dc: DrawCall = .{};
     const verts = [_]f32{
         0 + pos.x, 1 + pos.y, 0.0, color.x, color.y, color.z,
         1 + pos.x, 1 + pos.y, 0.0, color.x, color.y, color.z,
@@ -42,21 +78,21 @@ pub fn drawQuad2dSpace(pos: math.Vec2, color: math.Vec3, vs_params: shd.VsParams
         0, 1, 2,
         0, 2, 3,
     };
-    self.bindings.vertex_buffers[0] = sg.makeBuffer(.{
+    dc.bindings.vertex_buffers[0] = sg.makeBuffer(.{
         .type = .VERTEXBUFFER,
         .data = sg.asRange(&verts),
     });
-    defer sg.destroyBuffer(self.bindings.vertex_buffers[0]);
-    self.bindings.index_buffer = sg.makeBuffer(.{
+    defer sg.destroyBuffer(dc.bindings.vertex_buffers[0]);
+    dc.bindings.index_buffer = sg.makeBuffer(.{
         .type = .INDEXBUFFER,
         .data = sg.asRange(&indices),
     });
-    defer sg.destroyBuffer(self.bindings.index_buffer);
+    defer sg.destroyBuffer(dc.bindings.index_buffer);
 
     const quad_shd = sg.makeShader(shd.quadShaderDesc(sg.queryBackend()));
     defer sg.destroyShader(quad_shd);
 
-    self.pipeline = sg.makePipeline(.{
+    dc.pipeline = sg.makePipeline(.{
         .shader = quad_shd,
         .layout = init: {
             var l = sg.VertexLayoutState{};
@@ -68,17 +104,17 @@ pub fn drawQuad2dSpace(pos: math.Vec2, color: math.Vec3, vs_params: shd.VsParams
         .cull_mode = .BACK,
         .sample_count = 1,
     });
-    defer sg.destroyPipeline(self.pipeline);
+    defer sg.destroyPipeline(dc.pipeline);
 
-    self.pass_action.colors[0] = .{
+    dc.pass_action.colors[0] = .{
         .load_action = .CLEAR,
         .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 1 },
     };
 
-    sg.beginPass(.{ .action = self.pass_action, .swapchain = glue.swapchain() });
-    sg.applyPipeline(self.pipeline);
-    sg.applyBindings(self.bindings);
-    sg.applyUniforms(shd.UB_vs_params, sg.asRange(&vs_params));
+    sg.beginPass(.{ .action = dc.pass_action, .swapchain = glue.swapchain() });
+    sg.applyPipeline(dc.pipeline);
+    sg.applyBindings(dc.bindings);
+    sg.applyUniforms(shd.UB_vs_params, sg.asRange(&.{.mvp = mvp}));
     sg.draw(0, 6, 1);
     sg.endPass();
 }
