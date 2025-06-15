@@ -65,45 +65,44 @@ pub const TurnTag = enum {
     neutral,
 };
 
-
 //
 // @todo Audio subsystem needs to be in here
 //
 const Self = @This();
-allocator             : std.mem.Allocator,
-renderer              : RenderSystem,
-passes                : []RenderPass,
-console               : Console,
-loaded_scene          : ?Scene,
-game_cursor           : math.Vec2,
-game_cursor_mode      : GameCursorTag,
-selected_cell         : ?usize,
-selected_tile         : ?usize,
-selected_tile_click   : bool = false,
-selected_entity       : ?usize,
-selected_entity_click : bool = false,
-selected_entity_path  : PathField,
-potential_targets     : std.ArrayList(usize),
-selected_target       : ?usize = null,
-displayed_menu        : Menu.DisplayedMenu = .none,
-view                  : math.Mat4,
-selected_action       : Menu.ActionMenu = .Attack,
+allocator: std.mem.Allocator,
+renderer: RenderSystem,
+passes: []RenderPass,
+console: Console,
+loaded_scene: ?Scene,
+game_cursor: math.Vec2,
+game_cursor_mode: GameCursorTag,
+selected_cell: ?usize,
+selected_tile: ?usize,
+selected_tile_click: bool = false,
+selected_entity: ?usize,
+selected_entity_click: bool = false,
+selected_entity_path: PathField,
+potential_targets: std.ArrayList(usize),
+selected_target: ?usize = null,
+displayed_menu: Menu.DisplayedMenu = .none,
+view: math.Mat4,
+selected_action: Menu.ActionMenu = .Attack,
 //proj                  : math.Mat4,
-camera                : Camera = .{},
-logger                : LogSystem,
-errors                : u32 = 0,
-error_timer           : u32 = 0,
+camera: Camera = .{},
+logger: LogSystem,
+errors: u32 = 0,
+error_timer: u32 = 0,
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     var console: Console = undefined;
     try console.init(allocator);
 
-    var logger: LogSystem  = undefined;
+    var logger: LogSystem = undefined;
     try logger.init(allocator);
 
     try logger.appendToCombatLog("HELLO, FROM THE COMABT LOG");
 
-    const view = math.Mat4.translate(.{.x = -self.camera.pos.x, .y = -self.camera.pos.y, .z = 0});
+    const view = math.Mat4.translate(.{ .x = -self.camera.pos.x, .y = -self.camera.pos.y, .z = 0 });
     self.* = .{
         .allocator = allocator,
         .renderer = undefined,
@@ -144,7 +143,6 @@ pub fn updateBuffers(self: *Self) void {
     }
 }
 
-
 //
 // @todo move this to the renderer?
 //
@@ -161,7 +159,6 @@ pub fn render(self: *Self, vs_params: shd.VsParams) void {
     self.renderer.render_passes.items[@intFromEnum(RenderTypes.RenderPassIds.map_ui_1)].render(vs_params);
 }
 
-
 //
 // This collision function is for mouse to world. Its used in the editor
 //
@@ -176,7 +173,6 @@ pub fn collision(self: *Self, world_space: math.Vec4) void {
     }
 }
 
-
 //
 // @copypasta Editor state has this duplicated
 //
@@ -190,9 +186,7 @@ pub fn updateSpriteRenderable(
     }
 }
 
-pub fn drawTextLayer(
-    self: *Self
-) !void  {
+pub fn drawTextLayer(self: *Self) !void {
     _ = self;
 }
 

@@ -1,5 +1,6 @@
 const std = @import("std");
 const log = std.log.scoped(.compilation);
+const sokol = @import("sokol");
 
 const shaders = [2][]const u8{
     "src/shaders/basic.glsl",
@@ -131,33 +132,70 @@ pub fn build(b: *std.Build) void {
             .{ .name = "cimgui", .module = dep_cimgui.module("cimgui") },
         },
     });
-
     const exe = b.addExecutable(.{
         .name = "c_engine",
         .root_module = exe_mod,
     });
+
 
     exe.linkLibC();
     exe.addCSourceFiles(.{
         .root = b.path("libs/"),
         .files = &[_][]const u8{
             "stb_impl.c",
+            "cgltf_impl.c",
+            //"gamepad/Gamepad_linux.c",
+            //"gamepad/Gamepad_windows_dinput.c",
+            //"gamepad/Gamepad_windows_mm.c",
         },
         .flags = &[_][]const u8{
             "-std=c23",
         },
     });
-    //exe.addLibraryPath(b.path("libs/lua/install/lib"));
-    //exe.linkSystemLibrary("lua");
+
+    //
+    // @todo(cs) add extra stuff for the linux/windows support for gamepad
+    //
+    if (target.result.os.tag == .macos) {
+        exe.addCSourceFile(.{ .file = b.path("libs/gamepad/Gamepad_macosx.c")});
+        exe.linkFramework("IOKit");
+        exe.linkFramework("CoreFoundation");
+    }
+
+    exe.addCSourceFile(.{.file = b.path("libs/gamepad/Gamepad_private.c")});
+
     exe.addIncludePath(b.path("libs/"));
-    //exe.addIncludePath(b.path("libs/lua/install/include"));
+    exe.addIncludePath(b.path("libs/gamepad/"));
     exe.installHeader(b.path("libs/stb_image.h"), "stb_image.h");
-    //exe.installHeader(b.path("libs/lua/install/include/lua.h"), "lua.h");
-    //exe.installHeader(b.path("libs/lua/install/include/lualib.h"), "lualib.h");
-    //exe.installHeader(b.path("libs/lua/install/include/lauxlib.h"), "lauxlib.h");
-    //exe.installHeader(b.path("libs/lua/install/include/luaconf.h"), "luaconf.h");
+    exe.installHeader(b.path("libs/gamepad/Gamepad.h"), "Gamepad.h");
+    exe.installHeader(b.path("libs/gamepad/Gamepad_private.h"), "Gamepad_private.h");
+
+    exe.installHeader(b.path("libs/cgltf.h"), "cgltf.h");
 
     exe.root_module.addImport("sokol", dep_sokol.module("sokol"));
+
+    //if (target.result.os.tag == .emscripten) {
+    //    const emsdk = dep_sokol.builder.dependency("emsdk", .{});
+    //    const link_step = try sokol.emLinkStep(b, .{
+    //        .lib_main = exe,
+    //        .target = target,
+    //        .optimize = optimize,
+    //        .emsdk = emsdk,
+    //        .use_webgl2 = true,
+    //        .use_emmalloc = true,
+    //        .use_filesystem = false,
+    //        .shell_file_path = dep_sokol.path("src/sokol/web/shell.html"),
+    //    });
+
+    //    b.getInstallStep().dependOn(&link_step.step);
+    //    // ...and a special run step to start the web build output via 'emrun'
+    //    const run = sokol.emRunStep(b, .{ .name = "pacman", .emsdk = emsdk });
+    //    run.step.dependOn(&link_step.step);
+    //    b.step("run", "Run pacman").dependOn(&run.step);
+    //    return;
+
+    //}
+
 
     b.installArtifact(exe);
 

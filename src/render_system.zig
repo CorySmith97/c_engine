@@ -5,6 +5,10 @@
 /// Date: 2025-04-22
 ///
 /// Description:
+///     @todo:cs I would like to rewrite this to take advantage of a
+///     command buffer style render pipeline. I want to have it not simply
+///     render these fixed layers I have, but rather allow for pass batching.
+///     IE the way raylib does it.
 /// ===========================================================================
 const std = @import("std");
 const sokol = @import("sokol");
@@ -115,6 +119,9 @@ pub fn addSpriteToBatch(
 // that swap between different corners depnding on where the cursor currently is
 //
 pub fn printFont(font_index: u32, title: [:0]const u8, r: u8, g: u8, b: u8) void {
+    //
+    // @todo draw background
+    //
     sdtx.font(font_index);
     sdtx.color3b(r, g, b);
     sdtx.puts(title);

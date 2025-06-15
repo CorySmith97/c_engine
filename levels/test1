@@ -13,13 +13,13 @@
    "entity_type": "default",
    "selected_animation": "map",
    "animation": {
-    "frame_count": 35,
+    "frame_count": 0,
     "indicies": [
      0e0,
      1e0,
      2e0
     ],
-    "cur_frame": 2,
+    "cur_frame": 0,
     "speed": 42
    },
    "sprite": {
@@ -82,7 +82,7 @@
    "entity_type": "default",
    "selected_animation": "map",
    "animation": {
-    "frame_count": 12,
+    "frame_count": 0,
     "indicies": [
      3.2e1,
      3.3e1,
@@ -151,13 +151,13 @@
    "entity_type": "default",
    "selected_animation": "map",
    "animation": {
-    "frame_count": 3,
+    "frame_count": 0,
     "indicies": [
      1.6e1,
      1.7e1,
      1.8e1
     ],
-    "cur_frame": 1,
+    "cur_frame": 0,
     "speed": 42
    },
    "sprite": {
@@ -220,13 +220,13 @@
    "entity_type": "default",
    "selected_animation": "map",
    "animation": {
-    "frame_count": 25,
+    "frame_count": 0,
     "indicies": [
      3.2e1,
      3.3e1,
      3.4e1
     ],
-    "cur_frame": 1,
+    "cur_frame": 0,
     "speed": 42
    },
    "sprite": {

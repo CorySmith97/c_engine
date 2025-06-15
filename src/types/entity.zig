@@ -52,6 +52,7 @@ const Stats = struct {
 
 const AnimationTag = enum {
     map,
+    map_selected,
     battle_idle,
     battle_attack,
     battle_crit,
@@ -109,6 +110,7 @@ pub const Entity = struct {
     z_index            : f32           = 0,
     entity_type        : EntityTag     = .default,
     selected_animation : AnimationTag = .map,
+    // Animation needs to be array of animations Index in array will be the tags.
     animation          : Animation     = .{},
     sprite             : SpriteRenderable = .{},
 

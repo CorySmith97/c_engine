@@ -8,20 +8,84 @@
 /// ===========================================================================
 
 const std = @import("std");
+const ArrayList = std.ArrayList;
 const log = std.log.scoped(.render_quad);
 const sokol = @import("sokol");
 const glue = sokol.glue;
 const util = @import("../util.zig");
 const math = util.math;
+const Vec2 = math.Vec2;
+const Vec4 = math.Vec4;
 const shd = @import("../shaders/quad.glsl.zig");
 const sg = sokol.gfx;
 
-const Vao = &[_][]f32{
-    [_]f32{},
-    [_]f32{},
-    [_]f32{},
-    [_]f32{},
+//
+// GeneralPurposeRender. The idea here is to be able to request to draw
+// simple things. IE shapes, or perhaps one off textures. This then will
+// create a command buffer. We then iterate through that command buffer.
+//
+
+
+pub const CommandBuffer = struct {
+    add_enabled  : bool = false,
+    pass_actions : ArrayList(sg.PassAction),
+    pipelines    : ArrayList(sg.Pipeline),
+    bindings     : ArrayList(sg.Bindings),
+    mvps         : ArrayList(math.Mat4),
+    call_count   : u32,
+
+    pub fn init(
+    self: *CommandBuffer,
+    allocator: std.mem.Allocator,
+    ) !void {
+        self.pass_actions = ArrayList(sg.PassAction).init(allocator);
+        self.pipelines = ArrayList(sg.Pipeline).init(allocator);
+        self.bindings = ArrayList(sg.Bindings).init(allocator);
+        self.mvps = ArrayList(math.Mat4).init(allocator);
+    }
 };
+
+pub fn begin_drawing(
+) void {
+    cmd_buf.add_enabled = true;
+}
+
+pub fn end_drawing(
+) void {
+    cmd_buf.add_enabled = false;
+
+    for (
+        cmd_buf.pass_actions.items,
+        cmd_buf.pipelines.items,
+        cmd_buf.bindings.items,
+        cmd_buf.mvps.items
+    ) |pa, pipe, bind, mvp| {
+        sg.beginPass(.{ .action = pa, .swapchain = glue.swapchain() });
+        sg.applyPipeline(pipe);
+        sg.applyBindings(bind);
+        sg.applyUniforms(shd.UB_vs_params, sg.asRange(&.{.mvp = mvp}));
+        sg.draw(0, 6, 1);
+        sg.endPass();
+    }
+}
+
+pub fn draw_rectangle(
+    pos: Vec2,
+    size: Vec2,
+    color: Vec4,
+    mvp: math.Mat4,
+) !void {
+    _ = pos;
+    _ = size;
+    _ = color;
+    _ = mvp;
+}
+
+//
+// State for basic Draw Calls
+// This is immediate mode for the moment. IM TOO STUPID TO MAKE IT EFFECIENT
+//
+var cmd_buf: CommandBuffer = undefined;
 
 pub const GeneralPurposeRender = struct {
     draw_calls: std.ArrayList(DrawCall),
@@ -55,11 +119,16 @@ pub const Mesh = struct {
 //    var reader = file.reader();
 //
 //
-// 
+//
 //
 //}
 
-
+const Vao = &[_][]f32{
+    [_]f32{},
+    [_]f32{},
+    [_]f32{},
+    [_]f32{},
+};
 
 //
 // Create Vertex bindings per frame for items such as quads.

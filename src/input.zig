@@ -56,6 +56,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
         .z = 0,
     });
 
+
     //
     // how much your cursor moves per press
     //
@@ -209,7 +210,7 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
 
 }
 
-fn selectingAction(
+pub fn selectingAction(
     s: *Scene,
     state: *State,
 ) !void {
@@ -249,7 +250,7 @@ fn selectingAction(
     }
 }
 
-fn placeEntity(
+pub fn placeEntity(
     s: *Scene,
     state: *State,
 ) !void {
@@ -286,7 +287,7 @@ fn placeEntity(
     state.displayed_menu = .action;
 }
 
-fn selectEntity(
+pub fn selectEntity(
     s: *Scene,
     state: *State,
 ) !void {

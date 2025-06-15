@@ -734,11 +734,16 @@ pub fn editorFrame() !void {
             try es.updateSpriteRenderable(sprite, i);
         }
     }
-    if (es.state.loaded_scene) |s| {
-        for (s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
-            sprite.sprite_id = EntityNs.updateAnimation(animation);
-        }
-    }
+
+    //
+    // When editing, we dont want to update animations. When it saves it causes
+    // issues.
+    //
+    //if (es.state.loaded_scene) |s| {
+    //    for (s.entities.items(.sprite), s.entities.items(.animation)) |*sprite, *animation| {
+    //        sprite.sprite_id = EntityNs.updateAnimation(animation);
+    //    }
+    //}
     es.selected_layer = store;
     try es.frame_count.append(@floatCast(app.frameDuration()));
     es.mouse_state.mouse_position_ig = ig.igGetMousePos();

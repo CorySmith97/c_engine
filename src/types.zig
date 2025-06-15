@@ -16,6 +16,7 @@ pub const RendererTypes = @import("types/render_system.zig");
 const math = @import("util/math.zig");
 pub const Editor = @import("types/editor.zig");
 pub const Camera = @import("types/camera.zig").Camera;
+pub const Camera3d = @import("types/camera.zig").Camera3d;
 pub const Menus = @import("types/menus.zig");
 
 pub const mac_Color_Blue   = "\x1b[34m";

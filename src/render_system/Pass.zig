@@ -46,7 +46,9 @@ fn rand(min_val: f32, max_val: f32) f32 {
 // a seperate pass type for post processing/3d passes.
 // Maybe rename and refactor to Pass2d
 //
-// @todo Pipelines need to have more passes.
+// @todo SpriteRenderable needs foreground color items. I want to have 3
+// colors that at runtime can dynamically be changed. The reason is it allows
+// for the reuse of sprites for both player/enemy types.
 //
 const Self = @This();
 id                    : RendererTypes.RenderPassIds,
