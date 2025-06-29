@@ -76,7 +76,7 @@ pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
             config.atlas_size,
             self.allocator,
         );
-        log.debug("{any}", .{pass});
+        //log.debug("{any}", .{pass});
         try self.render_passes.append(pass);
     }
 

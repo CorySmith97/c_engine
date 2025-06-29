@@ -11,7 +11,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
-const State = @import("../state.zig");
+const State = @import("../engine_state.zig");
 const EditorState = @import("../editor.zig").EditorState;
 const ig = @import("cimgui");
 const log = std.log.scoped(.console);
@@ -72,7 +72,7 @@ pub fn init(
     self: *Console,
     allocator: std.mem.Allocator,
 ) !void {
-    var dir = try std.fs.cwd().openDir("assets", .{});
+    var dir = try std.fs.cwd().openDir("src/game/assets", .{});
     self.history_buf = std.ArrayList([]const u8).init(allocator);
     self.history_file = try dir.openFile("logs", .{ .mode = .read_write });
     self.open = false;

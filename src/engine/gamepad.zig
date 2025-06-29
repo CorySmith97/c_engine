@@ -8,14 +8,14 @@
 /// ===========================================================================
 const std = @import("std");
 
-const types = @import("types.zig");
+const types = @import("../types.zig");
 const Scene = types.Scene;
 
 const Input = @import("input.zig");
 const c = @cImport({
     @cInclude("gamepad/Gamepad.h");
 });
-const State = @import("state.zig");
+const State = @import("engine_state.zig");
 
 pub fn gamepadInit() void {
     c.Gamepad_init();

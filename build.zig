@@ -3,8 +3,8 @@ const log = std.log.scoped(.compilation);
 const sokol = @import("sokol");
 
 const shaders = [2][]const u8{
-    "src/shaders/basic.glsl",
-    "src/shaders/quad.glsl",
+    "src/engine/shaders/basic.glsl",
+    "src/engine/shaders/quad.glsl",
 };
 
 pub fn compileShaders(target: std.Build.ResolvedTarget, file_name: []const u8) void {
@@ -33,9 +33,7 @@ pub fn compileShaders(target: std.Build.ResolvedTarget, file_name: []const u8) v
     _ = compiler.spawnAndWait() catch @panic("Failed to compile shader");
 }
 
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+pub fn buildShaders(b: *std.Build, target: std.Build.ResolvedTarget) void {
     const shd_only = b.option(bool, "shdonly", "compile only the shaders");
     for (shaders) |shader| {
         compileShaders(target, shader);
@@ -45,6 +43,25 @@ pub fn build(b: *std.Build) void {
             return;
         }
     }
+}
+
+pub fn buildWeb() void {
+
+}
+
+pub fn buildEngineNative() !void {
+
+}
+
+pub fn buildGameNative() !void {
+
+}
+
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    buildShaders(b, target);
 
     const dep_sokol = b.dependency("sokol", .{
         .target = target,
@@ -143,7 +160,6 @@ pub fn build(b: *std.Build) void {
         .root = b.path("libs/"),
         .files = &[_][]const u8{
             "stb_impl.c",
-            "cgltf_impl.c",
             //"gamepad/Gamepad_linux.c",
             //"gamepad/Gamepad_windows_dinput.c",
             //"gamepad/Gamepad_windows_mm.c",
@@ -170,7 +186,6 @@ pub fn build(b: *std.Build) void {
     exe.installHeader(b.path("libs/gamepad/Gamepad.h"), "Gamepad.h");
     exe.installHeader(b.path("libs/gamepad/Gamepad_private.h"), "Gamepad_private.h");
 
-    exe.installHeader(b.path("libs/cgltf.h"), "cgltf.h");
 
     exe.root_module.addImport("sokol", dep_sokol.module("sokol"));
 

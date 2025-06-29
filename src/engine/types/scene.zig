@@ -13,7 +13,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const testing = std.testing;
 
-const State = @import("../state.zig");
+const State = @import("../engine_state.zig");
 const EntityNs = @import("entity.zig");
 const Entity = EntityNs.Entity;
 const Renderer = @import("../render_system.zig");

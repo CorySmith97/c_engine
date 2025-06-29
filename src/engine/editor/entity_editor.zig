@@ -17,7 +17,7 @@ const glue = sokol.glue;
 const imgui = sokol.imgui;
 
 const EditorState = @import("../editor.zig").EditorState;
-const State = @import("../state.zig");
+const State = @import("../engine_state.zig");
 const types = @import("../types.zig");
 const Tile = types.Tile;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
