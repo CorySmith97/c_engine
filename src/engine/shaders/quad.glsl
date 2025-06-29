@@ -7,22 +7,23 @@ layout(binding=0) uniform vs_params {
 };
 
 in vec3 position;
-in vec3 color;
+in vec4 color;
 
-out vec3 outcolor;
+out vec4 outcolor;
 
 void main() {
-    gl_Position = mvp * vec4((position * 16), 1.0);
+    gl_Position = mvp * vec4(position, 1.0);
+    outcolor = color;
 }
 @end
 
 @fs fs
-in vec3 outcolor;
+in vec4 outcolor;
 
 out vec4 frag_color;
 
 void main() {
-    frag_color = vec4(outcolor, 1.0);
+    frag_color = outcolor;
 }
 @end
 

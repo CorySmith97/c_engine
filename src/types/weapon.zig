@@ -39,5 +39,5 @@ pub const Subtype = enum {
 const Self = @This();
 tag     : Tag = .fist,
 subtype : Subtype = .physical_str,
-weight  : u16 = 0,
-damage  : u16 = 1,
+weight  : f32 = 0,
+damage  : f32 = 1,

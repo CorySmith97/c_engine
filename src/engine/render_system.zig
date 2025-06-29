@@ -28,7 +28,7 @@ const SpriteRenderable = types.RendererTypes.SpriteRenderable;
 const RenderPassIds = types.RendererTypes.RenderPassIds;
 pub const RenderPass = @import("render_system/Pass.zig");
 const RenderConfigs = @import("render_system/Configs.zig");
-pub const DrawCall = @import("render_system/DrawCall.zig");
+pub const Draw = @import("render_system/drawCall.zig");
 
 const log = std.log.scoped(.renderer);
 
@@ -45,16 +45,12 @@ allocator: std.mem.Allocator,
 //
 // These passes use large batches
 render_passes: std.ArrayList(RenderPass),
-draw_pass: std.ArrayList(DrawCall),
 basic_shd_vs_params: shd.VsParams,
-
 
 pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
     log.info("Initializing Renderer", .{});
     self.allocator = allocator;
     self.render_passes = std.ArrayList(RenderPass).init(self.allocator);
-    self.draw_pass = std.ArrayList(DrawCall).init(self.allocator);
-
 
     sdtx.setup(.{
         .context = .{ .color_format = .RGBA8 },
@@ -112,7 +108,6 @@ pub fn addSpriteToBatch(
         .items[@intFromEnum(id)]
         .appendSpriteToBatch(sr);
 }
-
 
 //
 // @todo Render UI stats for entity. Have it be in the corners at static locations

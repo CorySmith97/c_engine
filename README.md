@@ -41,3 +41,14 @@ generally have  data types and functions that change that data.
     "starting_level": Name of level you want to default load when you run the program
 }
 ```
+
+
+# Design
+
+I have been given to thought a lot about the game design and direction I would like to go in. 
+A game that is somewhere between fire emblem(GBA games), divinity original sin 2, and og baldur's gate,
+with a multiplayer aspect to each person having their own pod/team so to speak. You build your team 
+to accomplish certain things in a mission/level. You have many options to get through the game ideally. 
+IE You can have pods based on destruction of buildings that allow you to make b-line cuts through a base,
+however this is very noisey and will attract the enemies. Or you can go full stealth. Or even you have 
+make one pod that is noisely going for a head on approach as the rest of the part sneaks through.

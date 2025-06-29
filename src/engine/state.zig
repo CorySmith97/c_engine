@@ -69,6 +69,7 @@ pub const TurnTag = enum {
 // @todo Audio subsystem needs to be in here
 //
 const Self = @This();
+tick: u64 = 0,
 allocator: std.mem.Allocator,
 renderer: RenderSystem,
 passes: []RenderPass,

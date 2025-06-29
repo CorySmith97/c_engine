@@ -274,7 +274,7 @@ pub fn placeEntity(
     ent.sprite.pos = .{.x = state.game_cursor.x, .y = state.game_cursor.y } ;
 
     const gc_to_index: usize = @intFromFloat((state.game_cursor.y / 16.0 * s.width) + state.game_cursor.x / 16.0);
-    if (state.selected_entity_path.shortest[gc_to_index] <= @as(f32, @floatFromInt(ent.stats.move_speed))) {
+    if (state.selected_entity_path.shortest[gc_to_index] <= ent.stats.move_speed) {
         try state.logger.appendToCombatLog("Combat has happened or something");
         s.entities.set(e, ent);
         //state.selected_entity = null;
@@ -299,7 +299,7 @@ pub fn selectEntity(
             const pf = try dijkstra.findAllPaths(idx, s.*, 5, s.tiles);
 
             const tileSize = 16.0;
-            const maxCost = @as(f32, @floatFromInt(stats.move_speed));
+            const maxCost = stats.move_speed;
 
             for (pf.shortest, 0..) |dist, f| {
                 const v: f32 = @floatFromInt(f);

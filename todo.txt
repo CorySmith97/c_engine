@@ -1,0 +1,11 @@
+Infinity Type Engine
+Cory:
+
+06/22/25
+- Rewrite the instance pass in order to use the CommandBuffer. Use the updated system in order to simplify rendering into a much smaller pipeline.
+- Write map structure that along with polygons for the collision zone. 
+- Editor needs to be rewritten as tiles are not the name of the game anymore
+
+06/24/25
+:: Ideas with things I may want to add.
+- sprite stacking to give the game a unique look. (Sprite instancing is already baked in)

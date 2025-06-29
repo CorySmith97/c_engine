@@ -36,18 +36,18 @@ const default_aabb: AABB = .{
 };
 
 const Stats = struct {
-    level      : u16 = 1,
-    health     : u16 = 1,
-    cur_health : u16 = 1,
-    strength   : u16 = 1,
-    magic      : u16 = 1,
-    dexterity  : u16 = 1,
-    wisdom     : u16 = 1,
-    charisma   : u16 = 1,
-    speed      : u16 = 1,
-    defense    : u16 = 1,
-    resistence : u16 = 1,
-    move_speed : u16 = 5,
+    level      : f32 = 1,
+    health     : f32 = 1,
+    cur_health : f32 = 1,
+    strength   : f32 = 1,
+    magic      : f32 = 1,
+    dexterity  : f32 = 1,
+    wisdom     : f32 = 1,
+    charisma   : f32 = 1,
+    speed      : f32 = 1,
+    defense    : f32 = 1,
+    resistence : f32 = 1,
+    move_speed : f32 = 5,
 };
 
 const AnimationTag = enum {
@@ -83,6 +83,8 @@ const Team = enum {
 // Need to store world location as a usize/u32.
 //
 pub const Entity = struct {
+    selected: bool = false,
+
     id                 : u32           = 10,
 
     //
@@ -155,7 +157,7 @@ pub fn combat(
     e1_weapon: Weapon,
     e2_stats: Stats,
     e2_weapon: Weapon,
-) !u32 {
+) !f32 {
 
     const e1_base_attack = e1_stats.strength + e1_weapon.damage;
     const e2_base_attack = e2_stats.strength + e2_weapon.damage;
