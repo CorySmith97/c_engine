@@ -8,6 +8,7 @@
 /// ===========================================================================
 
 const std = @import("std");
+const log = std.log.scoped(.log_system);
 
 
 // @cleanup Possibly use a queue for no memory allocations after setup?
@@ -37,6 +38,15 @@ pub const LogSystem = struct {
         self: *LogSystem,
     ) void {
         self.combat_logs.deinit();
+    }
+
+    // @todo:cs Implement
+    pub fn draw_combat_log(
+        self: *LogSystem,
+    ) !void {
+        _ = self;
+        log.warn("TODO", .{});
+
     }
 };
 

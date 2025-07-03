@@ -53,8 +53,18 @@ pub fn buildEngineNative() !void {
 
 }
 
-pub fn buildGameNative() !void {
+pub fn buildGameNative(b: *std.Build, target: std.Build.ResolvedTarget, opt: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
+    const game = b.addStaticLibrary(.{
+        .name = "game",
+        .target = target,
+        .optimize = opt,
+        .root_source_file = b.path("src/game/game.zig"),
+    });
 
+    b.installArtifact(game);
+
+
+    return game;
 }
 
 pub fn build(b: *std.Build) void {
@@ -72,6 +82,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    _ = try buildGameNative(b, target, optimize);
 
     dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src-docking"));
 

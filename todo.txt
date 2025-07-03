@@ -9,3 +9,20 @@ Cory:
 06/24/25
 :: Ideas with things I may want to add.
 - sprite stacking to give the game a unique look. (Sprite instancing is already baked in)
+
+
+@todo:cs rewrite the entire shader system. It can just be one simple monolithic shader for all things :L
+
+
+06/30/25
+
+Idea for the game specific stuff.
+:: I dont know what exactly I want the seperation to be. I keep going back and forth on setting up lua for the game, and then just expose
+several custom lua apis. The thing is how many things do I want to make with this engine?...
+
+:: I think this may be my way out?
+
+Make a Multiengine tool-package.
+
+StoryTree:
+        Dynamic visual editor for branching dialog
