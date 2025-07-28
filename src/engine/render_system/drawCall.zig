@@ -38,6 +38,8 @@ pub const ShaderParams = union {
 };
 
 pub const Texture2d = struct {
+    width: f32 = 0,
+    height: f32 = 0,
     image: sg.Image = .{},
 
     pub fn load_texture(path: []const u8) !Texture2d {
@@ -206,6 +208,13 @@ pub fn draw_rectangle(
 }
 
 pub fn draw_texture(texture: Texture2d, pos: Vec2) !void {
+
+    const verts = [_]f32 {
+        pos.x, pos.y, 0, 0, 0,
+        pos.x, pos.y + size.y, 0, 0, 1,
+        pos.x + texture.x, pos.y, 0, 1, 1,
+        pos.x + size.x, pos.y + size.y, 1, 0,
+    };
     _ = texture;
     _ = pos;
 }
