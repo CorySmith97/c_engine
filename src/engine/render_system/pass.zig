@@ -114,14 +114,14 @@ pub fn init(
     });
 
     try self.pipelines.append(sg.makePipeline(.{
-        .shader = sg.makeShader(shd.basicShaderDesc(sg.queryBackend())),
+        .shader = sg.makeShader(shd.basicAtlasShaderDesc(sg.queryBackend())),
         .layout = init: {
             var l = sg.VertexLayoutState{};
             l.buffers[1].step_func = .PER_INSTANCE;
-            l.attrs[shd.ATTR_basic_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
-            l.attrs[shd.ATTR_basic_uv_coords] = .{ .format = .FLOAT2, .buffer_index = 0 };
-            l.attrs[shd.ATTR_basic_pos] = .{ .format = .FLOAT4, .buffer_index = 1 };
-            l.attrs[shd.ATTR_basic_color] = .{ .format = .FLOAT4, .buffer_index = 1 };
+            l.attrs[shd.ATTR_basic_atlas_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
+            l.attrs[shd.ATTR_basic_atlas_uv_coords] = .{ .format = .FLOAT2, .buffer_index = 0 };
+            l.attrs[shd.ATTR_basic_atlas_pos] = .{ .format = .FLOAT4, .buffer_index = 1 };
+            l.attrs[shd.ATTR_basic_atlas_color] = .{ .format = .FLOAT4, .buffer_index = 1 };
             break :init l;
         },
         .index_type = .UINT16,

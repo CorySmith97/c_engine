@@ -16,8 +16,12 @@ const util = @import("../util.zig");
 const math = util.math;
 const Vec2 = math.Vec2;
 const Vec4 = math.Vec4;
-const shd = @import("../shaders/quad.glsl.zig");
+const shd = @import("../shaders/basic.glsl.zig");
 const sg = sokol.gfx;
+
+const c = @cImport({
+    @cInclude("stb_image.h");
+});
 
 //
 // GeneralPurposeRender. The idea here is to be able to request to draw
@@ -42,8 +46,33 @@ pub const Texture2d = struct {
     height: f32 = 0,
     image: sg.Image = .{},
 
-    pub fn load_texture(path: []const u8) !Texture2d {
-        _ = path;
+    pub fn load_texture(
+        path: []const u8
+    ) !Texture2d {
+        var text: Texture2d = .{};
+        var x: c_int = 0;
+        var y: c_int = 0;
+        var chan: c_int = 0;
+
+        c.stbi_set_flip_vertically_on_load(1);
+        const data = c.stbi_load(path.ptr, &x, &y, &chan, 4);
+
+        sg.initImage(text.image, .{
+            .width = x,
+            .height = y,
+            .pixel_format = .RGBA8,
+            .data = init: {
+                var idata = sg.ImageData{};
+                idata.subimage[0][0] = .{
+                    .ptr = data,
+                    .size = @as(usize, @intCast(x * y * chan)),
+                };
+                break :init idata;
+            },
+        });
+
+        text.width = x;
+        text.height = y;
     }
 };
 
@@ -63,7 +92,7 @@ const CommandBuffer = struct {
         default_pass_action.colors[0] = .{
             .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 1 },
         };
-        basic_shd = sg.makeShader(shd.quadShaderDesc(sg.queryBackend()));
+        basic_shd = sg.makeShader(shd.basicTextureShaderDesc(sg.queryBackend()));
         self.pipelines = ArrayList(sg.Pipeline).init(allocator);
         self.pass_actions = ArrayList(sg.PassAction).init(allocator);
         self.bindings = ArrayList(sg.Bindings).init(allocator);
@@ -172,6 +201,83 @@ pub fn draw_rectangle(
     bindings.vertex_buffers[0] = vao;
     bindings.index_buffer = ebo;
 
+    // @todo:cs make this be something that is changed not via function but rather
+    // a longer standing structure
+    const pipeline = sg.makePipeline(.{
+        .shader = basic_shd,
+        .layout = init: {
+            var l = sg.VertexLayoutState{};
+            l.attrs[shd.ATTR_quad_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
+            l.attrs[shd.ATTR_quad_color] = .{ .format = .FLOAT4, .buffer_index = 0 };
+            break :init l;
+        },
+        .index_type = .UINT16,
+        .cull_mode = .BACK,
+        .sample_count = 1,
+        .colors = init: {
+            var col: [4]sg.ColorTargetState = @splat(.{});
+            col[0].pixel_format = .RGBA8;
+            col[0].blend = .{
+                .enabled = true,
+                .src_factor_rgb = .SRC_ALPHA,
+                .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
+                .src_factor_alpha = .ONE,
+                .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
+            };
+            break :init col;
+        },
+    });
+    //defer sg.destroyPipeline(pipeline);
+
+    try cmd_buf.pass_actions.append(pass_action);
+    try cmd_buf.bindings.append(bindings);
+    try cmd_buf.pipelines.append(pipeline);
+    try cmd_buf.mvps.append(mvp);
+}
+
+pub fn drawTexture(
+    texture: Texture2d,
+    pos: Vec2,
+    scale: f32,
+    color: Vec4,
+) !void {
+    _ = scale;
+    var pass_action: sg.PassAction = .{};
+    pass_action.colors[0] = .{
+            .clear_value = .{ .r = 0, .g = 0, .b = 0, .a = 1 },
+        };
+    // create Vao
+    // create indices
+    // bind
+    // use basic shader
+    // add everything to the command buffer
+    const verts = [_]f32{
+        pos.x, pos.y, 0, color.x, color.y, color.z, color.w,
+        pos.x, pos.y + texture.height, 0, color.x, color.y, color.z, color.w,
+        pos.x + texture.width, pos.y, 0, color.x, color.y, color.z, color.w,
+        pos.x + texture.width, pos.y + texture.height, 0, color.x, color.y, color.z, color.w,
+    };
+
+    const indices = [_]u16{
+        0,1,2,
+        1,3,2,
+    };
+
+    const vao = sg.makeBuffer(.{
+        .type = .VERTEXBUFFER,
+        .data = sg.asRange(&verts),
+    });
+    //defer sg.destroyBuffer(vao);
+
+    const ebo = sg.makeBuffer(.{
+        .data = sg.asRange(&indices),
+        .type = .INDEXBUFFER,
+    });
+    //defer sg.destroyBuffer(ebo);
+
+    var bindings: sg.Bindings = .{};
+    bindings.vertex_buffers[0] = vao;
+    bindings.index_buffer = ebo;
 
     // @todo:cs make this be something that is changed not via function but rather
     // a longer standing structure
@@ -187,16 +293,16 @@ pub fn draw_rectangle(
         .cull_mode = .BACK,
         .sample_count = 1,
         .colors = init: {
-            var c: [4]sg.ColorTargetState = @splat(.{});
-            c[0].pixel_format = .RGBA8;
-            c[0].blend = .{
+            var col: [4]sg.ColorTargetState = @splat(.{});
+            col[0].pixel_format = .RGBA8;
+            col[0].blend = .{
                 .enabled = true,
                 .src_factor_rgb = .SRC_ALPHA,
                 .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
                 .src_factor_alpha = .ONE,
                 .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
             };
-            break :init c;
+            break :init col;
         },
     });
     //defer sg.destroyPipeline(pipeline);
@@ -204,22 +310,15 @@ pub fn draw_rectangle(
     try cmd_buf.pass_actions.append(pass_action);
     try cmd_buf.bindings.append(bindings);
     try cmd_buf.pipelines.append(pipeline);
-    try cmd_buf.mvps.append(mvp);
+    //try cmd_buf.mvps.append(mvp);
 }
 
-pub fn draw_texture(texture: Texture2d, pos: Vec2) !void {
-
-    const verts = [_]f32 {
-        pos.x, pos.y, 0, 0, 0,
-        pos.x, pos.y + size.y, 0, 0, 1,
-        pos.x + texture.x, pos.y, 0, 1, 1,
-        pos.x + size.x, pos.y + size.y, 1, 0,
-    };
-    _ = texture;
-    _ = pos;
-}
-
-pub fn draw_line(start: Vec2, end: Vec2) !void {
+pub fn drawLine(
+    start: Vec2,
+    end: Vec2,
+    color: Vec4,
+) !void {
+    _ = color;
     _ = start;
     _ = end;
 }

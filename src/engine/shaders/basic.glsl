@@ -1,7 +1,7 @@
 @header const m = @import("../util/math.zig")
 @ctype mat4 m.Mat4
 
-@vs vs
+@vs vs_atlas
 layout(binding=0) uniform vs_params {
     mat4 mvp;
 };
@@ -23,7 +23,7 @@ void main() {
 }
 @end
 
-@fs fs
+@fs fs_atlas
 layout(binding=0) uniform texture2D tex2d;
 layout(binding=0) uniform sampler smp;
 layout(binding=1) uniform fs_params {
@@ -58,10 +58,10 @@ void main() {
 }
 @end
 
-@program basic vs fs
+@program basic_atlas vs_atlas fs_atlas
 
 
-@vs vs2
+@vs vs_texture
 layout(binding=0) uniform vs_params {
     mat4 mvp;
 };
@@ -72,45 +72,26 @@ in vec4 pos;
 in vec4 color;
 
 out vec2 uv;
-out float id;
 out vec4 ocolor;
 
 void main() {
-    gl_Position = mvp * vec4((position * 16) + pos.xyz, 1.0);
-    id = pos.a;
+    gl_Position = mvp * vec4(pos.xyz, 1.0);
     uv = uv_coords;
     ocolor = color;
 }
 @end
 
-@fs fs2
+@fs fs_texture
 layout(binding=0) uniform texture2D tex2d;
 layout(binding=0) uniform sampler smp;
-layout(binding=1) uniform fs_params {
-    vec2 atlas_size;
-    vec2 sprite_size;
-};
 
 in vec2 uv;
-in float id;
 in vec4 ocolor;
 
 out vec4 frag_color;
 
 void main() {
-     float total_rows = atlas_size.y / sprite_size.y;
-     float sprites_per_row = atlas_size.x / sprite_size.x;
-     float row = total_rows - 1.0 - floor(id / sprites_per_row);
-     float col = mod(id, sprites_per_row);
-
-     vec2 sprite_offset = vec2(col * sprite_size.x, row * sprite_size.y);
-     vec2 fixedTexCoord = vec2(uv.x, uv.y);
-
-     vec2 sprite_uv = (sprite_offset + fixedTexCoord * sprite_size) / atlas_size;
-
-
-
-     vec4 original = texture(sampler2D(tex2d, smp), sprite_uv);
+     vec4 original = texture(sampler2D(tex2d, smp), uv);
 
      vec4 finalColor = (original.a > 0.1)
           ? original : ocolor;
@@ -118,4 +99,33 @@ void main() {
 }
 @end
 
-@program second vs2 fs2
+@program basic_texture vs_texture fs_texture
+
+
+@vs vs_quad
+layout(binding=0) uniform vs_params {
+    mat4 mvp;
+};
+
+in vec3 position;
+in vec4 color;
+
+out vec4 outcolor;
+
+void main() {
+    gl_Position = mvp * vec4(position, 1.0);
+    outcolor = color;
+}
+@end
+
+@fs fs_quad
+in vec4 outcolor;
+
+out vec4 frag_color;
+
+void main() {
+    frag_color = outcolor;
+}
+@end
+
+@program quad vs_quad fs_quad

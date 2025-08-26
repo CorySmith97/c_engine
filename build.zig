@@ -165,8 +165,10 @@ pub fn buildEditor(
         .optimize = optimize,
     });
 
+    dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src-docking"));
+
     const exe_mod = b.createModule(.{
-        .root_source_file = b.path("src/editor.zig"),
+        .root_source_file = b.path("src/engine/editor.zig"),
         .target = target,
         .optimize = optimize,
         .imports = &.{
@@ -275,13 +277,8 @@ pub fn compileShaders(target: std.Build.ResolvedTarget, file_name: []const u8) v
 }
 
 pub fn buildShaders(b: *std.Build, target: std.Build.ResolvedTarget) void {
-    const shd_only = b.option(bool, "shdonly", "compile only the shaders");
+    _ = b;
     for (shaders) |shader| {
         compileShaders(target, shader);
-    }
-    if (shd_only) |s| {
-        if (s) {
-            return;
-        }
     }
 }

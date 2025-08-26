@@ -270,7 +270,7 @@ pub fn gameframe() !void {
     imgui.render();
 
     Draw.begin_drawing();
-    try Draw.draw_rectangle(.{.x = 10, .y = 100}, .{.x = 10, .y = 100}, .{.x = 1, .y = 0, .z = 0, .w = 1}, util.computeVsParams(proj, global_state.view).mvp);
+    //try Draw.draw_rectangle(.{.x = 10, .y = 100}, .{.x = 10, .y = 100}, .{.x = 1, .y = 0, .z = 0, .w = 1}, util.computeVsParams(proj, global_state.view).mvp);
 
     Draw.end_drawing();
 
