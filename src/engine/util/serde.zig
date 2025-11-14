@@ -179,7 +179,7 @@ pub fn loadSceneFromJson(
     allocator: std.mem.Allocator,
 ) !void {
     assert(file_name.len > 0);
-    var level_dir = try std.fs.cwd().openDir("levels", .{});
+    var level_dir = try std.fs.cwd().openDir("src/game/levels", .{});
 
     var file = try level_dir.openFile(file_name, .{});
     defer file.close();

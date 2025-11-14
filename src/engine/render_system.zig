@@ -29,6 +29,7 @@ const RenderPassIds = types.RendererTypes.RenderPassIds;
 pub const RenderPass = @import("render_system/Pass.zig");
 const RenderConfigs = @import("render_system/Configs.zig");
 pub const Draw = @import("render_system/drawCall.zig");
+pub const Spritesheet = @import("render_system/sprite.zig");
 
 const log = std.log.scoped(.renderer);
 

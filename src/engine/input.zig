@@ -35,6 +35,8 @@ const EntityNs = types.EntityNs;
 const dijkstra = @import("algorithms/dijkstras.zig");
 const PathField = dijkstra.PathField;
 
+const HotReload = @import("hot_reload.zig");
+
 //
 // @todo:cs I need to make simple combat loop.
 // Place info about combat in logs for the meantime.
@@ -74,6 +76,11 @@ pub fn gameevent(ev: [*c]const app.Event, state: *State) !void {
         switch (ev.*.key_code) {
             .F1     => state.console.open = key_pressed,
             .F2     => state.console.open = false,
+            .F3     => {
+                try HotReload.unloadDll();
+                try HotReload.recompileDll();
+                try HotReload.loadDll();
+            },
             else => {},
         }
         var s: *Scene = &(state.loaded_scene orelse return);

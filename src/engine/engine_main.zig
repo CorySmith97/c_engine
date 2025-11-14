@@ -31,6 +31,8 @@ const AudioDriver = @import("audio_system.zig");
 const Console = @import("editor/console.zig");
 const Input = @import("input.zig");
 
+const HotReload = @import("hot_reload.zig");
+
 const c = @cImport({
     @cInclude("gamepad/Gamepad.h");
 });
@@ -116,6 +118,8 @@ pub fn gameinit() !void {
     imgui.setup(.{
         .logger = .{ .func = slog.func },
     });
+
+    try HotReload.loadDll();
 
     //try ad.init();
 

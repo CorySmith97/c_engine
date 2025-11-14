@@ -15,20 +15,40 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const build_mode = b.option(BuildModes, "mode", "build mode") orelse .game;
+    const build_mode = b.option(BuildModes, "mode", "build mode") orelse .engine;
 
     switch (build_mode) {
         .vk => try buildVkRenderer(b, target, optimize),
         .shaders => buildShaders(b,target),
         .editor => try buildEditor(b, target, optimize),
+        .engine => try buildEngine(b, target, optimize),
         .game => try buildGame(b, target, optimize),
-        else => return,
     }
     return;
 }
 
-
 pub fn buildGame(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) !void {
+    const exe_mod = b.createModule(.{
+        .root_source_file = b.path("src/game/game.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+        },
+    });
+    const exe = b.addSharedLibrary(.{
+        .name = "c_engine",
+        .root_module = exe_mod,
+    });
+
+    b.installArtifact(exe);
+}
+
+
+pub fn buildEngine(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,

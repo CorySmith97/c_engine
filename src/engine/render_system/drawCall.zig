@@ -29,16 +29,11 @@ const c = @cImport({
 // create a command buffer. We then iterate through that command buffer.
 //
 
-//
-// State for basic Draw Calls
-// This is immediate mode for the moment. IM TOO STUPID TO MAKE IT EFFECIENT
-//
 var cmd_buf: CommandBuffer = undefined;
 var default_pass_action: sg.PassAction = .{};
 var basic_shd: sg.Shader = .{};
 
 pub const ShaderParams = union {
-
 };
 
 pub const Texture2d = struct {

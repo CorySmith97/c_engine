@@ -954,7 +954,7 @@ fn main_menu() !void {
             ig.igCloseCurrentPopup();
         }
         if (ig.igButton("Load Scene")) {
-            var level_dir = try std.fs.cwd().openDir("levels", .{ .iterate = true });
+            var level_dir = try std.fs.cwd().openDir("src/game/levels", .{ .iterate = true });
             var level_walker = try level_dir.walk(es.allocator);
             while (try level_walker.next()) |entry| {
                 try scene_list_buffer.append(try es.allocator.dupe(u8, entry.basename));
