@@ -84,6 +84,10 @@ void main() {
 @fs fs_texture
 layout(binding=0) uniform texture2D tex2d;
 layout(binding=0) uniform sampler smp;
+layout(binding=1) uniform tex_params {
+    vec2 sprite_size;
+    vec2 sprite_pos;
+};
 
 in vec2 uv;
 in vec4 ocolor;
@@ -91,7 +95,10 @@ in vec4 ocolor;
 out vec4 frag_color;
 
 void main() {
-     vec4 original = texture(sampler2D(tex2d, smp), uv);
+     vec2 sprite_offset = vec2(sprite_pos.x, sprite_pos.y);
+     vec2 fixedTexCoord = vec2(uv.x, uv.y);
+
+     vec4 original = texture(sampler2D(tex2d, smp), sprite_offset * fixedTexCoord);
 
      vec4 finalColor = (original.a > 0.1)
           ? original : ocolor;

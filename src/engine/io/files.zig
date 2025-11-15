@@ -2,11 +2,11 @@
 ///
 /// Author: Cory Smith
 ///
-/// Date: 2025-05-08
+/// Date: 2025-11-15
 ///
 /// Description:
+///     asyncronous file IO
 /// ===========================================================================
 const std = @import("std");
 
-pub const grid_size: f32 = 16.0;
-pub var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+

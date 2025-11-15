@@ -8,11 +8,50 @@
 ///     Utility Library
 /// ===========================================================================
 const std = @import("std");
+const builtin = @import("builtin");
+const types = @import("types.zig");
 pub const math = @import("util/math.zig");
 const mat4 = math.Mat4;
 const shd = @import("shaders/basic.glsl.zig");
 const ig = @import("cimgui");
 const AABB = @import("types.zig").AABB;
+
+pub const std_options: std.Options = .{
+    .log_level = .info,
+    .logFn = customLogFn,
+};
+
+pub fn customLogFn(
+    comptime level: std.log.Level,
+    comptime scope: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    if (builtin.os.tag == .macos) {
+        const color: []const u8 =  switch (level) {
+            .info =>  types.mac_Color_Blue,
+            .debug =>  types.mac_Color_Green,
+            .err =>  types.mac_Color_Red,
+            .warn =>  types.mac_Color_Orange,
+        };
+        const prefix =  color ++ "[" ++ @tagName(scope) ++ "]\x1b[0m:\t";
+
+        // print the message to stderr, silently ignoring any errors
+        std.debug.lockStdErr();
+        defer std.debug.unlockStdErr();
+        const stderr = std.io.getStdErr().writer();
+        nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+    } else {
+        const prefix = "[" ++ comptime level.asText() ++ "] " ++ "[" ++ @tagName(scope) ++ "]\x1b[0m:\t";
+
+        // Print the message to stderr, silently ignoring any errors
+        std.debug.lockStdErr();
+        defer std.debug.unlockStdErr();
+        const stderr = std.io.getStdErr().writer();
+        nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
+    }
+}
+
 
 pub fn computeVsParams(proj: mat4, view: mat4) shd.VsParams {
     const model = mat4.identity();

@@ -1,77 +1,14 @@
-const std = @import("std");
-const builtin = @import("builtin");
-
-const ig = @import("cimgui");
-const sokol = @import("sokol");
-const app = sokol.app;
-const sg = sokol.gfx;
-const slog = sokol.log;
-const glue = sokol.glue;
-const imgui = sokol.imgui;
-const sdtx = sokol.debugtext;
-
-const shd = @import("shaders/basic.glsl.zig");
-const util = @import("util.zig");
-const math = util.math;
-const mat4 = math.Mat4;
-
-const RenderPass = @import("render_system.zig").RenderPass;
-const Draw = @import("render_system.zig").Draw;
-
-const types = @import("types.zig");
-const Scene = types.Scene;
-const Camera3d = types.Camera3d;
-const EntityNs = types.EntityNs;
-const Entity = EntityNs.Entity;
-const RenderPassIds = types.RendererTypes.RenderPassIds;
-
-const State = @import("engine_state.zig");
-const Serde = @import("util/serde.zig");
-const AudioDriver = @import("audio_system.zig");
-const Console = @import("editor/console.zig");
-const Input = @import("input.zig");
-
-const HotReload = @import("hot_reload.zig");
-
-const c = @cImport({
-    @cInclude("gamepad/Gamepad.h");
-});
-
-pub const std_options: std.Options = .{
-    .log_level = .info,
-    .logFn = customLogFn,
-};
-
-pub fn customLogFn(
-    comptime level: std.log.Level,
-    comptime scope: @Type(.enum_literal),
-    comptime format: []const u8,
-    args: anytype,
-) void {
-    if (builtin.os.tag == .macos) {
-        const color: []const u8 =  switch (level) {
-            .info =>  types.mac_Color_Blue,
-            .debug =>  types.mac_Color_Green,
-            .err =>  types.mac_Color_Red,
-            .warn =>  types.mac_Color_Orange,
-        };
-        const prefix =  color ++ "[" ++ @tagName(scope) ++ "]\x1b[0m:\t";
-
-        // print the message to stderr, silently ignoring any errors
-        std.debug.lockStdErr();
-        defer std.debug.unlockStdErr();
-        const stderr = std.io.getStdErr().writer();
-        nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
-    } else {
-        const prefix = "[" ++ comptime level.asText() ++ "] " ++ "[" ++ @tagName(scope) ++ "]\x1b[0m:\t";
-
-        // Print the message to stderr, silently ignoring any errors
-        std.debug.lockStdErr();
-        defer std.debug.unlockStdErr();
-        const stderr = std.io.getStdErr().writer();
-        nosuspend stderr.print(prefix ++ format ++ "\n", args) catch return;
-    }
-}
+/// ===========================================================================
+///
+/// Author: Cory Smith
+///
+/// Date: 2025-11-15
+///
+/// Description:
+///     Engine runtime entry point. Wrapper functions for the Sokol App entry
+///     point. Primarily error wrappers as Zig errors are not compatible with
+///     callconv(.c) functions
+/// ===========================================================================
 
 //
 // @cleanup just move this to another file.
@@ -314,3 +251,42 @@ pub fn engineDesc() app.Desc {
     };
 
 }
+
+const std = @import("std");
+const builtin = @import("builtin");
+
+const ig = @import("cimgui");
+const sokol = @import("sokol");
+const app = sokol.app;
+const sg = sokol.gfx;
+const slog = sokol.log;
+const glue = sokol.glue;
+const imgui = sokol.imgui;
+const sdtx = sokol.debugtext;
+
+const shd = @import("shaders/basic.glsl.zig");
+const util = @import("util.zig");
+const math = util.math;
+const mat4 = math.Mat4;
+
+const RenderPass = @import("render_system.zig").RenderPass;
+const Draw = @import("render_system.zig").Draw;
+
+const types = @import("types.zig");
+const Scene = types.Scene;
+const Camera3d = types.Camera3d;
+const EntityNs = types.EntityNs;
+const Entity = EntityNs.Entity;
+const RenderPassIds = types.RendererTypes.RenderPassIds;
+
+const State = @import("engine_state.zig");
+const Serde = @import("util/serde.zig");
+const AudioDriver = @import("audio_system.zig");
+const Console = @import("editor/console.zig");
+const Input = @import("io/input.zig");
+
+const HotReload = @import("hot_reload.zig");
+
+const c = @cImport({
+    @cInclude("gamepad/Gamepad.h");
+});

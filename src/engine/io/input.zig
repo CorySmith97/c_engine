@@ -18,24 +18,24 @@ const slog = sokol.log;
 const glue = sokol.glue;
 const imgui = sokol.imgui;
 
-const shd = @import("shaders/basic.glsl.zig");
-const util = @import("util.zig");
+const shd = @import("../shaders/basic.glsl.zig");
+const util = @import("../util.zig");
 const math = util.math;
 const mat4 = math.Mat4;
 
-const State = @import("engine_state.zig");
-const RenderPassIds = @import("types.zig").RendererTypes.RenderPassIds;
+const State = @import("../engine_state.zig");
+const RenderPassIds = @import("../types.zig").RendererTypes.RenderPassIds;
 
-const types = @import("types.zig");
+const types = @import("../types.zig");
 const Scene = types.Scene;
 const RendererTypes = types.RendererTypes;
 const SpriteRenderable = RendererTypes.SpriteRenderable;
 const EntityNs = types.EntityNs;
 
-const dijkstra = @import("algorithms/dijkstras.zig");
+const dijkstra = @import("../algorithms/dijkstras.zig");
 const PathField = dijkstra.PathField;
 
-const HotReload = @import("hot_reload.zig");
+const HotReload = @import("../hot_reload.zig");
 
 //
 // @todo:cs I need to make simple combat loop.

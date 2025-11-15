@@ -1,0 +1,4 @@
+
+extern fn drawSprite() void {
+
+}
