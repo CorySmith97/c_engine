@@ -6,29 +6,10 @@
 ///
 /// Description:
 /// ===========================================================================
-
-// @todo this is a new interface for drawing sprites similar to the sprites drawing available in raylib.
-//
-//      - draw_sprite
-//      - draw_sprite_ex
-//      - draw_sprite_pro
 const std = @import("std");
-const HashMap = std.AutoHashMapUnmanaged;
-
-var spritesheets: HashMap(Spritesheet) = .{};
-
-pub fn getSpritesheet(path: []const u8) !Spritesheet {
-    _ = path;
-}
-
-pub const Spritesheet = struct {
-    name: []const u8,
-};
-
 const sokol = @import("sokol");
 const util = @import("../util.zig");
 const math = util.math;
-const vec2 = math.vec2;
 const shd = @import("../shaders/basic.glsl.zig");
 const cim = @cImport({
     @cInclude("stb_image.h");
@@ -41,7 +22,6 @@ const RendererTypes = types.RendererTypes;
 const SpriteRenderable = RendererTypes.SpriteRenderable;
 const log = std.log.scoped(.render_pass);
 const Global = @import("../globals.zig");
-const Array = std.ArrayListUnmanaged;
 
 fn xorshift32() u32 {
     const static = struct {
@@ -59,15 +39,27 @@ fn rand(min_val: f32, max_val: f32) f32 {
     return (@as(f32, @floatFromInt(xorshift32() & 0xFFFF)) / 0x10000) * (max_val - min_val) + min_val;
 }
 
+// @todo there needs to be a split here. There needs to be a choice for selection
+// mode on the editor. I want to have tiles flashing.
+
+// @todo This should possibly be split up. Or perhaps there needs to just be a
+// a seperate pass type for post processing/3d passes.
+// Maybe rename and refactor to Pass2d
+//
+// @todo SpriteRenderable needs foreground color items. I want to have 3
+// colors that at runtime can dynamically be changed. The reason is it allows
+// for the reuse of sprites for both player/enemy types.
+//
 const Self = @This();
 id                    : RendererTypes.RenderPassIds,
 pass_action           : sg.PassAction,
 bindings              : sg.Bindings,
 image                 : sg.Image,
-pipelines             : Array(sg.Pipeline),
-batch                 : Array(SpriteRenderable),
+pipelines             : std.ArrayList(sg.Pipeline),
+batch                 : std.ArrayList(SpriteRenderable),
 cur_num_of_sprite     : u32 = 0,
 max_sprites_per_batch : u32,
+sprite_size           : [2]f32,
 atlas_size            : [2]f32,
 path                  : []const u8,
 enabled               : bool = true,
@@ -76,6 +68,7 @@ pub fn init(
     self: *Self,
     id: RendererTypes.RenderPassIds,
     spritesheet_path: []const u8,
+    sprite_size: [2]f32,
     atlas_size: [2]f32,
     allocator: std.mem.Allocator,
 ) !void {
@@ -85,6 +78,7 @@ pub fn init(
     self.max_sprites_per_batch = 10000;
     self.batch = try std.ArrayList(SpriteRenderable).initCapacity(allocator, 100);
     self.pipelines = std.ArrayList(sg.Pipeline).init(allocator);
+    self.sprite_size = sprite_size;
     self.atlas_size = atlas_size;
     self.path = spritesheet_path;
     self.enabled = true;
@@ -127,7 +121,7 @@ pub fn init(
             l.attrs[shd.ATTR_basic_atlas_position] = .{ .format = .FLOAT3, .buffer_index = 0 };
             l.attrs[shd.ATTR_basic_atlas_uv_coords] = .{ .format = .FLOAT2, .buffer_index = 0 };
             l.attrs[shd.ATTR_basic_atlas_pos] = .{ .format = .FLOAT4, .buffer_index = 1 };
-            l.attrs[shd.ATTR_basic_atlas_color] = .{ .format = .FLOAT4, .buffer_index = 1 };
+            l.attrs[shd.ATTR_basic_color] = .{ .format = .FLOAT4, .buffer_index = 1 };
             break :init l;
         },
         .index_type = .UINT16,
@@ -209,23 +203,17 @@ pub fn updateBuffers(self: *Self) void {
     );
 }
 
-pub fn drawSprite(
+pub fn render(
     self: *Self,
-    pos: vec2,
-    sprite_pos: vec2,
-    scale: f32,
+    vs_params: shd.VsParams,
 ) void {
-    _ = pos;
-    _ = sprite_pos;
-    _ = scale;
-    const vs_params = shd.SpriteVsParams{
-
-    };
-    const fs_params = shd.TexParams{
+    const fs_params = shd.FsParams{
         .atlas_size = self.atlas_size,
         .sprite_size = self.sprite_size,
     };
-    sg.applyPipeline(self.pipe);
+    for (self.pipelines.items) |pipe| {
+        sg.applyPipeline(pipe);
+    }
     sg.applyBindings(self.bindings);
     sg.applyUniforms(shd.UB_vs_params, sg.asRange(&vs_params));
     sg.applyUniforms(shd.UB_fs_params, sg.asRange(&fs_params));

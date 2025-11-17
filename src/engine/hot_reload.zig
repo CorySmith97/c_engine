@@ -1,5 +1,18 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const log = std.log.scoped(.hot_reload);
+
+pub const HotReloadConfig = struct {
+    game_dll_name: []const u8,
+    game_dll: ?std.DynLib = null,
+
+    state: *anyopaque,
+
+    init: *const fn () State = undefined,
+    tick: *const fn (State) void = undefined,
+    draw: *const fn (State) void = undefined,
+    reload: *const fn (State) void = undefined,
+};
 
 const State = *anyopaque;
 

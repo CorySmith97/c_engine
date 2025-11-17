@@ -10,7 +10,7 @@ const glue = sokol.glue;
 const imgui = sokol.imgui;
 const sdtx = sokol.debugtext;
 
-const RenderSystem = @import("../render_system.zig");
+const RenderSystem = @import("../render.zig");
 
 const Console = @import("console.zig");
 const TypeEditors = @import("entity_editor.zig");

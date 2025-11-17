@@ -16,12 +16,12 @@ const sokol = @import("sokol");
 const sdtx = sokol.debugtext;
 
 const Console = @import("editor/console.zig");
-const RenderSystem = @import("render_system.zig");
+const RenderSystem = @import("render.zig");
 const RenderPass = RenderSystem.RenderPass;
 
-const AudioSystem = @import("audio_system.zig");
+const AudioSystem = @import("audio.zig");
 
-const LogSystem = @import("log_system.zig").LogSystem;
+const LogSystem = @import("log.zig").LogSystem;
 
 const shd = @import("shaders/basic.glsl.zig");
 const types = @import("types.zig");

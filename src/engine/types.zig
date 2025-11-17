@@ -8,35 +8,20 @@
 ///     Uniform types that are used by both the engine and game
 /// ===========================================================================
 const std = @import("std");
-pub const EntityNs = @import("types/entity.zig");
-pub const Entity = EntityNs.Entity;
-pub const Tile = @import("types/tile.zig");
-pub const Scene = @import("types/scene.zig");
 pub const RendererTypes = @import("types/render_system.zig");
 const math = @import("util/math.zig");
 pub const Editor = @import("types/editor.zig");
 pub const Camera = @import("types/camera.zig").Camera;
 pub const Camera3d = @import("types/camera.zig").Camera3d;
-pub const Menus = @import("types/menus.zig");
 
 pub const mac_Color_Blue   = "\x1b[34m";
 pub const mac_Color_Green  = "\x1b[32m";
 pub const mac_Color_Red    = "\x1b[31m";
 pub const mac_Color_Orange = "\x1b[35m";
 
-pub const GlobalConstants = struct {
-    pub var grid_size: f32 = 16.0;
-};
-
-
 pub const AABB = struct {
     min: math.Vec2 = .{},
     max: math.Vec2 = .{},
-};
-
-pub const GroupTile = struct {
-    id   : usize,
-    tile : Tile,
 };
 
 pub const Rect = struct {

@@ -21,8 +21,7 @@ const Scene = @import("../types.zig").Scene;
 var console_buf: [8192]u8 = undefined;
 
 //
-// @todo this needs to have access to the file in order to write
-// out any data that may result from the tool
+// There is a comptime need for extensions to be provided from the game.
 //
 const cli_fn = *const fn (*State, [][]const u8) anyerror!void;
 

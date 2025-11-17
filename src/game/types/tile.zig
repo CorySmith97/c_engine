@@ -10,7 +10,7 @@
 /// ===========================================================================
 
 const std = @import("std");
-const SpriteRenderable = @import("render_system.zig").SpriteRenderable;
+const SpriteRenderable = @import("render.zig").SpriteRenderable;
 const util = @import("../util.zig");
 const math = util.math;
 

@@ -5,33 +5,11 @@
 /// Date: 2025-04-22
 ///
 /// Description:
-///     @todo:cs I would like to rewrite this to take advantage of a
-///     command buffer style render pipeline. I want to have it not simply
-///     render these fixed layers I have, but rather allow for pass batching.
-///     IE the way raylib does it.
+///     2 types. InstancedPass. Pass.
+///     Each Pass has everything needs to do a single draw call.
+///     InstancedPass are one bind, one pass, and then all the other stuff
+///     needed for instanced rendering.
 /// ===========================================================================
-const std = @import("std");
-const sokol = @import("sokol");
-const sg = sokol.gfx;
-const sdtx = sokol.debugtext;
-const slog = sokol.log;
-
-const util = @import("util.zig");
-const math = util.math;
-
-const shd = @import("shaders/basic.glsl.zig");
-const cim = @cImport({
-    @cInclude("stb_image.h");
-});
-const types = @import("types.zig");
-const SpriteRenderable = types.RendererTypes.SpriteRenderable;
-const RenderPassIds = types.RendererTypes.RenderPassIds;
-pub const RenderPass = @import("render_system/Pass.zig");
-const RenderConfigs = @import("render_system/Configs.zig");
-pub const Draw = @import("render_system/drawCall.zig");
-pub const Spritesheet = @import("render_system/sprite.zig");
-
-const log = std.log.scoped(.renderer);
 
 const KC853 = 0;
 const KC854 = 1;
@@ -131,3 +109,25 @@ pub fn printFont(font_index: u32, title: [:0]const u8, r: u8, g: u8, b: u8) void
 }
 
 // @todo render function.
+const std = @import("std");
+const sokol = @import("sokol");
+const sg = sokol.gfx;
+const sdtx = sokol.debugtext;
+const slog = sokol.log;
+
+const util = @import("util.zig");
+const math = util.math;
+
+const shd = @import("shaders/basic.glsl.zig");
+const cim = @cImport({
+    @cInclude("stb_image.h");
+});
+const types = @import("types.zig");
+const SpriteRenderable = types.RendererTypes.SpriteRenderable;
+const RenderPassIds = types.RendererTypes.RenderPassIds;
+pub const RenderPass = @import("render_system/Pass.zig");
+const RenderConfigs = @import("render_system/Configs.zig");
+pub const Draw = @import("render_system/drawCall.zig");
+pub const Spritesheet = @import("render_system/sprite.zig");
+
+const log = std.log.scoped(.renderer);
